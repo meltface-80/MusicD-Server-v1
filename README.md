@@ -107,14 +107,25 @@ under **`/var/lib/musicd-server-v1`** on the host. This path is bind-mounted
 into the container at `/data` and owned by UID 1000:1000 (matching the
 container's `musicd` user).
 
-### 1. Extract the release
+### 1. Download and extract the release
+
+The release tar is published on the repo's `main` branch. Download it
+directly with `curl` (or `wget`) and extract into the build context:
 
 ```bash
-# On the host, somewhere stable for the build context
-mkdir -p /opt/musicd-server-v1
-tar -xf musicd-v1-1-3-7.tar -C /opt/musicd-server-v1 --strip-components=1
+sudo mkdir -p /opt/musicd-server-v1
 cd /opt/musicd-server-v1
+
+# Pull the release tar straight from the repo
+sudo curl -fSL -o musicd-v1-1-3-7.tar \
+  https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-3-7.tar
+
+sudo tar -xf musicd-v1-1-3-7.tar --strip-components=1
+sudo rm musicd-v1-1-3-7.tar
 ```
+
+> For a specific version, swap `main` for the tagged commit, e.g.
+> `https://github.com/meltface-80/MusicD-Server-v1/raw/v1.1.3.7/musicd-v1-1-3-7.tar`.
 
 ### 2. Prepare the data directory
 
