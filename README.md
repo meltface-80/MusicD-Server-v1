@@ -160,7 +160,6 @@ docker run -d \
   --group-add 29 \
   -v /var/lib/musicd-server-v1:/data \
   -v /path/to/your/music:/music:ro \
-  -v /proc/asound:/proc/asound:ro \
   -v /sys/class/thermal:/sys/class/thermal:ro \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -e PORT=32700 \
@@ -172,6 +171,15 @@ docker run -d \
 ```
 
 Then open `http://<host>:32700`.
+
+> **USB DAC capability probing (`-v /proc/asound:/proc/asound:ro`)** is
+> deliberately omitted above. On DietPi and other stock kernels `runc`
+> **rejects** this bind-mount with
+> `cannot be mounted because it is inside /proc` and the container fails to
+> start. USB DACs still work without it — `detect.js` falls back to
+> `aplay --dump-hw-params`, probing capabilities lazily on first use. Only
+> add `-v /proc/asound:/proc/asound:ro` if your kernel allows it (you can
+> test: if the container starts, it's fine).
 
 ### 5. Or run with `docker compose`
 
@@ -192,9 +200,11 @@ services:
     volumes:
       - /path/to/your/music:/music:ro
       - /var/lib/musicd-server-v1:/data
-      - /proc/asound:/proc/asound:ro
       - /sys/class/thermal:/sys/class/thermal:ro
       - /var/run/docker.sock:/var/run/docker.sock
+      # USB DAC probing — omit on DietPi / stock kernels (runc rejects
+      # mounts inside /proc and the container won't start):
+      # - /proc/asound:/proc/asound:ro
     environment:
       PORT: 32700
       MUSIC_DIR: /music
@@ -215,7 +225,7 @@ docker compose logs -f
 | `/var/lib/musicd-server-v1 → /data` | SQLite DB, DSP profiles, cover-art cache, backups | yes |
 | `/path/to/music → /music:ro` | Your music library, read-only | yes |
 | `/dev/snd` + `--group-add 29` | USB DAC / ALSA device access | only for local audio output |
-| `/proc/asound:ro` | USB DAC capability probing (sample rates, formats) | only for USB DACs |
+| `/proc/asound:ro` | Richer USB DAC capability probing (sample rates, formats) | optional — **omit on DietPi / stock kernels** (runc rejects mounts inside `/proc`); DACs still work via the `aplay` fallback |
 | `/sys/class/thermal:ro` | Host CPU temperature for background-job throttling | recommended |
 | `/var/run/docker.sock` | Auto-updater pulls new images and restarts the container | optional |
 
