@@ -111,13 +111,17 @@ Categories used per release:
   bump silently no-op'd — its verify step caught this, but only when
   run. Both files now agree at 1.1.3.8.
 
-- **Volume slider collided with the iOS home indicator.** The bar sat
-  hard against the bottom edge, so dragging it fought the system
-  swipe-up gesture. It now clears `env(safe-area-inset-bottom)` plus a
-  44px gap. This also required `viewport-fit=cover` on the viewport
-  meta — without it every `env(safe-area-inset-*)` resolves to 0 on
-  iOS. That makes the layout edge-to-edge, so the app's root grid pads
-  itself by the same inset to keep the mini-bar clear of the indicator.
+- **Volume slider sat too low.** The bar was hard against the bottom
+  edge, so dragging it fought the iOS swipe-up-to-close gesture. The
+  volume popup now carries 44px of padding underneath it instead of 28.
+
+  The padding is a fixed value, deliberately not
+  `env(safe-area-inset-bottom)`. An inset-based value only resolves to
+  anything once `viewport-fit=cover` is set on the viewport meta, and
+  setting that flag breaks the full-screen contract: the layout stops
+  filling the display, a safe-area chin appears at the bottom of every
+  screen, and the top controls are pushed out of thumb reach. The
+  padding belongs to this one popup, never to the app shell.
 
 ---
 

@@ -1567,13 +1567,19 @@ const s = {
     // v1.1.0.91: trimmed bottom padding 48 → 28, top 20 → 16. Popup
     // reads slightly more compact without losing breathing room.
     padding: '16px 24px 28px',
-    // v1.1.3.8: on iOS the slider sat directly on top of the home
-    // indicator, so drag gestures collided with the system
-    // swipe-up-to-close. Clear the inset (which is 0 on devices with
-    // no home indicator) plus a fixed 44px gap. Declared after the
-    // shorthand on purpose — if a browser drops the env() line the
-    // 28px above still applies as the fallback.
-    paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 44px)',
+    // v1.1.3.8: the slider sat too low, so drag gestures collided with
+    // the iOS swipe-up-to-close. This popup gets extra room underneath
+    // it — 44px rather than the 28px in the shorthand above.
+    //
+    // Deliberately NOT env(safe-area-inset-bottom): the app does not set
+    // viewport-fit=cover, because the full-screen contract requires the
+    // layout to keep filling the display. Without that flag every
+    // env(safe-area-inset-*) resolves to 0 on iOS, so an inset-based
+    // value would silently be exactly this number anyway — and adding
+    // the flag to make it resolve puts a visible chin at the bottom of
+    // every screen and pushes the top controls out of thumb reach.
+    // Padding belongs to this popup alone, never to the app shell.
+    paddingBottom: 44,
   },
   volTitle: { fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 20, textAlign: 'center' },
   volSliderWrap: { display: 'flex', alignItems: 'center', gap: 12 },

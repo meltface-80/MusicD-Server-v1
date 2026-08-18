@@ -352,12 +352,7 @@ function TopBar({ onMenuClick, canGoBack, onBack }) {
 }
 
 const s = {
-  // v1.1.3.8 — paddingBottom added alongside viewport-fit=cover (see
-  // index.html). With viewport-fit=cover, 100vh now spans the home-indicator
-  // strip too, so without this the mini-bar would sit underneath it. Global
-  // box-sizing is border-box, so the padding shrinks the grid's content box
-  // and the bar stays clear; the strip below just shows --bg-base.
-  root: { display: 'grid', gridTemplateColumns: '1fr', gridTemplateRows: '1fr var(--nowplaying-h)', height: '100vh', paddingBottom: 'env(safe-area-inset-bottom, 0px)', background: 'var(--bg-base)', position: 'relative', overflow: 'hidden' },
+  root: { display: 'grid', gridTemplateColumns: '1fr', gridTemplateRows: '1fr var(--nowplaying-h)', height: '100vh', background: 'var(--bg-base)', position: 'relative', overflow: 'hidden' },
   sidebarWrap: { position: 'fixed', top: 0, left: 0, bottom: 0, width: 'var(--sidebar-w)', transform: 'translateX(-100%)', transition: 'transform 0.25s ease', zIndex: 200 },
   sidebarOpen: { transform: 'translateX(0)' },
   backdrop: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 199 },
