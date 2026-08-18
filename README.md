@@ -70,6 +70,29 @@ repo's `main` branch, compares the published version against its own,
 and on request downloads the release tarball and restarts itself. The
 Docker socket mount above is what lets it do that.
 
+### Upgrading from v1.1.3.7 or earlier — one manual step
+
+The move to this repo's manifest ships *inside* v1.1.3.8, so a server
+still running an older build cannot learn about it from the update it
+has not taken yet. Those builds have the old Dropbox URL compiled in as
+their default and will keep polling it, reporting no update available.
+
+Point the running server at this manifest once, take the update, and it
+is over — v1.1.3.8 has the same URL as its own default, so nothing is
+left to maintain. There is no UI for this, so use the environment
+variable:
+
+```sh
+docker run -d --name musicd-server \
+  -e MUSICD_MANIFEST_URL=https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json \
+  ... rest of your usual flags ...
+```
+
+Restart, then **Settings → Check for updates**. The older manifest
+parser understands this file — the top-level `version` and `tarUrl`
+pair is carried for exactly that reason — so it will offer v1.1.3.8 and
+install it normally. The variable can be dropped afterwards.
+
 Cutting a release:
 
 ```sh
@@ -118,6 +141,7 @@ backups/                 # snapshot exports
 | `NODE_ENV` | `production` | Node environment |
 | `LMS_HOST` / `LMS_PORT` | `127.0.0.1` / `9000` | Lyrion Media Server (Squeezelite bridge) |
 | `SSDP_INTERFACE` | (auto) | Interface for SSDP multicast — set when `--network host` is unavailable |
+| `MUSICD_MANIFEST_URL` | (built in) | Override the update manifest URL. Set it empty to disable update checks entirely. Overrides both the built-in default and any stored setting |
 
 ## Features
 

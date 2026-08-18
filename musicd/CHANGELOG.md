@@ -74,6 +74,16 @@ Categories used per release:
   manifest announcing it are now one commit, and the URL has no
   expiring parts. This mirrors MusicD-Server-Bridge.
 
+  **This release cannot deliver itself.** A server still running
+  v1.1.3.7 or earlier has the Dropbox URL compiled in as its default,
+  so it never looks at GitHub and reports that it is up to date. Point
+  it here once with
+  `MUSICD_MANIFEST_URL=https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json`,
+  restart, and check for updates; the older parser reads this manifest
+  because the top-level `version`/`tarUrl` pair is carried for exactly
+  that reason. The variable can be dropped once v1.1.3.8 is running,
+  since that build has the same URL as its own default.
+
   Upgrading installs are handled: pre-v1.1.0.24 servers have the old
   Dropbox URL saved in `settings.update_manifest_url`, and the updater
   treats any stored value differing from the shipped default as a
