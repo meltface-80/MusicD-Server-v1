@@ -123,12 +123,13 @@ backups/                 # snapshot exports
 
 The [GitHub Pages site](https://meltface-80.github.io/MusicD-Server-v1/)
 has the full breakdown. In short: lossless and lossy playback including
-DSD and multichannel, loudness normalisation, DLNA/UPnP, Sonos,
-Squeezelite/LMS and local ALSA output with multi-zone queue handoff,
-parametric EQ with 1000+ AutoEQ presets, FIR convolution and crossfeed,
-a Roon-style signal path visualiser, SQLite FTS5 search, MusicBrainz and
-AcoustID matching, Last.fm scrobbling, share cards, and a Docker-aware
-auto-updater.
+DSD (decoded to 176.4 kHz PCM and streamed as FLAC), loudness
+normalisation, DLNA/UPnP, Sonos, Squeezelite/LMS and local ALSA output
+with multi-zone queue handoff, parametric EQ with AutoEQ presets (22
+bundled, the full upstream database fetched on demand), FIR convolution
+and crossfeed, a Roon-style signal path visualiser, SQLite FTS5 search,
+MusicBrainz and AcoustID matching, Last.fm scrobbling, share cards, and
+a Docker-aware auto-updater.
 
 ## API
 
