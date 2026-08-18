@@ -1708,7 +1708,7 @@ const s = {
     display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
     animation: 'fadeIn 0.18s ease',
   },
-  shareSheet: {
+  shareSheet: { paddingBottom: 'calc(32px + var(--safe-bot))',
     width: '100%', maxWidth: 480,
     background: '#1a1a24',
     border: '1px solid rgba(255,255,255,0.10)',
@@ -1784,7 +1784,7 @@ const s = {
     display: 'flex', flexDirection: 'column',
     overflow: 'hidden',
   },
-  dspOverlayHeader: {
+  dspOverlayHeader: { paddingTop: 'calc(14px + var(--safe-top))',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '14px 14px 10px',
     borderBottom: '1px solid var(--border)',
@@ -2061,7 +2061,7 @@ const s = {
     display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
     animation: 'fadeIn 0.18s ease',
   },
-  overflowBox: {
+  overflowBox: { paddingBottom: 'var(--safe-bot)',
     width: '100%', maxWidth: 480,
     background: '#1a1a24',
     border: '1px solid rgba(255,255,255,0.10)',
@@ -2164,13 +2164,13 @@ const s = {
     display: 'flex', flexDirection: 'column',
     overflow: 'hidden',
   },
-  aboutHeader: {
+  aboutHeader: { paddingTop: 'calc(14px + var(--safe-top))',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '14px 14px 10px',
     borderBottom: '1px solid var(--border)',
     flexShrink: 0,
   },
-  aboutBody: {
+  aboutBody: { paddingBottom: 'calc(80px + var(--safe-bot))',
     flex: 1, overflowY: 'auto',
     padding: '12px 18px 80px',
   },

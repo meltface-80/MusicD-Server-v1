@@ -204,7 +204,7 @@ export default function QueueModal() {
 
 const s = {
   overlay: { position:'fixed', inset:0, background:'rgba(0,0,0,0.65)', backdropFilter:'blur(6px)', display:'flex', alignItems:'flex-end', zIndex:1000 },
-  sheet: { background:'var(--bg-surface)', borderRadius:'20px 20px 0 0', border:'1px solid var(--border-bright)', width:'100%', maxHeight:'80vh', display:'flex', flexDirection:'column', overflow:'hidden' },
+  sheet: { paddingBottom: 'var(--safe-bot)', background:'var(--bg-surface)', borderRadius:'20px 20px 0 0', border:'1px solid var(--border-bright)', width:'100%', maxHeight:'80vh', display:'flex', flexDirection:'column', overflow:'hidden' },
   header: { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 16px 12px', borderBottom:'1px solid var(--border)', flexShrink:0, gap: 8 },
   headerActions: { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' },
   title: { fontSize:16, fontWeight:700 },

@@ -12,6 +12,55 @@ Categories used per release:
 
 ---
 
+## v1.1.3.9 — 2026-08-19 — iOS PWA LAYOUT
+
+### Fixed
+
+- **The app did not lay out correctly as an iPhone home-screen app.**
+  Content sat below a reserved band instead of running under the status
+  bar, and the controls along the top were pushed out of reach. Two
+  separate causes, both now matched to MusicD-Remote, which is the build
+  confirmed correct on a device:
+
+  **The head.** Three tags are gone. `apple-mobile-web-app-capable` opts
+  into the legacy iOS web-app path where the status-bar style governs
+  the window; `apple-mobile-web-app-status-bar-style: black-translucent`
+  shifts the document up under the status bar *without* growing the
+  layout viewport, which leaves a gap at the bottom the size of the
+  **top** inset (44–62px, not the 34px of a home indicator); and
+  `<link rel=manifest>` is read by iOS 17+, where `display: standalone`
+  with a `background_color` letterboxes the app rather than letting
+  `viewport-fit=cover` fill it. What remains — charset, viewport,
+  theme-color, title, icons — is the set the Remote ships.
+  `manifest.webmanifest` is kept in the tree so it can be re-linked once
+  that is verified on a device.
+
+  **The screens.** Insets are now applied per screen rather than in one
+  place, via `--safe-top` / `--safe-bot` in `index.css`. Seventeen
+  surfaces across twelve files: the app top bar and sidebar header, the
+  Now Playing top bar, the About/bio, DSP and overflow screens, and
+  every bottom sheet — queue, renderer, renderer icon, signal path,
+  library scope, unmatched, album, audio diagnostics, and both volume
+  popups. Nothing is applied to the app shell: padding the root grid is
+  what reserved a visible band on every screen.
+
+- **The shell measured itself in viewport units.** The root grid was
+  `height: 100vh`. Under `viewport-fit=cover` the viewport units and the
+  physical display disagree about whether the safe areas are included,
+  so the shell came up short. It is now `height: 100%` of `#root`, which
+  is itself a percentage of `html, body` — a percentage of a
+  fixed-height ancestor has no such ambiguity.
+
+### Note
+
+**iOS caches the home-screen window configuration at add-to-home-screen
+time**, not per launch. A shortcut created against any earlier build
+keeps the old window whatever the server now sends, so after updating,
+delete the shortcut and add it again. A "still broken" report before
+that step is not evidence the fix failed.
+
+---
+
 ## v1.1.3.8 — 2026-08-18 — SONOS STEREO PAIRS, SHARE CARD, BASELINE TIER
 
 ### New

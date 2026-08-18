@@ -180,7 +180,7 @@ export default function RendererModal({ onClose: onCloseProp, mode = 'focus' }) 
 
 const s = {
   overlay: { position: 'fixed', inset: 0, zIndex: 700, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'flex-end' },
-  sheet: { background: 'var(--bg-surface)', borderRadius: '16px 16px 0 0', width: '100%', maxHeight: '70vh', display: 'flex', flexDirection: 'column', borderTop: '1px solid var(--border)' },
+  sheet: { paddingBottom: 'var(--safe-bot)', background: 'var(--bg-surface)', borderRadius: '16px 16px 0 0', width: '100%', maxHeight: '70vh', display: 'flex', flexDirection: 'column', borderTop: '1px solid var(--border)' },
   handle: { width: 40, height: 4, background: 'var(--text-muted)', borderRadius: 2, margin: '8px auto 4px', opacity: 0.4 },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px 12px', borderBottom: '1px solid var(--border)' },
   title: { fontSize: 16, fontWeight: 700, margin: 0 },

@@ -195,7 +195,7 @@ const s = {
   // the otherwise monochrome menu read as a leftover. The "D" stays
   // visually distinct via weight, not colour.
   sidebar: { height: '100%', background: 'var(--jp-bg)', borderRight: '1px solid var(--jp-border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' },
-  header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 16px', borderBottom: '1px solid var(--jp-border)', flexShrink: 0 },
+  header: { paddingTop: 'calc(18px + var(--safe-top))', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 16px', borderBottom: '1px solid var(--jp-border)', flexShrink: 0 },
   logoBtn: { display: 'flex', alignItems: 'center', gap: 10, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' },
   logoMark: { width: 30, height: 30, borderRadius: 6, display: 'block', objectFit: 'contain' },
   logoText: { fontSize: 16, fontWeight: 600, letterSpacing: '-0.3px', display: 'inline-flex', color: 'var(--jp-text)' },

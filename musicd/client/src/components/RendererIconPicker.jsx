@@ -128,7 +128,7 @@ const s = {
     background: 'rgba(0,0,0,0.65)',
     display: 'flex', alignItems: 'flex-end',
   },
-  sheet: {
+  sheet: { paddingBottom: 'var(--safe-bot)',
     background: 'var(--bg-surface)',
     borderRadius: '16px 16px 0 0',
     width: '100%', maxHeight: '85vh',

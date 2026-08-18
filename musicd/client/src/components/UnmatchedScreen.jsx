@@ -390,7 +390,7 @@ const s = {
 
   // Candidates modal
   overlay: { position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'flex-end' },
-  sheet: { background: 'var(--bg-surface)', borderRadius: '16px 16px 0 0', width: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', borderTop: '1px solid var(--border)' },
+  sheet: { paddingBottom: 'var(--safe-bot)', background: 'var(--bg-surface)', borderRadius: '16px 16px 0 0', width: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', borderTop: '1px solid var(--border)' },
   sheetHeader: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)', gap: 8 },
   sheetTitle: { fontSize: 15, fontWeight: 700 },
   sheetSubtitle: { fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 },

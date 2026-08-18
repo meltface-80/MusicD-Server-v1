@@ -406,7 +406,7 @@ const s = {
     background: 'var(--bg-base)',
     display: 'flex', flexDirection: 'column',
   },
-  fullPageHeader: {
+  fullPageHeader: { paddingTop: 'calc(14px + var(--safe-top))',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '14px 12px 10px',
     borderBottom: '1px solid var(--border)',
@@ -434,7 +434,7 @@ const s = {
     background: 'rgba(0,0,0,0.55)',
     display: 'flex', alignItems: 'flex-end',
   },
-  sheet: {
+  sheet: { paddingBottom: 'var(--safe-bot)',
     background: 'var(--bg-surface)',
     borderRadius: '16px 16px 0 0',
     width: '100%', maxHeight: '80vh',

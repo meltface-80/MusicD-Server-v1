@@ -188,7 +188,7 @@ const s = {
     display: 'flex', alignItems: 'flex-end',
     zIndex: 1000,
   },
-  sheet: {
+  sheet: { paddingBottom: 'var(--safe-bot)',
     background: 'var(--bg-surface)',
     borderRadius: '20px 20px 0 0',
     border: '1px solid var(--border-bright)',
