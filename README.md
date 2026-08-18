@@ -6,14 +6,14 @@ A self-hosted music server with a Roon-inspired web UI, DLNA/UPnP output,
 parametric EQ DSP, AutoEQ headphone presets, FIR convolution, multi-zone
 renderer support, and a per-stream signal path visualiser.
 
-**Current release:** v1.1.3.9 — see [`musicd/CHANGELOG.md`](musicd/CHANGELOG.md).
+**Current release:** v1.1.4.0 — see [`musicd/CHANGELOG.md`](musicd/CHANGELOG.md).
 
 ## Repository layout
 
 | Path | What it is |
 |------|------------|
-| `musicd/` | MusicD Server (Node.js) and web client (React/Vite), v1.1.3.9 |
-| `musicd-v1-1-3-9.tar` | Published release tarball — what the in-app updater downloads |
+| `musicd/` | MusicD Server (Node.js) and web client (React/Vite), v1.1.4.0 |
+| `musicd-v1-1-4-0.tar` | Published release tarball — what the in-app updater downloads |
 | `manifest.json` | Update manifest polled by the server's updater |
 | `docs/` | GitHub Pages site (feature overview + install) |
 
@@ -32,6 +32,7 @@ docker run -d --name musicd-server \
   --network host \
   --device /dev/snd --group-add 29 \
   -v /var/lib/musicd-server-v1:/data \
+  -v /var/lib/musicd-server-v1/updates:/mnt/musicd_updates \
   -v /path/to/your/music:/music:ro \
   -v /sys/class/thermal:/sys/class/thermal:ro \
   -v /var/run/docker.sock:/var/run/docker.sock \
@@ -54,6 +55,14 @@ them:
   fails at boot with `SQLITE_READONLY`.
 - **`--group-add 29`** is the Debian/DietPi `audio` GID, needed only for
   local USB DAC output. Check yours with `getent group audio`.
+- **`/mnt/musicd_updates` must be a real bind mount** for in-app updates
+  to install. The updater stages the release tarball there and then
+  spawns a short-lived sidecar container that reads it from the *host*
+  side, so it resolves the host path of that mount through the Docker
+  socket. Without the mount there is no host path to resolve, and the
+  update fails with `Cannot resolve host path for /mnt/musicd_updates`
+  after downloading successfully. Create the directory before first run
+  so it is owned by UID 1000 rather than by root.
 
 Deliberately omitted: `-v /proc/asound:/proc/asound:ro`. On DietPi and
 other stock kernels `runc` rejects mounts inside `/proc` and the
@@ -70,6 +79,10 @@ repo's `main` branch, compares the published version against its own,
 and on request downloads the release tarball and restarts itself. The
 Docker socket mount above is what lets it do that.
 
+Optionally also mount `-v /var/lib/musicd-server-v1/downloads:/mnt/downloads`
+if you want to install a release by dropping its tarball on the host
+rather than fetching it from the manifest. In-app updates do not need it.
+
 ### Upgrading from v1.1.3.7 or earlier — one manual step
 
 The move to this repo's manifest shipped in v1.1.3.8, so a server still
@@ -78,7 +91,7 @@ not taken yet. Those builds have the old Dropbox URL compiled in as
 their default and will keep polling it, reporting no update available.
 
 Point the running server at this manifest once, take the update, and it
-is over — v1.1.3.9 has the same URL as its own default, so nothing is
+is over — v1.1.4.0 has the same URL as its own default, so nothing is
 left to maintain. There is no UI for this, so use the environment
 variable:
 
@@ -90,14 +103,14 @@ docker run -d --name musicd-server \
 
 Restart, then **Settings → Check for updates**. The older manifest
 parser understands this file — the top-level `version` and `tarUrl`
-pair is carried for exactly that reason — so it will offer v1.1.3.9 and
+pair is carried for exactly that reason — so it will offer v1.1.4.0 and
 install it normally. The variable can be dropped afterwards.
 
 Cutting a release:
 
 ```sh
 cd musicd
-./scripts/release.sh 1.1.4.0 --apply --tar   # bumps VERSION, both package.json, install.sh; builds the tar
+./scripts/release.sh 1.1.4.1 --apply --tar   # bumps VERSION, both package.json, install.sh; builds the tar
 ```
 
 Then move the tarball to the repo root, update `manifest.json` to point

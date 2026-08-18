@@ -638,7 +638,21 @@ async function runUpdateDocker(tarFilename, opts = {}) {
       `[musicd] If destinations are (none), the resolver couldn't find this container\n` +
       `[musicd] in docker. If destinations are listed but /mnt/musicd_updates is missing,\n` +
       `[musicd] install.sh used a non-standard mount path.\n`);
-    throw new Error('Cannot resolve host path for /mnt/musicd_updates');
+    // v1.1.4.0 — say what to do about it. This fires when
+    // /mnt/musicd_updates is not a bind mount from the host: the
+    // directory exists inside the container (we just created it), the
+    // download succeeded, and the only thing missing is a host path for
+    // the sidecar to read the tar from. The bare "cannot resolve" text
+    // gave no clue that the fix is a -v flag on the run command.
+    throw new Error(
+      'Cannot resolve host path for /mnt/musicd_updates. The update downloaded, ' +
+      'but installing it needs that directory to be a real bind mount from the ' +
+      'host, because a sidecar container reads the tarball from the host side. ' +
+      'Add "-v /var/lib/musicd-server-v1/updates:/mnt/musicd_updates" to your ' +
+      'docker run (or the equivalent volume in docker-compose.yml), create the ' +
+      'directory first so it belongs to UID 1000, and restart. ' +
+      `Mounts this container does have: ${info.knownDestinations.length ? info.knownDestinations.join(', ') : '(none — the Docker socket is not reachable)'}.`
+    );
   }
   fs.appendFileSync(logPath,
     `[musicd] resolved host updates path: ${updatesHost}\n` +
