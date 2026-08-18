@@ -12,6 +12,37 @@ Categories used per release:
 
 ---
 
+## v1.1.5.0 — 2026-08-19 — BRANDING
+
+### Changed
+
+- **The share card is marked with the MusicD waveform** instead of the
+  "MusicD" text it used to set in the bottom-right corner. It is the same
+  eight-bar glyph the sibling repo uses as its favicon, inlined as vector
+  rects rather than an embedded image — eight rectangles cost nothing,
+  scale cleanly, and keep the card a single self-contained SVG. The bars
+  are pinned by their *ink* rather than by the 64-unit box they are
+  authored in, so the corner margin is even. `WORDMARK_H` is the only
+  size knob.
+
+- **The duck-head mark is now the app icon and favicon**, shared with
+  MusicD-Remote so the server and the Roon extension carry one identity.
+  Replaces the blue "mD" artwork across `icon-192`, `icon-512`,
+  `icon-maskable-512`, `apple-touch-icon`, `favicon-32` and `favicon.svg`.
+  The maskable icon comes from the Remote's own inset artwork rather than
+  the full-bleed version, because Android crops adaptive icons to the
+  launcher's shape and guarantees only the centre 80% — the full-bleed art
+  would lose the headphone cup.
+
+### Note
+
+Versions now move `1.1.5.0 → 1.1.6.0 → 1.1.7.0`; the fourth part stays at
+0 unless asked for. Recorded in `CLAUDE.md` at the repo root, along with
+the iOS PWA head contract and the updates-mount requirement, so they
+survive across sessions.
+
+---
+
 ## v1.1.4.0 — 2026-08-19 — IN-APP UPDATES NEED A REAL UPDATES MOUNT
 
 ### Fixed

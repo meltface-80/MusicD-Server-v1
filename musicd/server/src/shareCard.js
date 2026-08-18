@@ -42,7 +42,6 @@ const COL_ART_EMPTY = '#1a1a1a';         // plate shown when there is no cover
 const COL_META = '#7f868d';              // "RELEASED …" eyebrow
 const COL_TITLE = '#ffffff';
 const COL_ARTIST = '#c0c6cc';
-const COL_ACCENT = '#5b7fff';            // the "D" of the wordmark
 
 // The browser card asks for "Manrope", sans-serif — a webfont that does not
 // exist in the server container. librsvg fails silently when a family is
@@ -75,15 +74,35 @@ const ARTIST_MAX_LINES = 4;
 // laid out at top y lands where canvas would have put it.
 const BASELINE_RATIO = 0.8;
 
-// The browser card composites a 110px-wide wordmark image at 88% opacity. No
-// image exists server-side, so the wordmark is set as text at the size that
+// v1.1.5.0 — the mark is the MusicD waveform glyph rather than the "MusicD"
+// text it used to set. It is the same eight-bar figure the sibling repo uses
+// as its favicon, drawn here as vector rects rather than an embedded image:
+// it is only eight rectangles, so inlining costs nothing, scales cleanly, and
+// keeps the card a single self-contained SVG.
+//
+// The glyph is authored in a 64-unit box with its bars occupying x 10..55 and
+// y 10..54. GLYPH_* record that drawn extent so the placement maths below can
+// pin the *ink* to the corner rather than the notional box, which would leave
+// an uneven margin.
+//
+// (Older note, kept because it explains the shape of this code: the browser
+// card composites a 110px-wide wordmark image at 88% opacity. No image exists
+// server-side, so the mark used to be set as text at the size that
 // renders it that wide in DejaVu Sans Bold (measured: 111px at 28px), in the
 // same corner. "MusicD" has no descenders, so its baseline is also its visual
 // bottom and can sit straight on the WORDMARK_PAD line.
-const WORDMARK_TEXT_A = 'Music';
-const WORDMARK_TEXT_D = 'D';
-const WORDMARK_SIZE = 28;
 const WORDMARK_OPACITY = 0.88;
+
+// Bar geometry, verbatim from the sibling repo's favicon: x, y, width, height.
+const GLYPH_BARS = [
+  [10, 28, 3,  8], [16, 22, 3, 20], [22, 14, 3, 36], [28, 20, 3, 24],
+  [34, 10, 3, 44], [40, 18, 3, 28], [46, 24, 3, 16], [52, 28, 3,  8],
+];
+const GLYPH_RADIUS = 1;
+const GLYPH_INK_X0 = 10, GLYPH_INK_X1 = 55;   // leftmost bar edge .. rightmost
+const GLYPH_INK_Y0 = 10, GLYPH_INK_Y1 = 54;   // tallest bar top .. baseline
+// Drawn height on the card. The glyph is near-square, so this sets both.
+const WORDMARK_H = 78;
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -245,8 +264,15 @@ async function generateForAlbum(albumId) {
     ? ''
     : `<rect x="0" y="0" width="${ART_W}" height="${ART_H}" fill="${COL_ART_EMPTY}"/>`;
 
-  // Wordmark pinned bottom-right, its feet WORDMARK_PAD clear of both edges.
-  const wordmarkY = CARD_H - WORDMARK_PAD;
+  // Waveform mark pinned bottom-right, its ink WORDMARK_PAD clear of both
+  // edges. Scale from the glyph's drawn height, then translate so the ink —
+  // not the 64-unit box it is authored in — lands on the padding lines.
+  const glyphScale = WORDMARK_H / (GLYPH_INK_Y1 - GLYPH_INK_Y0);
+  const glyphX = (CARD_W - WORDMARK_PAD) - GLYPH_INK_X1 * glyphScale;
+  const glyphY = (CARD_H - WORDMARK_PAD) - GLYPH_INK_Y1 * glyphScale;
+  const glyphBars = GLYPH_BARS
+    .map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${GLYPH_RADIUS}"/>`)
+    .join('');
 
   const svg = `<svg width="${CARD_W}" height="${CARD_H}" viewBox="0 0 ${CARD_W} ${CARD_H}" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -259,8 +285,6 @@ async function generateForAlbum(albumId) {
         .meta       { fill: ${COL_META};   font-family: ${FONT_FAMILY}; font-weight: ${META_WEIGHT}; }
         .title      { fill: ${COL_TITLE};  font-family: ${FONT_FAMILY}; font-weight: ${TITLE_WEIGHT}; }
         .artist     { fill: ${COL_ARTIST}; font-family: ${FONT_FAMILY}; font-weight: ${ARTIST_WEIGHT}; }
-        .wordmark   { fill: ${COL_TITLE};  font-family: ${FONT_FAMILY}; font-weight: 800; }
-        .wordmark-d { fill: ${COL_ACCENT}; }
       </style>
     </defs>
     ${emptyArtSvg}
@@ -268,9 +292,8 @@ async function generateForAlbum(albumId) {
     ${metaSvg}
     ${titleSvg}
     ${artistSvg}
-    <text x="${CARD_W - WORDMARK_PAD}" y="${wordmarkY}" text-anchor="end"
-          font-size="${WORDMARK_SIZE}" opacity="${WORDMARK_OPACITY}"
-          class="wordmark">${WORDMARK_TEXT_A}<tspan class="wordmark-d">${WORDMARK_TEXT_D}</tspan></text>
+    <g transform="translate(${glyphX.toFixed(2)} ${glyphY.toFixed(2)}) scale(${glyphScale.toFixed(4)})"
+       fill="${COL_TITLE}" opacity="${WORDMARK_OPACITY}">${glyphBars}</g>
   </svg>`;
 
   // Base plate is the card background; art goes under the SVG so the fade
