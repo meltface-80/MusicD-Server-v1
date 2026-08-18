@@ -352,12 +352,7 @@ function TopBar({ onMenuClick, canGoBack, onBack }) {
 }
 
 const s = {
-  // v1.1.3.8 — paddingBottom added alongside viewport-fit=cover (see
-  // index.html). With viewport-fit=cover, 100vh now spans the home-indicator
-  // strip too, so without this the mini-bar would sit underneath it. Global
-  // box-sizing is border-box, so the padding shrinks the grid's content box
-  // and the bar stays clear; the strip below just shows --bg-base.
-  root: { display: 'grid', gridTemplateColumns: '1fr', gridTemplateRows: '1fr var(--nowplaying-h)', height: '100vh', paddingBottom: 'env(safe-area-inset-bottom, 0px)', background: 'var(--bg-base)', position: 'relative', overflow: 'hidden' },
+  root: { display: 'grid', gridTemplateColumns: '1fr', gridTemplateRows: '1fr var(--nowplaying-h)', height: '100vh', background: 'var(--bg-base)', position: 'relative', overflow: 'hidden' },
   sidebarWrap: { position: 'fixed', top: 0, left: 0, bottom: 0, width: 'var(--sidebar-w)', transform: 'translateX(-100%)', transition: 'transform 0.25s ease', zIndex: 200 },
   sidebarOpen: { transform: 'translateX(0)' },
   backdrop: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 199 },
@@ -365,6 +360,11 @@ const s = {
   topbar: {
     display: 'flex', alignItems: 'center', gap: 4,
     padding: '8px 8px',
+    // With viewport-fit=cover the viewport spans the whole display, so
+    // this bar starts underneath the status bar. Pad its CONTENT down by
+    // the top inset — the bar's own background still runs edge to edge,
+    // so there is no visible band, and the buttons come back into reach.
+    paddingTop: 'calc(8px + env(safe-area-inset-top, 0px))',
     borderBottom: '1px solid var(--border)',
     background: 'var(--bg-surface)',
     flexShrink: 0, zIndex: 10,

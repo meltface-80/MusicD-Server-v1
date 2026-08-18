@@ -1567,12 +1567,15 @@ const s = {
     // v1.1.0.91: trimmed bottom padding 48 → 28, top 20 → 16. Popup
     // reads slightly more compact without losing breathing room.
     padding: '16px 24px 28px',
-    // v1.1.3.8: on iOS the slider sat directly on top of the home
-    // indicator, so drag gestures collided with the system
-    // swipe-up-to-close. Clear the inset (which is 0 on devices with
-    // no home indicator) plus a fixed 44px gap. Declared after the
-    // shorthand on purpose — if a browser drops the env() line the
-    // 28px above still applies as the fallback.
+    // v1.1.3.8: the slider sat too low, so drag gestures collided with
+    // the iOS swipe-up-to-close gesture. Clear the home indicator, then
+    // 44px of actual breathing room on top of it.
+    //
+    // This padding belongs to the popup, never to the app shell. Putting
+    // an inset on the root grid instead reserves a visible band at the
+    // bottom of every screen and pushes the top controls out of reach —
+    // that was the v1.1.3.8 regression. Components pad themselves; the
+    // shell stays edge to edge.
     paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 44px)',
   },
   volTitle: { fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 20, textAlign: 'center' },
@@ -1602,7 +1605,10 @@ const s = {
 
   topBar: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    paddingTop: 14, paddingBottom: 10, flexShrink: 0,
+    // Same reasoning as App.jsx's topbar: this screen is full-bleed under
+    // viewport-fit=cover, so the row clears the status bar itself.
+    paddingTop: 'calc(14px + env(safe-area-inset-top, 0px))',
+    paddingBottom: 10, flexShrink: 0,
   },
   orbBtn: { width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none' },
   orb: { width: 11, height: 11, borderRadius: '50%', transition: 'all 0.3s' },

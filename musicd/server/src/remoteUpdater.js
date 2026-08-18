@@ -1,15 +1,16 @@
 // Remote update fetcher (#30.6).
 // =================================
-// Polls a JSON manifest URL (typically a Dropbox-hosted manifest.json),
-// compares the version field to the running version, and on demand
-// downloads the referenced tar into the local /mnt/downloads watch
-// folder so the existing updater pipeline picks it up.
+// Polls a JSON manifest URL, compares the version field to the running
+// version, and on demand downloads the referenced tar into the local
+// /mnt/downloads watch folder so the existing updater pipeline picks
+// it up.
 //
 // The manifest format (kept deliberately small):
 //
 //   {
-//     "version": "1.0.30.6",
-//     "tarUrl":  "https://www.dropbox.com/.../musicd-v1-0-30-6.tar?dl=1",
+//     "version": "1.1.3.8",
+//     "tarUrl":  "https://github.com/.../raw/main/musicd-v1-1-3-8.tar",
+//     "tarSha256": null,          // optional — see expectedSha256For()
 //     "releaseNotes": "Optional human-readable notes"
 //   }
 //
@@ -18,15 +19,35 @@
 // download the multi-MB tar when the user actually opts in to update.
 //
 // The manifest URL itself is stable for the lifetime of the project —
-// the *contents* of the manifest change with each release. This is
-// what makes the public-Dropbox-link approach work: the file at the URL
-// gets edited (Dropbox keeps the same shared link for the same file),
-// and inside it we point at whichever tar is current.
+// the *contents* of the manifest change with each release.
+//
+// v1.1.3.8 — the manifest moved from a public Dropbox share link to
+// this repo, served over GitHub raw:
+//
+//   https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json
+//
+// Why: the Dropbox link was a standing liability. Its share URL carries
+// load-bearing query parameters (`rlkey`, `dl=1`) plus a `st=` session
+// token that expires within hours, and getting any of them wrong meant
+// the server was served an HTML preview page instead of JSON — which is
+// exactly how auto-update silently did nothing until v1.1.2.3. Serving
+// the manifest out of the repo means the release, its notes and the
+// manifest that announces it are one commit, the URL has no expiring
+// parts, and anyone can see what is being published. This mirrors what
+// MusicD-Server-Bridge already does.
+//
+// The tar is hosted in the repo too, not as a GitHub Release asset:
+//
+//   https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-3-8.tar
+//
+// That URL 302s to the raw CDN; axios follows it (maxRedirects: 5).
 //
 // State model:
 //   _lastCheck:  timestamp of last manifest fetch attempt
 //   _lastResult: parsed manifest from the most recent successful fetch,
 //                or { error } from the most recent failed fetch.
+//   _lastGood:   the most recent *successfully parsed* manifest, which
+//                a later failure never clears (v1.1.3.8 — see below).
 //   _checkInFlight: shared promise for in-flight checks (so concurrent
 //                   callers don't trigger multiple fetches)
 //
@@ -35,6 +56,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');   // v1.1.3.8 — optional tar SHA-256 check
 const axios = require('axios');
 const version = require('./version');
 
@@ -135,7 +157,7 @@ function getPendingDirHost() {
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 // Manifest fetch should be quick; we don't want the daily check
-// blocking forever if Dropbox is slow.
+// blocking forever if the manifest host is slow.
 const MANIFEST_TIMEOUT_MS = 15_000;
 
 // Tar download has a longer timeout because the file is bigger.
@@ -151,8 +173,34 @@ const MAX_TAR_BYTES = 50 * 1024 * 1024;
 // Module state — set by checkNow() and read by getStatus().
 let _lastCheckTs   = 0;       // unix seconds
 let _lastResult    = null;    // { version, tarUrl, releaseNotes } or { error }
+let _lastGood      = null;    // last successfully parsed manifest (v1.1.3.8)
 let _checkInFlight = null;    // Promise during an in-progress check
 let _checkTimer    = null;    // setInterval handle for daily checks
+
+/**
+ * v1.1.3.8 — the manifest every reader below works from.
+ *
+ * Returns the newest successfully parsed manifest, which is normally
+ * _lastResult but falls back to _lastGood when the most recent check
+ * failed. Before this, one failed fetch replaced _lastResult with
+ * { error } and every reader went null with it — so a single DNS blip
+ * or a five-second GitHub outage took the whole tier system down with
+ * it: getAccessTiers() returned null and POST /api/update/tier/code
+ * answered 503 "manifest not available yet" for the next 24 hours,
+ * until the daily poll happened to succeed. A manifest we fetched an
+ * hour ago is still a perfectly good answer to "which codes are valid"
+ * and "what is on the beta channel"; a transient network error is not
+ * a reason to forget it.
+ *
+ * getStatus() deliberately keeps reporting _lastResult, so the Settings
+ * page still shows the live error even while the cached manifest is
+ * being served from here.
+ */
+function cachedManifest() {
+  if (_lastResult && !_lastResult.error) return _lastResult;
+  if (_lastGood && !_lastGood.error) return _lastGood;
+  return null;
+}
 
 /**
  * Get the manifest URL (#v1.1.0.25). Now baked into the build rather
@@ -185,9 +233,20 @@ function getManifestUrl() {
     const v = (row?.value || '').trim();
     // If the user previously cleared their URL (empty row), respect
     // that and stay disabled. Otherwise, if they set a custom URL
-    // that's NOT the v1.1.0.24-or-earlier default, keep it.
+    // that's NOT one of the shipped defaults, keep it.
+    //
+    // v1.1.3.8 — this compares against every URL we have ever shipped
+    // as the default (isSupersededDefault), not just the current one.
+    // Installs from v1.1.0.24 and earlier still have the old Dropbox
+    // URL sitting in their settings table because that release seeded
+    // it there. With a single-string comparison, moving the default to
+    // GitHub raw would have made that stored Dropbox URL suddenly look
+    // like a deliberate user override — and every one of those installs
+    // would have gone on polling the dead Dropbox link forever, never
+    // seeing another release. A row that merely repeats a default we
+    // once shipped is not a choice the user made.
     if (row && v === '') return null;
-    if (v && v !== LEGACY_DEFAULT_URL) return v;
+    if (v && !isSupersededDefault(v)) return v;
   } catch {
     // settings table missing or other DB error — fall through to default
   }
@@ -199,30 +258,57 @@ function getManifestUrl() {
  * Default manifest URL (#v1.1.0.25 baked in). Override via
  * MUSICD_MANIFEST_URL env variable.
  *
- * v1.1.2.3: fixed two long-standing bugs in this URL.
- *   1. `dl=0` → `dl=1`. With dl=0 Dropbox serves the HTML preview
- *      page, not the JSON. The fetcher would get HTML, fail to
- *      parse it, and silently report "manifest is not valid JSON"
- *      from every check. Auto-update never worked.
- *   2. Removed the `&st=...` session token. That token is
- *      browser-session-bound and expires within hours; the link
- *      worked when first pasted but began returning 403 after.
- *      The persistent `rlkey=` is the actual share-key — that's
- *      sufficient on its own.
+ * v1.1.3.8 — now the manifest committed to this repo, served by
+ * GitHub raw off the default branch. The manifest and the tar it
+ * points at land in the same commit as the code they describe, so a
+ * release can no longer half-exist (published tar, un-updated
+ * manifest, or the reverse), and there is nothing in the URL that
+ * expires.
  *
- * Same Dropbox file as before; only the URL parameters changed.
+ * Previously (v1.1.2.3 through v1.1.3.7) this was a Dropbox public
+ * share link, kept here for the record because installs still carry
+ * it in their settings table:
+ *
+ *   https://www.dropbox.com/scl/fi/f652dr08cy6cci4e2ur17/manifest.json?rlkey=...&dl=1
+ *
+ * Two separate bugs had to be fixed in that URL before it worked at
+ * all — `dl=0` served an HTML preview page instead of the JSON, and
+ * the `st=` session token expired within hours and started answering
+ * 403 — which is the whole argument for a URL with no parameters.
  */
-const DEFAULT_MANIFEST_URL = 'https://www.dropbox.com/scl/fi/f652dr08cy6cci4e2ur17/manifest.json?rlkey=pglhbq32hpsq9ofp10zg07l89&dl=1';
+const DEFAULT_MANIFEST_URL = 'https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json';
 
 /**
- * The previous (v1.1.0.24-and-earlier) default URL that was stored
- * verbatim in the settings table for users who never customised it.
- * We treat "settings.update_manifest_url == LEGACY_DEFAULT_URL" the
- * same as "no setting" so the env-override / new-default path takes
- * over cleanly. Currently the same string -- if the canonical URL
- * ever changes, both constants update together.
+ * Every URL we have ever shipped as the baked-in default.
+ *
+ * Installs from v1.1.0.24 and earlier had the default of their day
+ * written into `settings.update_manifest_url`; later releases stopped
+ * seeding the row but still read it. A stored value matching any entry
+ * here is therefore a leftover, not a user choice, and getManifestUrl()
+ * treats it as "no setting" so those installs follow the current
+ * default instead of being pinned to a retired one.
+ *
+ * Compared after normaliseDropboxUrl() so the dl=0 / st=... variants of
+ * the same Dropbox link that were seeded at different times all match.
+ * Add to this list — never edit an entry — whenever the default moves.
  */
-const LEGACY_DEFAULT_URL = DEFAULT_MANIFEST_URL;
+const LEGACY_DEFAULT_URLS = [
+  'https://www.dropbox.com/scl/fi/f652dr08cy6cci4e2ur17/manifest.json?rlkey=pglhbq32hpsq9ofp10zg07l89&dl=1',
+  'https://www.dropbox.com/scl/fi/f652dr08cy6cci4e2ur17/manifest.json?rlkey=pglhbq32hpsq9ofp10zg07l89&dl=0',
+  DEFAULT_MANIFEST_URL,
+];
+
+/**
+ * True if `candidate` is one of the defaults we have shipped, i.e. a
+ * value that got into the settings table by seeding rather than by
+ * someone choosing it. v1.1.3.8 — replaces the single-string
+ * LEGACY_DEFAULT_URL comparison; see getManifestUrl() for why.
+ */
+function isSupersededDefault(candidate) {
+  if (!candidate) return false;
+  const c = normaliseDropboxUrl(String(candidate).trim());
+  return LEGACY_DEFAULT_URLS.some(u => normaliseDropboxUrl(u) === c);
+}
 
 /**
  * setManifestUrl is no longer exposed -- the URL isn't user-configurable
@@ -248,6 +334,19 @@ function setManifestUrl() {
  * the share to remain valid.
  *
  * Other domains pass through unchanged.
+ *
+ * v1.1.3.8 — the baked-in manifest and tar URLs are now GitHub, so
+ * this function is a no-op on the default path: the `dropbox.com`
+ * guard on the second line returns the string untouched before any
+ * rewriting happens. It is kept, not deleted, because both override
+ * routes still exist — MUSICD_MANIFEST_URL and the legacy
+ * `update_manifest_url` settings row can each still hold a Dropbox
+ * share link, and a private mirror on Dropbox is exactly the case
+ * those overrides are for. Deleting it would silently break them.
+ *
+ * If a rewrite rule is ever added here, it must stay behind that guard
+ * — appending `?dl=1` to a raw.githubusercontent.com URL is harmless
+ * today, but a rule that touched the path would corrupt it.
  */
 function normaliseDropboxUrl(url) {
   if (!url || typeof url !== 'string') return url;
@@ -269,6 +368,60 @@ function normaliseDropboxUrl(url) {
 }
 
 /**
+ * v1.1.3.8 — request headers that ask every cache in the path to
+ * revalidate. Sent on the manifest fetch only; the tar download is
+ * content-addressed by filename and never changes under a given name,
+ * so caching it is a feature.
+ */
+const NO_CACHE_HEADERS = {
+  'Cache-Control': 'no-cache, no-store, max-age=0',
+  'Pragma': 'no-cache',
+};
+
+/**
+ * v1.1.3.8 — append a throwaway query parameter so the manifest fetch
+ * cannot be answered from a shared cache.
+ *
+ * raw.githubusercontent.com is fronted by a CDN that serves the file
+ * with a five-minute max-age and, more to the point, keys its cache on
+ * the URL. NO_CACHE_HEADERS asks nicely, but a request header is a hint
+ * an intermediate cache is free to ignore, and this is the one failure
+ * mode that cannot be diagnosed from the server: a stale copy pins the
+ * updater to a superseded manifest, every check reports "up to date",
+ * and nothing anywhere logs an error. A URL the cache has never seen
+ * cannot be stale, so we make one per request. The origin ignores
+ * unknown query parameters, and at one manifest fetch per day (plus the
+ * occasional manual "Check now") the cost of always missing the cache
+ * is nil.
+ *
+ * Dropbox share links are left alone: their query string is
+ * load-bearing (`rlkey`, `dl`) and is not a place to add guesses.
+ */
+function cacheBustUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+  if (/dropbox\.com/.test(url)) return url;
+  return url + (url.includes('?') ? '&' : '?') + `_cb=${Date.now()}`;
+}
+
+/**
+ * v1.1.3.8 — turn an axios failure into something a user can act on.
+ *
+ * A 404 from GitHub raw has one overwhelmingly likely cause during a
+ * release: the manifest has not been committed to the branch yet. The
+ * bare "Request failed with status code 404" sent people looking for a
+ * missing GitHub Release, which is not how this manifest is published.
+ */
+function describeFetchFailure(e, url) {
+  const status = e?.response?.status;
+  if (status === 404 && /github(usercontent)?\.com/.test(String(url))) {
+    return `fetch failed: HTTP 404 for ${String(url).split('?')[0]} — the ` +
+           `manifest is not on that branch. It is published by committing ` +
+           `manifest.json, not by cutting a GitHub release.`;
+  }
+  return `fetch failed: ${e.message}`;
+}
+
+/**
  * Fetch and parse the manifest JSON from the configured URL.
  * Returns the parsed object on success, or { error: '...' } on failure.
  *
@@ -287,10 +440,10 @@ async function fetchManifest(url) {
   const fetchUrl = normaliseDropboxUrl(url);
   let body;
   try {
-    const r = await axios.get(fetchUrl, {
+    const r = await axios.get(cacheBustUrl(fetchUrl), {
       timeout: MANIFEST_TIMEOUT_MS,
       maxRedirects: 5,
-      headers: { 'User-Agent': 'musicd/1.0 update-checker' },
+      headers: { 'User-Agent': 'musicd/1.0 update-checker', ...NO_CACHE_HEADERS },
       responseType: 'text',
       transformResponse: [v => v],   // disable axios's auto JSON-parse
                                       // so we can give precise errors
@@ -313,10 +466,10 @@ async function fetchManifest(url) {
         });
         body = r2.data;
       } catch (e2) {
-        return { error: `fetch failed: ${e2.message}` };
+        return { error: describeFetchFailure(e2, stripped) };
       }
     } else {
-      return { error: `fetch failed: ${e.message}` };
+      return { error: describeFetchFailure(e, fetchUrl) };
     }
   }
 
@@ -327,11 +480,17 @@ async function fetchManifest(url) {
   try {
     parsed = JSON.parse(body);
   } catch {
-    // Common Dropbox failure: returns HTML preview page rather than the
-    // file bytes. Surface a clear message so the user knows to fix the
-    // share link.
+    // An HTML body means we reached a web page, not the file. v1.1.3.8:
+    // the advice depends on where the manifest is hosted — telling a
+    // GitHub user to add ?dl=1 sends them somewhere useless, and the
+    // real cause there is a wrong path or a private repo serving a 404
+    // page.
     if (/<html|<!doctype/i.test(body.slice(0, 200))) {
-      return { error: 'manifest URL returned HTML (the share link probably needs ?dl=1)' };
+      return {
+        error: /dropbox\.com/i.test(fetchUrl)
+          ? 'manifest URL returned HTML (the share link probably needs ?dl=1)'
+          : 'manifest URL returned HTML, not JSON — check the path is right and the repo is public',
+      };
     }
     return { error: 'manifest is not valid JSON' };
   }
@@ -397,9 +556,17 @@ async function checkNow() {
     const result = await fetchManifest(url);
     _lastResult = result;
     if (result.error) {
-      console.warn(`[update] manifest check failed: ${result.error}`);
+      // v1.1.3.8 — _lastGood is deliberately left alone on failure.
+      // The failure is still reported (here, and through getStatus()
+      // to the Settings page), but the readers below keep answering
+      // from the last manifest that actually parsed, so a transient
+      // network error doesn't take the channel picker and the tier
+      // codes down with it. See cachedManifest().
+      console.warn(`[update] manifest check failed: ${result.error}` +
+        (_lastGood ? ' — continuing to use the last good manifest' : ''));
       return result;
     }
+    _lastGood = result;
     // Compare versions.
     const current = version.parseVersion(version.getVersion());
     const remote = version.parseVersion(result.version);
@@ -426,16 +593,17 @@ async function checkNow() {
  * musicd-vX-Y-Z-W.tar pattern that the existing local updater expects.
  */
 function findRemoteUpdate() {
-  if (!_lastResult || _lastResult.error) return null;
+  const manifest = cachedManifest();
+  if (!manifest) return null;
   // Legacy path: top-level version/tarUrl. Used when no channel
   // context is available (no user tier yet, or manifest has no
   // channels block). v1.1.1.3 routes pass an explicit channel via
   // findRemoteUpdateForChannel() instead.
-  if (typeof _lastResult.version !== 'string' || typeof _lastResult.tarUrl !== 'string') {
+  if (typeof manifest.version !== 'string' || typeof manifest.tarUrl !== 'string') {
     return null;
   }
   const current = version.parseVersion(version.getVersion());
-  const remote = version.parseVersion(_lastResult.version);
+  const remote = version.parseVersion(manifest.version);
   if (version.compareVersions(remote, current) <= 0) return null;
   // v1.1.1.3 — use version.tarFilenameFor so semver names are
   // generated correctly (musicd-1.0.0-beta.1.tar) alongside legacy
@@ -443,10 +611,10 @@ function findRemoteUpdate() {
   const tarFilename = version.tarFilenameFor(remote);
   return {
     currentVersion: version.formatVersion(current),
-    availableVersion: _lastResult.version,
+    availableVersion: manifest.version,
     tarFilename,
-    downloadUrl: _lastResult.tarUrl,
-    releaseNotes: _lastResult.releaseNotes || null,
+    downloadUrl: manifest.tarUrl,
+    releaseNotes: manifest.releaseNotes || null,
     source: 'remote',
     channel: null,  // legacy path — no channel context
   };
@@ -468,9 +636,10 @@ function findRemoteUpdate() {
  * with tier/feature-flag info to decide what to show the user.
  */
 function findRemoteUpdateForChannel(channelName) {
-  if (!_lastResult || _lastResult.error) return null;
-  if (!_lastResult.channels || typeof _lastResult.channels !== 'object') return null;
-  const ch = _lastResult.channels[channelName];
+  const manifest = cachedManifest();
+  if (!manifest) return null;
+  if (!manifest.channels || typeof manifest.channels !== 'object') return null;
+  const ch = manifest.channels[channelName];
   if (!ch) return null;
   if (typeof ch.version !== 'string' || typeof ch.tarUrl !== 'string') return null;
 
@@ -502,10 +671,11 @@ function findRemoteUpdateForChannel(channelName) {
  * service" semantics).
  */
 function getAvailableChannels() {
-  if (!_lastResult || _lastResult.error) return null;
-  if (!_lastResult.channels || typeof _lastResult.channels !== 'object') return null;
+  const manifest = cachedManifest();
+  if (!manifest) return null;
+  if (!manifest.channels || typeof manifest.channels !== 'object') return null;
   const out = {};
-  for (const [name, ch] of Object.entries(_lastResult.channels)) {
+  for (const [name, ch] of Object.entries(manifest.channels)) {
     out[name] = {
       version: ch.version,
       releasedAt: ch.releasedAt || null,
@@ -523,9 +693,10 @@ function getAvailableChannels() {
  * label, default?, featureFlags? }.
  */
 function getAccessTiers() {
-  if (!_lastResult || _lastResult.error) return null;
-  if (!_lastResult.accessTiers || typeof _lastResult.accessTiers !== 'object') return null;
-  return _lastResult.accessTiers;
+  const manifest = cachedManifest();
+  if (!manifest) return null;
+  if (!manifest.accessTiers || typeof manifest.accessTiers !== 'object') return null;
+  return manifest.accessTiers;
 }
 
 /**
@@ -533,9 +704,56 @@ function getAccessTiers() {
  * Returns the raw metadata object or null.
  */
 function getChannelMetadata() {
-  if (!_lastResult || _lastResult.error) return null;
-  if (!_lastResult.channelMetadata || typeof _lastResult.channelMetadata !== 'object') return null;
-  return _lastResult.channelMetadata;
+  const manifest = cachedManifest();
+  if (!manifest) return null;
+  if (!manifest.channelMetadata || typeof manifest.channelMetadata !== 'object') return null;
+  return manifest.channelMetadata;
+}
+
+/**
+ * v1.1.3.8 — find the SHA-256 the manifest declares for a tar URL.
+ *
+ * Returns a lowercase 64-hex string, or null when the manifest does not
+ * publish a usable hash for that URL. "Not usable" covers absent, null,
+ * empty, and anything that isn't 64 hex characters — all of them mean
+ * the same thing to the caller: nothing to check against.
+ *
+ * The hash is looked up by URL rather than passed down from the caller
+ * so that routes/update.js keeps calling downloadTar(url, filename)
+ * unchanged. Top-level and per-channel entries are both searched, and
+ * both the camelCase key this server reads (tarSha256) and the
+ * bridge-style alias (tarball_sha256 / sha256) are accepted, so a
+ * publisher who fills in either spelling gets verification.
+ */
+function expectedSha256For(downloadUrl) {
+  const manifest = cachedManifest();
+  if (!manifest || !downloadUrl) return null;
+  const want = String(downloadUrl).trim();
+  const hashOf = (entry) => {
+    for (const key of ['tarSha256', 'tarball_sha256', 'sha256']) {
+      const v = entry?.[key];
+      if (typeof v === 'string' && /^[0-9a-fA-F]{64}$/.test(v.trim())) {
+        return v.trim().toLowerCase();
+      }
+    }
+    return null;
+  };
+  const isSameTar = (entry) =>
+    ['tarUrl', 'tarball_url'].some(key => typeof entry?.[key] === 'string' && entry[key].trim() === want);
+
+  if (isSameTar(manifest)) {
+    const h = hashOf(manifest);
+    if (h) return h;
+  }
+  if (manifest.channels && typeof manifest.channels === 'object') {
+    for (const ch of Object.values(manifest.channels)) {
+      if (isSameTar(ch)) {
+        const h = hashOf(ch);
+        if (h) return h;
+      }
+    }
+  }
+  return null;
 }
 
 /**
@@ -548,9 +766,39 @@ function getChannelMetadata() {
  * The tar lands in PENDING_DIR (writable) rather than the local watch
  * folder /mnt/downloads (often :ro). The runUpdate() path knows to look
  * here for remote-source updates — see updater.js.
+ *
+ * v1.1.3.8 — SHA-256 verification, when and only when the manifest
+ * declares one.
+ *
+ * `expectedSha256` may be passed explicitly; when it is omitted (which
+ * is how routes/update.js calls this) the hash is looked up from the
+ * cached manifest by URL. A published hash is enforced: mismatch means
+ * the tmp file is deleted and nothing is installed. No published hash
+ * means the download proceeds on the size and ustar checks alone, with
+ * a one-line warning.
+ *
+ * Optional rather than mandatory because of how this project publishes:
+ * the manifest is committed before the tar it points at has been built,
+ * so at authoring time the hash genuinely is not knowable, and there is
+ * no second place to put it — the manifest URL is the trust anchor.
+ * Making the hash mandatory would mean either blocking every update
+ * until someone remembers to backfill it, or writing a placeholder that
+ * is indistinguishable from a real hash and would fail every download
+ * with "checksum mismatch". Refusing all updates is a far worse outcome
+ * than the status quo of not checking, which is what every release up
+ * to v1.1.3.7 did. Fill tarSha256 in and the check turns itself on.
  */
-async function downloadTar(downloadUrl, tarFilename) {
+async function downloadTar(downloadUrl, tarFilename, expectedSha256) {
   if (!downloadUrl) return { ok: false, error: 'no download URL' };
+
+  // v1.1.3.8 — resolve the expected hash before the first byte lands,
+  // so the decision "are we verifying this download or not" is made
+  // once and can be logged, rather than discovered halfway through.
+  const wantSha =
+    (typeof expectedSha256 === 'string' && /^[0-9a-fA-F]{64}$/.test(expectedSha256.trim()))
+      ? expectedSha256.trim().toLowerCase()
+      : expectedSha256For(downloadUrl);
+
   // Ensure target dir exists. fs.mkdirSync is idempotent with recursive.
   try {
     fs.mkdirSync(PENDING_DIR, { recursive: true });
@@ -581,12 +829,18 @@ async function downloadTar(downloadUrl, tarFilename) {
 
   // Pipe stream to a tmp file so a partial download doesn't masquerade
   // as a complete tar. Rename to the final filename only on success.
+  //
+  // v1.1.3.8 — the hash is computed from the same chunks on their way
+  // past, not by re-reading the finished file: it costs nothing here
+  // and it cannot disagree with what was written.
+  const hash = wantSha ? crypto.createHash('sha256') : null;
   try {
     await new Promise((resolve, reject) => {
       const out = fs.createWriteStream(tmpPath);
       let bytes = 0;
       stream.on('data', chunk => {
         bytes += chunk.length;
+        if (hash) hash.update(chunk);
         if (bytes > MAX_TAR_BYTES) {
           out.destroy();
           stream.destroy();
@@ -627,7 +881,15 @@ async function downloadTar(downloadUrl, tarFilename) {
     try { snippet = fs.readFileSync(tmpPath, 'utf8').slice(0, 200); } catch {}
     fs.unlinkSync(tmpPath);
     if (/<html|<!doctype/i.test(snippet)) {
-      return { ok: false, error: 'download returned HTML — the share link may need ?dl=1' };
+      // v1.1.3.8: same split as the manifest fetch above — Dropbox share
+      // links need ?dl=1, whereas a GitHub raw URL serving HTML means the
+      // tar is not committed at that path on the default branch.
+      return {
+        ok: false,
+        error: /dropbox\.com/i.test(fetchUrl)
+          ? 'download returned HTML — the share link may need ?dl=1'
+          : 'download returned HTML, not a tar — check the release tarball is committed at that path on main',
+      };
     }
     return { ok: false, error: `download too small (${stat.size} bytes)` };
   }
@@ -646,6 +908,33 @@ async function downloadTar(downloadUrl, tarFilename) {
   } catch (e) {
     // Magic check failed — not fatal, we still try.
     console.warn(`[update] tar magic check failed: ${e.message}`);
+  }
+
+  // v1.1.3.8 — checksum gate. Runs before the rename so a tar that
+  // fails it never appears under a name findAvailableUpdate() would
+  // pick up; the partial file is removed rather than left to be
+  // retried into the same failure.
+  if (wantSha) {
+    const gotSha = hash.digest('hex');
+    if (gotSha !== wantSha) {
+      try { fs.unlinkSync(tmpPath); } catch { /* best effort */ }
+      return {
+        ok: false,
+        error: `checksum mismatch for ${tarFilename}: manifest declares ` +
+               `sha256 ${wantSha}, downloaded file hashes to ${gotSha}. ` +
+               `Nothing was installed. Either the download was corrupted ` +
+               `or the manifest's tarSha256 is stale.`,
+      };
+    }
+    console.log(`[update] sha256 verified for ${tarFilename} (${wantSha})`);
+  } else {
+    // Not an error: the manifest is allowed to publish no hash, and
+    // every release up to v1.1.3.7 published none. Logged so that
+    // "was this download checked?" is answerable from the logs.
+    console.warn(
+      `[update] no sha256 published for ${tarFilename} — installing on the ` +
+      `size and tar-magic checks alone. Set tarSha256 in the manifest to ` +
+      `enable verification.`);
   }
 
   // Atomic rename → final filename. After this point findAvailableUpdate()
@@ -669,6 +958,12 @@ function getStatus() {
     enabled:        !!url,
     lastCheck:      _lastCheckTs || null,
     lastResult:     _lastResult || null,
+    // v1.1.3.8 — additive field. True when the last check failed but an
+    // earlier manifest is still being served to the channel picker and
+    // the tier codes, which is otherwise invisible: the UI shows the
+    // error from lastResult while everything carries on working.
+    // Existing consumers ignore it.
+    servingCached:  !!(_lastResult && _lastResult.error && _lastGood && !_lastGood.error),
   };
 }
 

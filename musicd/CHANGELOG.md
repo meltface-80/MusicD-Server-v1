@@ -65,6 +65,37 @@ Categories used per release:
 
 ---
 
+- **Updates now come from this repo, not Dropbox.** The updater polls
+  `manifest.json` on `main` over GitHub raw instead of a public Dropbox
+  share link. The Dropbox URL carried load-bearing query parameters and
+  a `st=` session token that expired within hours; when any of it went
+  stale the server was served an HTML preview page instead of JSON and
+  auto-update silently did nothing. The release, its notes and the
+  manifest announcing it are now one commit, and the URL has no
+  expiring parts. This mirrors MusicD-Server-Bridge.
+
+  Upgrading installs are handled: pre-v1.1.0.24 servers have the old
+  Dropbox URL saved in `settings.update_manifest_url`, and the updater
+  treats any stored value differing from the shipped default as a
+  deliberate override. Swapping the default alone would therefore have
+  pinned every one of them to the dead link permanently. Retired
+  defaults are now recognised and ignored, while a genuine custom URL
+  still wins.
+
+- **The manifest can now publish a tarball SHA-256.** `tarSha256` is
+  verified against the downloaded tar before it is put in place, and a
+  mismatch aborts and deletes the partial file. Verification is opt-in
+  by data: a manifest without a well-formed hash simply skips the check
+  rather than failing, so a malformed or placeholder value can never
+  block every update.
+
+- **A failed manifest fetch no longer disables the access codes.** One
+  bad fetch used to overwrite the cached manifest with an error, which
+  took `accessTiers` down with it — so a single DNS blip made
+  `POST /api/update/tier/code` answer 503 until the next daily poll.
+  The last good manifest is now retained across failures, with the
+  error still surfaced on the Settings page.
+
 ### Fixed
 
 - **Sonos stereo pairs appeared as two speakers, one of which
@@ -111,13 +142,38 @@ Categories used per release:
   bump silently no-op'd — its verify step caught this, but only when
   run. Both files now agree at 1.1.3.8.
 
-- **Volume slider collided with the iOS home indicator.** The bar sat
-  hard against the bottom edge, so dragging it fought the system
-  swipe-up gesture. It now clears `env(safe-area-inset-bottom)` plus a
-  44px gap. This also required `viewport-fit=cover` on the viewport
-  meta — without it every `env(safe-area-inset-*)` resolves to 0 on
-  iOS. That makes the layout edge-to-edge, so the app's root grid pads
-  itself by the same inset to keep the mini-bar clear of the indicator.
+- **The PWA did not fill the screen on iOS.** The head carried
+  `apple-mobile-web-app-status-bar-style: black-translucent`, which
+  shifts the document up under the status bar but does **not** grow the
+  layout viewport. Without `viewport-fit=cover` to grow it, the two
+  disagree: the document rides up, the controls along the top go under
+  the status bar and out of reach, and a gap the size of the *top*
+  inset (44-62px, not the 34px of a home indicator) is left at the
+  bottom. `viewport-fit=cover` is now on the viewport meta, which is
+  what both sibling builds that fill the screen correctly already do.
+
+  Insets are applied per component, never to the app shell: the two top
+  bars pad down by `safe-area-inset-top`, and the mini player pads up by
+  `safe-area-inset-bottom` so its controls clear the home indicator
+  while its background still runs to the edge. Padding the root grid
+  instead is what put a visible band across the bottom of every screen.
+
+  **iOS caches this at add-to-home-screen time**, not per launch, so an
+  existing home-screen shortcut keeps the old window shape no matter
+  what the server sends. Delete the shortcut and re-add it after
+  updating, or the fix is not observable.
+
+- **Volume slider sat too low.** The bar was hard against the bottom
+  edge, so dragging it fought the iOS swipe-up-to-close gesture. The
+  volume popup now carries 44px of padding underneath it instead of 28.
+
+  The padding is a fixed value, deliberately not
+  `env(safe-area-inset-bottom)`. An inset-based value only resolves to
+  anything once `viewport-fit=cover` is set on the viewport meta, and
+  setting that flag breaks the full-screen contract: the layout stops
+  filling the display, a safe-area chin appears at the bottom of every
+  screen, and the top controls are pushed out of thumb reach. The
+  padding belongs to this one popup, never to the app shell.
 
 ---
 

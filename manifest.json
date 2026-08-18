@@ -1,0 +1,134 @@
+{
+  "_comment": [
+    "MusicD-Server-v1 update manifest (v1.1.3.8). Served to running servers from",
+    "https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json",
+    "and read by musicd/server/src/remoteUpdater.js. Editing this file IS publishing",
+    "a release: the URL is stable for the life of the project, the contents change.",
+    "",
+    "Shape: hybrid (see musicd/CHANGELOG.md, v1.1.1.3). The top-level version/tarUrl",
+    "pair is what pre-v1.1.1.3 servers read; manifestVersion + channels is what",
+    "v1.1.1.3+ servers read once the user has picked a channel. Both must be kept in",
+    "step. camelCase keys are the ones this server actually reads; the snake_case",
+    "aliases (tarball_url, tarball_sha256, released_at, release_notes_url) mirror the",
+    "MusicD-Server-Bridge manifest so a bridge-style reader understands this file too.",
+    "",
+    "INTEGRITY: tarSha256 / tarball_sha256 are null because the tar is built and",
+    "committed after this manifest is written. null means 'no hash published' and the",
+    "updater skips hash verification for that download (it still enforces the size cap,",
+    "the too-small/HTML check and the ustar magic check). To turn verification on, run",
+    "  sha256sum musicd-v1-1-3-8.tar",
+    "and paste the hex into tarSha256 and tarball_sha256 below. Do NOT put a dummy",
+    "64-hex placeholder here: the updater cannot tell a placeholder from a real hash",
+    "and would refuse every download.",
+    "",
+    "accessTiers carries the four code-bearing tiers only. Demo has no code and, since",
+    "v1.1.3.8, no longer depends on the manifest at all (tierConfig.DEFAULT_TIER is the",
+    "floor). codeHash is sha256('musicd-v1-tier-' + code) — see tierConfig.hashCode.",
+    "Dropping this block makes POST /api/update/tier/code answer 503 and the four codes",
+    "stop working, so it must be carried across on every release."
+  ],
+
+  "manifestVersion": 1,
+  "schema_version": 1,
+
+  "version": "1.1.3.8",
+  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-3-8.tar",
+  "tarSha256": "7c88ac68660256b29c845e55e8eeedb3fdfae8b2e7ddfefeedfe99e85fcd845b",
+  "releasedAt": "2026-08-18T22:37:13Z",
+  "releaseNotes": "Sonos stereo pairs resolve to their group coordinator, redesigned share card with a Now Playing share button, discrete volume buttons, and Stable as the baseline tier.",
+
+  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-3-8.tar",
+  "tarball_sha256": "7c88ac68660256b29c845e55e8eeedb3fdfae8b2e7ddfefeedfe99e85fcd845b",
+  "released_at": "2026-08-18T22:37:13Z",
+  "release_notes_url": "https://github.com/meltface-80/MusicD-Server-v1/blob/main/musicd/CHANGELOG.md",
+
+  "channels": {
+    "stable": {
+      "version": "1.1.3.8",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-3-8.tar",
+      "tarSha256": null,
+      "releasedAt": "2026-08-18T22:37:13Z",
+      "releaseNotes": "Sonos stereo pairs resolve to their group coordinator, redesigned share card with a Now Playing share button, discrete volume buttons, and Stable as the baseline tier."
+    },
+    "earlyAccess": {
+      "version": "1.1.3.8",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-3-8.tar",
+      "tarSha256": null,
+      "releasedAt": "2026-08-18T22:37:13Z",
+      "releaseNotes": "Same build as Stable — no early-access release is ahead of it right now."
+    },
+    "beta": {
+      "version": "1.1.3.8",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-3-8.tar",
+      "tarSha256": null,
+      "releasedAt": "2026-08-18T22:37:13Z",
+      "releaseNotes": "Same build as Stable — no beta release is ahead of it right now."
+    },
+    "alpha": {
+      "version": "1.1.3.8",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-3-8.tar",
+      "tarSha256": null,
+      "releasedAt": "2026-08-18T22:37:13Z",
+      "releaseNotes": "Same build as Stable — no in-house release is ahead of it right now."
+    },
+    "legacy": {
+      "version": "1.1.3.8",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-3-8.tar",
+      "tarSha256": null,
+      "releasedAt": "2026-08-18T22:37:13Z",
+      "releaseNotes": "Same build as Stable — this repo hosts a single release tar."
+    }
+  },
+
+  "channelMetadata": {
+    "stable": {
+      "label": "Stable",
+      "description": "Tested releases. The default track for every install.",
+      "stability": "stable"
+    },
+    "earlyAccess": {
+      "label": "Early Access",
+      "description": "Stable builds published a little ahead of the general release.",
+      "stability": "stable-preview"
+    },
+    "beta": {
+      "label": "Beta",
+      "description": "Feature-complete builds still under test. Expect rough edges.",
+      "stability": "testing"
+    },
+    "alpha": {
+      "label": "Alpha",
+      "description": "In-house builds. Unannounced changes, may not boot.",
+      "stability": "experimental"
+    },
+    "legacy": {
+      "label": "Legacy",
+      "description": "Previous release track, kept for rollback.",
+      "stability": "legacy"
+    }
+  },
+
+  "accessTiers": {
+    "stable": {
+      "label": "Stable",
+      "channels": ["stable"],
+      "codeHash": "21dc812ca86ebfc22bc4e6c207647df44df40f3e0e0b9b6eac6cb4f048e049ee",
+      "default": true
+    },
+    "earlyAccess": {
+      "label": "Early Access",
+      "channels": ["stable", "earlyAccess"],
+      "codeHash": "1246ee01eeee3d00434fe271aadd2ad331a5c60490d6c8e2f9db53565bd2475c"
+    },
+    "beta": {
+      "label": "Beta tester",
+      "channels": ["stable", "earlyAccess", "beta"],
+      "codeHash": "81a8ea8f96687d4aeca1ba35c224da11c1b2d4eed8da2d2fca45395e036f00b2"
+    },
+    "alpha": {
+      "label": "Internal / Developer",
+      "channels": ["stable", "earlyAccess", "beta", "alpha", "legacy"],
+      "codeHash": "b93e8d8682aadd09179ce0f18ec3feca7c86c52b845c48d9fd3b3cc0856ce7b8"
+    }
+  }
+}
