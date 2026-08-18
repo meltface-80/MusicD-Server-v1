@@ -299,7 +299,8 @@ every 30 s. Healthchecks fail with HTTP 503 until the database is ready.
 | POST | `/api/dsp/profiles` | Create profile |
 | PUT | `/api/dsp/profiles/:id` | Update profile |
 | DELETE | `/api/dsp/profiles/:id` | Delete profile |
-| GET | `/api/share/card/:trackId` | Generate share card PNG |
+| GET | `/api/share/now-playing.png` | Share card PNG for the current track |
+| GET | `/api/share/album/:id.png` | Share card PNG for an album |
 | POST | `/api/scrobble/login` | Last.fm login |
 | GET | `/api/news` | Music news feed |
 | GET | `/api/update/check` | Manifest check |
