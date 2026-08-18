@@ -65,6 +65,37 @@ Categories used per release:
 
 ---
 
+- **Updates now come from this repo, not Dropbox.** The updater polls
+  `manifest.json` on `main` over GitHub raw instead of a public Dropbox
+  share link. The Dropbox URL carried load-bearing query parameters and
+  a `st=` session token that expired within hours; when any of it went
+  stale the server was served an HTML preview page instead of JSON and
+  auto-update silently did nothing. The release, its notes and the
+  manifest announcing it are now one commit, and the URL has no
+  expiring parts. This mirrors MusicD-Server-Bridge.
+
+  Upgrading installs are handled: pre-v1.1.0.24 servers have the old
+  Dropbox URL saved in `settings.update_manifest_url`, and the updater
+  treats any stored value differing from the shipped default as a
+  deliberate override. Swapping the default alone would therefore have
+  pinned every one of them to the dead link permanently. Retired
+  defaults are now recognised and ignored, while a genuine custom URL
+  still wins.
+
+- **The manifest can now publish a tarball SHA-256.** `tarSha256` is
+  verified against the downloaded tar before it is put in place, and a
+  mismatch aborts and deletes the partial file. Verification is opt-in
+  by data: a manifest without a well-formed hash simply skips the check
+  rather than failing, so a malformed or placeholder value can never
+  block every update.
+
+- **A failed manifest fetch no longer disables the access codes.** One
+  bad fetch used to overwrite the cached manifest with an error, which
+  took `accessTiers` down with it — so a single DNS blip made
+  `POST /api/update/tier/code` answer 503 until the next daily poll.
+  The last good manifest is now retained across failures, with the
+  error still surfaced on the Settings page.
+
 ### Fixed
 
 - **Sonos stereo pairs appeared as two speakers, one of which
