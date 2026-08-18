@@ -41,6 +41,21 @@ services:
       # Persistent database + config
       - musicd-data:/data
 
+      # In-app updates (v1.1.3.9). This MUST be a real bind mount from
+      # the host, not a named volume: the updater stages the release
+      # tarball here and then spawns a short-lived sidecar container
+      # that reads it from the HOST side, resolving this mount's host
+      # path through the Docker socket. A named volume has no host path
+      # to resolve, and the update fails with "Cannot resolve host path
+      # for /mnt/musicd_updates" after downloading successfully.
+      # Create it before first run so it belongs to UID 1000, not root.
+      - /var/lib/musicd-server-v1/updates:/mnt/musicd_updates
+
+      # Optional: drop a release tarball here to install it by hand
+      # instead of fetching it from the manifest. Not needed for
+      # in-app updates.
+      # - /var/lib/musicd-server-v1/downloads:/mnt/downloads
+
       # USB DAC capability detection — see comment above.
       - /proc/asound:/proc/asound:ro
 
