@@ -340,6 +340,8 @@ const s = {
     border: '1px solid var(--border)',
     borderRadius: '20px 20px 0 0',
     width: '100%', padding: '20px 24px 48px',
+    // v1.1.3.9 — clear the home indicator on top of the 48px.
+    paddingBottom: 'calc(48px + var(--safe-bot))',
   },
   volTitle: { fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 20, textAlign: 'center' },
   volSliderWrap: { display: 'flex', alignItems: 'center', gap: 12 },

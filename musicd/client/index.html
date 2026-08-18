@@ -18,14 +18,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>MusicD</title>
 
-    <!-- PWA wiring (#v1.1.0.3) -->
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- PWA wiring (#v1.1.0.3, corrected v1.1.3.9).
+         This head is deliberately the same shape as MusicD-Remote's, which is
+         the build confirmed to lay out correctly on an iPhone. Three tags that
+         used to be here are gone, and none of them may come back without
+         testing on a device:
+
+           apple-mobile-web-app-capable        opts into the legacy iOS web-app
+                                               path, where the status-bar-style
+                                               below governs the window;
+           apple-mobile-web-app-status-bar-style="black-translucent"
+                                               shifts the document up under the
+                                               status bar WITHOUT growing the
+                                               layout viewport, leaving a gap at
+                                               the bottom the size of the TOP
+                                               inset and pushing the top
+                                               controls out of reach;
+           link rel=manifest (named, not used) iOS 17+ reads it, and
+                                               display:standalone with a
+                                               background_color letterboxes the
+                                               app instead of letting
+                                               viewport-fit=cover fill it.
+
+         iOS reads these at ADD-TO-HOME-SCREEN time, not per launch, so a
+         shortcut made against a build that had them keeps the bad window until
+         it is deleted and re-added. public/manifest.webmanifest is kept so it
+         can be re-linked once that is verified on a device.
+
+         Safe areas are handled in CSS instead: every screen pads itself with
+         env(safe-area-inset-*) — see --safe-top / --safe-bot in index.css. -->
     <meta name="theme-color" content="#000000" />
-    <meta name="application-name" content="MusicD" />
-    <!-- iOS Safari: support standalone mode + apple touch icon -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="MusicD" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">

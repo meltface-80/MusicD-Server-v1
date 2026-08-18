@@ -1561,7 +1561,7 @@ const s = {
     display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
     animation: 'sheetFade 0.18s ease',
   },
-  sheetPanel: {
+  sheetPanel: { paddingBottom: 'var(--safe-bot)',
     width: '100%', maxWidth: 520,
     background: '#15151c',
     borderTopLeftRadius: 18, borderTopRightRadius: 18,

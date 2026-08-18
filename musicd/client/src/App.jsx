@@ -352,7 +352,12 @@ function TopBar({ onMenuClick, canGoBack, onBack }) {
 }
 
 const s = {
-  root: { display: 'grid', gridTemplateColumns: '1fr', gridTemplateRows: '1fr var(--nowplaying-h)', height: '100vh', background: 'var(--bg-base)', position: 'relative', overflow: 'hidden' },
+  // v1.1.3.9 — height is 100% of #root (which is height:100% of html/body),
+  // not 100vh. Under viewport-fit=cover on iOS the viewport units and the
+  // physical display disagree about whether the safe areas are included, and
+  // the shell came up short — a percentage of a fixed-height ancestor has no
+  // such ambiguity. No padding here on purpose: screens pad themselves.
+  root: { display: 'grid', gridTemplateColumns: '1fr', gridTemplateRows: '1fr var(--nowplaying-h)', height: '100%', background: 'var(--bg-base)', position: 'relative', overflow: 'hidden' },
   sidebarWrap: { position: 'fixed', top: 0, left: 0, bottom: 0, width: 'var(--sidebar-w)', transform: 'translateX(-100%)', transition: 'transform 0.25s ease', zIndex: 200 },
   sidebarOpen: { transform: 'translateX(0)' },
   backdrop: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 199 },

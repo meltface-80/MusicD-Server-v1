@@ -814,7 +814,7 @@ const s = {
     display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
     zIndex: 9999,
   },
-  diagSheet: {
+  diagSheet: { paddingBottom: 'var(--safe-bot)',
     width: '100%', maxWidth: 560,
     maxHeight: '85vh',
     overflowY: 'auto',

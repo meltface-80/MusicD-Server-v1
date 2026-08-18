@@ -6,14 +6,14 @@ A self-hosted music server with a Roon-inspired web UI, DLNA/UPnP output,
 parametric EQ DSP, AutoEQ headphone presets, FIR convolution, multi-zone
 renderer support, and a per-stream signal path visualiser.
 
-**Current release:** v1.1.3.8 — see [`musicd/CHANGELOG.md`](musicd/CHANGELOG.md).
+**Current release:** v1.1.3.9 — see [`musicd/CHANGELOG.md`](musicd/CHANGELOG.md).
 
 ## Repository layout
 
 | Path | What it is |
 |------|------------|
-| `musicd/` | MusicD Server (Node.js) and web client (React/Vite), v1.1.3.8 |
-| `musicd-v1-1-3-8.tar` | Published release tarball — what the in-app updater downloads |
+| `musicd/` | MusicD Server (Node.js) and web client (React/Vite), v1.1.3.9 |
+| `musicd-v1-1-3-9.tar` | Published release tarball — what the in-app updater downloads |
 | `manifest.json` | Update manifest polled by the server's updater |
 | `docs/` | GitHub Pages site (feature overview + install) |
 
@@ -72,13 +72,13 @@ Docker socket mount above is what lets it do that.
 
 ### Upgrading from v1.1.3.7 or earlier — one manual step
 
-The move to this repo's manifest ships *inside* v1.1.3.8, so a server
-still running an older build cannot learn about it from the update it
-has not taken yet. Those builds have the old Dropbox URL compiled in as
+The move to this repo's manifest shipped in v1.1.3.8, so a server still
+running v1.1.3.7 or earlier cannot learn about it from an update it has
+not taken yet. Those builds have the old Dropbox URL compiled in as
 their default and will keep polling it, reporting no update available.
 
 Point the running server at this manifest once, take the update, and it
-is over — v1.1.3.8 has the same URL as its own default, so nothing is
+is over — v1.1.3.9 has the same URL as its own default, so nothing is
 left to maintain. There is no UI for this, so use the environment
 variable:
 
@@ -90,14 +90,14 @@ docker run -d --name musicd-server \
 
 Restart, then **Settings → Check for updates**. The older manifest
 parser understands this file — the top-level `version` and `tarUrl`
-pair is carried for exactly that reason — so it will offer v1.1.3.8 and
+pair is carried for exactly that reason — so it will offer v1.1.3.9 and
 install it normally. The variable can be dropped afterwards.
 
 Cutting a release:
 
 ```sh
 cd musicd
-./scripts/release.sh 1.1.3.9 --apply --tar   # bumps VERSION, both package.json, install.sh; builds the tar
+./scripts/release.sh 1.1.4.0 --apply --tar   # bumps VERSION, both package.json, install.sh; builds the tar
 ```
 
 Then move the tarball to the repo root, update `manifest.json` to point
