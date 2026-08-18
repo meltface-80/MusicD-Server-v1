@@ -33,12 +33,12 @@
 
   "version": "1.1.3.8",
   "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-3-8.tar",
-  "tarSha256": "bb4939e91f2e699bdd0c17970e52fd7bcd67a147670f078d9bd487875660fe73",
+  "tarSha256": "f6b51e98feccbb4c0c846dd4a6d2924fc9e04a9e7da4930ca704bfa8e5cac144",
   "releasedAt": "2026-08-18T22:37:13Z",
   "releaseNotes": "Sonos stereo pairs resolve to their group coordinator, redesigned share card with a Now Playing share button, discrete volume buttons, and Stable as the baseline tier.",
 
   "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-3-8.tar",
-  "tarball_sha256": "bb4939e91f2e699bdd0c17970e52fd7bcd67a147670f078d9bd487875660fe73",
+  "tarball_sha256": "f6b51e98feccbb4c0c846dd4a6d2924fc9e04a9e7da4930ca704bfa8e5cac144",
   "released_at": "2026-08-18T22:37:13Z",
   "release_notes_url": "https://github.com/meltface-80/MusicD-Server-v1/blob/main/musicd/CHANGELOG.md",
 
