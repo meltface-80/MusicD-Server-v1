@@ -360,6 +360,11 @@ const s = {
   topbar: {
     display: 'flex', alignItems: 'center', gap: 4,
     padding: '8px 8px',
+    // With viewport-fit=cover the viewport spans the whole display, so
+    // this bar starts underneath the status bar. Pad its CONTENT down by
+    // the top inset — the bar's own background still runs edge to edge,
+    // so there is no visible band, and the buttons come back into reach.
+    paddingTop: 'calc(8px + env(safe-area-inset-top, 0px))',
     borderBottom: '1px solid var(--border)',
     background: 'var(--bg-surface)',
     flexShrink: 0, zIndex: 10,

@@ -222,6 +222,12 @@ const s = {
     borderTop: '1px solid var(--jp-border)',
     display: 'flex', alignItems: 'center',
     padding: '0 12px', gap: 12,
+    // The bar now reaches the physical bottom edge, so its controls would
+    // sit on the home indicator. Padding the content box (box-sizing is
+    // border-box globally) re-centres them above it while the black ground
+    // still fills to the edge — no chin, because this is the bar's own
+    // padding and not a gap in the app shell.
+    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     height: 'var(--nowplaying-h)', zIndex: 100,
     position: 'relative',
   },

@@ -135,6 +135,31 @@
 
   /* ---------- code ---------- */
   .codebox { position: relative; margin-bottom: 14px; }
+  /* Command generator panel — same treatment as the sibling site's
+     Docker generator, so the two read as one family. */
+  .cfg {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+  .cfg-body { padding: 22px; display: grid; gap: 18px; }
+  @media (min-width: 860px) {
+    .cfg-body { grid-template-columns: 1fr 1fr; align-items: start; }
+  }
+  .field label { display: block; font-size: 12.5px; font-weight: 600; color: var(--muted); margin-bottom: 5px; letter-spacing: .02em; }
+  .field label .req { color: var(--copper-hi); }
+  .field input[type=text] {
+    width: 100%; padding: 9px 12px; font-size: 14px;
+    font-family: var(--mono);
+    color: var(--text); background: var(--bg-deep);
+    border: 1px solid var(--line); border-radius: 8px;
+    outline: none;
+  }
+  .field input[type=text]:focus { border-color: var(--copper); }
+  .field .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
   .codebox pre {
     background: var(--bg-deep);
     border: 1px solid var(--line);
@@ -645,42 +670,37 @@
 <section id="install" aria-labelledby="install-h">
   <div class="wrap">
     <h2 id="install-h">Install</h2>
-    <p class="lead">Source ships in the repo, so a build is two commands &mdash;
-    there is no tarball to download and unpack first.</p>
+    <p class="lead">Source ships in the repo, so there is no tarball to download
+    and unpack first. Set your music path and port below &mdash; the block updates
+    as you type, and it is one copy and paste.</p>
+
+    <div class="cfg">
+      <div class="cfg-body">
+        <div class="field">
+          <label for="musicPath">Music library path <span class="req">*</span></label>
+          <input type="text" id="musicPath" value="/path/to/your/music" spellcheck="false"
+                 autocapitalize="off" autocorrect="off">
+          <div class="hint">Host directory holding your albums. Mounted read-only
+          at <code>/music</code> inside the container.</div>
+        </div>
+        <div class="field">
+          <label for="webPort">Web&nbsp;/&nbsp;PWA port</label>
+          <input type="text" id="webPort" value="32700" spellcheck="false"
+                 inputmode="numeric">
+          <div class="hint">The port you browse to and add to your home screen.</div>
+        </div>
+      </div>
+    </div>
 
     <div class="codebox">
-      <button class="copy-btn" type="button" data-copy="build">Copy</button>
-      <pre id="build"><span class="c"># build (once)</span>
-git clone https://github.com/meltface-80/MusicD-Server-v1
-docker build <span class="k">-t</span> musicd-server ./MusicD-Server-v1/musicd</pre>
+      <button class="copy-btn" type="button" data-copy="cmdOut">Copy</button>
+      <pre id="cmdOut"></pre>
     </div>
-
-    <div class="note">
-      Before the first run, create the data directory and give it to UID 1000
-      &mdash; the container runs as <code>1000:1000</code> and writes the SQLite
-      WAL: <code>sudo mkdir -p /var/lib/musicd-server-v1 &amp;&amp; sudo chown -R
-      1000:1000 /var/lib/musicd-server-v1</code>. Skip this and it fails at boot
-      with <b>SQLITE_READONLY</b>.
-    </div>
-
-    <div class="codebox">
-      <button class="copy-btn" type="button" data-copy="run">Copy</button>
-      <pre id="run"><span class="c"># run</span>
-docker run <span class="k">-d</span> <span class="k">--name</span> musicd-server \
-  <span class="k">--network</span> host \
-  <span class="k">--device</span> /dev/snd <span class="k">--group-add</span> 29 \
-  <span class="k">-v</span> /var/lib/musicd-server-v1:/data \
-  <span class="k">-v</span> /path/to/your/music:/music:ro \
-  <span class="k">-v</span> /sys/class/thermal:/sys/class/thermal:ro \
-  <span class="k">-v</span> /var/run/docker.sock:/var/run/docker.sock \
-  <span class="k">-e</span> PORT=32700 <span class="k">-e</span> MUSIC_DIR=/music <span class="k">-e</span> DB_PATH=/data/musicd.db \
-  <span class="k">--restart</span> unless-stopped \
-  musicd-server</pre>
-    </div>
-    <p class="after-note">Then open <code>http://&lt;host&gt;:32700</code>. The
-    first library scan starts automatically. A
-    <code>docker-compose.yml</code> ships in <code>musicd/</code> if you prefer
-    that.</p>
+    <p class="after-note" id="afterNote"></p>
+    <p class="after-note">A <code>docker-compose.yml</code> ships in
+    <code>musicd/</code> if you prefer that. The <code>chown</code> is not
+    optional: the container runs as <code>1000:1000</code> and writes the SQLite
+    WAL, so without it the server fails at boot with <b>SQLITE_READONLY</b>.</p>
 
     <h3 class="sub">The three flags that matter</h3>
     <div class="steps">
@@ -789,6 +809,61 @@ docker run <span class="k">-d</span> <span class="k">--name</span> musicd-server
 
 <script>
 (function () {
+  // ---- Install command generator -------------------------------------
+  // One block, one paste. The two inputs are substituted straight into the
+  // command; the copy button lifts innerText, so what is copied is exactly
+  // what is shown, highlighting spans and all.
+  var musicEl = document.getElementById('musicPath');
+  var portEl  = document.getElementById('webPort');
+  var outEl   = document.getElementById('cmdOut');
+  var noteEl  = document.getElementById('afterNote');
+
+  function esc(v) {
+    return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function k(t) { return '<span class="k">' + t + '</span>'; }
+  function c(t) { return '<span class="c">' + esc(t) + '</span>'; }
+
+  function renderCmd() {
+    // Fall back to the placeholder rather than emitting an empty flag, so a
+    // half-typed field never yields a command that looks valid and is not.
+    var music = musicEl.value.trim() || '/path/to/your/music';
+    var port  = (portEl.value.trim().match(/^[0-9]{1,5}$/) || ['32700'])[0];
+
+    outEl.innerHTML =
+      c('# 1. build (once)') + '\n' +
+      'git clone https://github.com/meltface-80/MusicD-Server-v1\n' +
+      'docker build ' + k('-t') + ' musicd-server ./MusicD-Server-v1/musicd\n' +
+      '\n' +
+      c('# 2. data directory — must be owned by UID 1000') + '\n' +
+      'sudo mkdir ' + k('-p') + ' /var/lib/musicd-server-v1\n' +
+      'sudo chown ' + k('-R') + ' 1000:1000 /var/lib/musicd-server-v1\n' +
+      '\n' +
+      c('# 3. run') + '\n' +
+      'docker run ' + k('-d') + ' ' + k('--name') + ' musicd-server \\\n' +
+      '  ' + k('--network') + ' host \\\n' +
+      '  ' + k('--device') + ' /dev/snd ' + k('--group-add') + ' 29 \\\n' +
+      '  ' + k('-v') + ' /var/lib/musicd-server-v1:/data \\\n' +
+      '  ' + k('-v') + ' ' + esc(music) + ':/music:ro \\\n' +
+      '  ' + k('-v') + ' /sys/class/thermal:/sys/class/thermal:ro \\\n' +
+      '  ' + k('-v') + ' /var/run/docker.sock:/var/run/docker.sock \\\n' +
+      '  ' + k('-e') + ' PORT=' + esc(port) + ' ' + k('-e') + ' MUSIC_DIR=/music ' +
+             k('-e') + ' DB_PATH=/data/musicd.db \\\n' +
+      '  ' + k('--restart') + ' unless-stopped \\\n' +
+      '  musicd-server';
+
+    noteEl.innerHTML =
+      'Then open <code>http://&lt;host&gt;:' + esc(port) + '</code> and add it to ' +
+      'your home screen. The first library scan starts automatically.';
+  }
+
+  if (outEl) {
+    musicEl.addEventListener('input', renderCmd);
+    portEl.addEventListener('input', renderCmd);
+    renderCmd();
+  }
+
   document.querySelectorAll('.copy-btn').forEach(function (btn) {
     btn.addEventListener('click', async function () {
       var target = document.getElementById(btn.dataset.copy);

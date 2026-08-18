@@ -142,6 +142,27 @@ Categories used per release:
   bump silently no-op'd — its verify step caught this, but only when
   run. Both files now agree at 1.1.3.8.
 
+- **The PWA did not fill the screen on iOS.** The head carried
+  `apple-mobile-web-app-status-bar-style: black-translucent`, which
+  shifts the document up under the status bar but does **not** grow the
+  layout viewport. Without `viewport-fit=cover` to grow it, the two
+  disagree: the document rides up, the controls along the top go under
+  the status bar and out of reach, and a gap the size of the *top*
+  inset (44-62px, not the 34px of a home indicator) is left at the
+  bottom. `viewport-fit=cover` is now on the viewport meta, which is
+  what both sibling builds that fill the screen correctly already do.
+
+  Insets are applied per component, never to the app shell: the two top
+  bars pad down by `safe-area-inset-top`, and the mini player pads up by
+  `safe-area-inset-bottom` so its controls clear the home indicator
+  while its background still runs to the edge. Padding the root grid
+  instead is what put a visible band across the bottom of every screen.
+
+  **iOS caches this at add-to-home-screen time**, not per launch, so an
+  existing home-screen shortcut keeps the old window shape no matter
+  what the server sends. Delete the shortcut and re-add it after
+  updating, or the fix is not observable.
+
 - **Volume slider sat too low.** The bar was hard against the bottom
   edge, so dragging it fought the iOS swipe-up-to-close gesture. The
   volume popup now carries 44px of padding underneath it instead of 28.

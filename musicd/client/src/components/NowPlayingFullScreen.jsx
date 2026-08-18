@@ -1568,18 +1568,15 @@ const s = {
     // reads slightly more compact without losing breathing room.
     padding: '16px 24px 28px',
     // v1.1.3.8: the slider sat too low, so drag gestures collided with
-    // the iOS swipe-up-to-close. This popup gets extra room underneath
-    // it — 44px rather than the 28px in the shorthand above.
+    // the iOS swipe-up-to-close gesture. Clear the home indicator, then
+    // 44px of actual breathing room on top of it.
     //
-    // Deliberately NOT env(safe-area-inset-bottom): the app does not set
-    // viewport-fit=cover, because the full-screen contract requires the
-    // layout to keep filling the display. Without that flag every
-    // env(safe-area-inset-*) resolves to 0 on iOS, so an inset-based
-    // value would silently be exactly this number anyway — and adding
-    // the flag to make it resolve puts a visible chin at the bottom of
-    // every screen and pushes the top controls out of thumb reach.
-    // Padding belongs to this popup alone, never to the app shell.
-    paddingBottom: 44,
+    // This padding belongs to the popup, never to the app shell. Putting
+    // an inset on the root grid instead reserves a visible band at the
+    // bottom of every screen and pushes the top controls out of reach —
+    // that was the v1.1.3.8 regression. Components pad themselves; the
+    // shell stays edge to edge.
+    paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 44px)',
   },
   volTitle: { fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 20, textAlign: 'center' },
   volSliderWrap: { display: 'flex', alignItems: 'center', gap: 12 },
@@ -1608,7 +1605,10 @@ const s = {
 
   topBar: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    paddingTop: 14, paddingBottom: 10, flexShrink: 0,
+    // Same reasoning as App.jsx's topbar: this screen is full-bleed under
+    // viewport-fit=cover, so the row clears the status bar itself.
+    paddingTop: 'calc(14px + env(safe-area-inset-top, 0px))',
+    paddingBottom: 10, flexShrink: 0,
   },
   orbBtn: { width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none' },
   orb: { width: 11, height: 11, borderRadius: '50%', transition: 'all 0.3s' },
