@@ -1,0 +1,80 @@
+services:
+  musicd:
+    image: musicd:latest
+    build: .
+    container_name: musicd
+
+    # ── IMPORTANT: host networking gives SSDP/UPnP multicast access ──
+    # On Linux this works natively. On macOS/Windows use the
+    # port-mapping fallback below and set SSDP_INTERFACE manually.
+    network_mode: host
+
+    # Uncomment if not using host networking (macOS / Windows Docker Desktop):
+    # ports:
+    #   - "32600:32600"
+    #   - "1900:1900/udp"
+
+    # ── USB DAC access (#v1.1.0.93) ──────────────────────────────
+    # Without these, the container has no view of host audio
+    # hardware and USB DACs never appear in the Audio Devices
+    # settings page. /dev/snd gives the container access to the
+    # ALSA device nodes (used by aplay). /proc/asound is bind-
+    # mounted read-only so the detect.js capability prober can
+    # parse /proc/asound/cards and the per-card stream files for
+    # rich format / rate info — when the host kernel allows it.
+    # On some kernels (notably DietPi's stock) the bind-mount of
+    # /proc/asound is rejected by runc; the aplay --dump-hw-params
+    # fallback in detect.js handles that case so USB DACs still
+    # show up, just with capability detection happening lazily on
+    # first probe.
+    #
+    # If you have NO USB DACs you can comment these two lines out
+    # to keep the container's privilege surface smaller. They are
+    # harmless to leave in even if no DAC is plugged in.
+    devices:
+      - /dev/snd
+
+    volumes:
+      # Your music library (read-only)
+      - /mnt/dietpi_userdata/MyMusic/4tb/MUSIC:/music:ro
+
+      # Persistent database + config
+      - musicd-data:/data
+
+      # USB DAC capability detection — see comment above.
+      - /proc/asound:/proc/asound:ro
+
+      # Live CPU temperature (#v1.1.0.94). Without this bind-mount,
+      # /sys/class/thermal inside the container is the docker engine's
+      # own view, which on some kernels exposes only a single ACPI
+      # thermal zone that's stuck at a chassis sensor reading
+      # (typically 27.8°C). The metadata scheduler uses CPU temp to
+      # throttle background jobs; a stuck sensor means the throttle
+      # never trips. Bind-mounting the host's /sys/class/thermal
+      # gives the container the same thermal view htop sees.
+      #
+      # Read-only because we never write to thermal sensors. Safe to
+      # leave commented out if your host's /sys/class/thermal is empty
+      # (some embedded systems with no thermal sensors at all).
+      - /sys/class/thermal:/sys/class/thermal:ro
+
+    environment:
+      PORT: 32600
+      MUSIC_DIR: /music
+      DB_PATH: /data/musicd.db
+      NODE_ENV: production
+
+    # group_add lets the container's node user join the host's
+    # `audio` group so it can open /dev/snd/* without root. The
+    # numeric GID 29 is the standard Debian/Ubuntu/DietPi audio
+    # GID; on other distros it may differ. If aplay reports
+    # "Permission denied" inside the container, exec into it and
+    # check `getent group audio` on the host, then update this
+    # number.
+    group_add:
+      - "29"
+
+    restart: unless-stopped
+
+volumes:
+  musicd-data:

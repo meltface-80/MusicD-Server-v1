@@ -1,0 +1,67 @@
+# Node (musicd server + client)
+node_modules/
+npm-debug.log*
+*.log
+
+# Vite build output
+dist/
+
+# Env / local config
+.env
+.env.*
+install.env
+
+# Runtime data (if DB_PATH / MUSICD_DATA_DIR is pointed into the repo during dev)
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.db.gz
+transcode-cache/
+hls-cache/
+pdf-cache/
+
+# C++ / CMake build artifacts (musicd-bridge)
+build/
+obj-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+*.o
+*.a
+*.so
+
+# Debian packaging outputs (build-deb.sh drops the .deb in the repo root)
+*.deb
+*.ddeb
+*.buildinfo
+*.changes
+*.dsc
+musicd-bridge/debian/musicd-bridge/
+musicd-bridge/debian/.debhelper/
+musicd-bridge/debian/files
+musicd-bridge/debian/debhelper-build-stamp
+musicd-bridge/debian/*.substvars
+musicd-bridge/debian/*.debhelper
+musicd-bridge/debian/*.log
+
+# Python test caches (musicd-bridge/test)
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Release archives
+*.tar
+*.tar.gz
+# ...except the published release tarball. The bridge repo ships its
+# tarball as a GitHub Release asset and so ignores all of these; here
+# the tarball is committed, because manifest.json points the in-app
+# updater at its raw URL on main.
+!musicd-v*.tar
+*.tgz
+
+# OS cruft
+.DS_Store

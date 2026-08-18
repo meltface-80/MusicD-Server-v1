@@ -1,0 +1,10 @@
+Preamp: -5.0 dB
+Filter 1: ON LSC Fc 105 Hz Gain 2.5 dB Q 0.70
+Filter 2: ON PK Fc 2400 Hz Gain 3.0 dB Q 1.40
+Filter 3: ON PK Fc 8000 Hz Gain -5.0 dB Q 3.50
+Filter 4: ON PK Fc 11500 Hz Gain -3.5 dB Q 4.00
+
+# Beyerdynamic DT 770 Pro 80
+# Starter preset shipped with musicd. For the most accurate per-headphone
+# data, use Settings → AutoEQ → Update database to fetch the full
+# AutoEQ project archive (https://github.com/jaakkopasanen/AutoEq).

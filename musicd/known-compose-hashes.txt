@@ -1,0 +1,23 @@
+# Known-default docker-compose.yml SHA256 hashes for previous releases.
+#
+# Used by musicd-install.sh to decide whether the user's existing
+# /opt/musicd/docker-compose.yml is a "customised" version that should
+# be preserved, or just an outdated default that should be replaced
+# with whatever's in the new tar.
+#
+# The script checks: if the existing file's hash is in this list,
+# treat it as a default and overwrite. Otherwise, treat it as
+# customised and preserve.
+#
+# When the upstream docker-compose.yml changes (e.g. v93 adds USB
+# DAC mounts), add the OLD hash to this list so users on the old
+# default get the upgrade. The new default's hash isn't added until
+# a future version supersedes it.
+#
+# Format: one SHA256 hash per line, lowercase, no whitespace.
+# Lines starting with # are comments.
+
+# v1.1.0.0 → v1.1.0.92 default (no USB mounts)
+805b81be2f390cb95c2bfc192d492d3ca5243b55134b9507237eb074d8093f3f
+# v1.1.0.93 default (USB mounts but no /sys/class/thermal)
+c2d5e2d5596b3ce8ce8e62132492b48a04e136607da468aaf0cde34f39389b1a
