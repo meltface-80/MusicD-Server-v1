@@ -26,7 +26,7 @@ renderer support, and a per-stream signal path visualiser.
 | Renderer | Detail |
 |---|---|
 | DLNA / UPnP | Any AVTransport renderer — Sonos, Linn, Naim, BubbleUPnP, WiiM, etc. Auto-discovered via SSDP |
-| Sonos | Native integration with optional 16-bit force-mode for stubborn zones |
+| Sonos | Native integration with optional 16-bit force-mode for stubborn zones. Stereo pairs and bonded sets (sub, surrounds) are resolved via `ZoneGroupTopology` and listed once, as `Room - Model`, targeting the group coordinator |
 | Squeezelite / LMS | Squeezebox sink discovery and control, optional Lyrion Media Server bridge |
 | USB DAC / ALSA | Local audio output with capability detection, configurable variable / fixed gain, per-device DSD playback mode |
 | Multi-zone | Move queues across renderers, per-renderer last-used tracking |
@@ -80,7 +80,7 @@ A green dot indicates a lossless path.
 
 ### Administration & ops
 
-- Tier system — Demo (50-album cap), Stable, Early Access, Beta, Alpha (code-locked)
+- Tier system — Stable baseline, with Early Access, Beta and Alpha unlocked by code (Demo, and its 50-album cap, is disabled by baseline)
 - Settings persisted in SQLite with a shadow config
 - `GET /api/healthz` endpoint with 503 guard until the database is ready
 - Docker-aware auto-updater (manifest polling, version comparison, in-place restart)
