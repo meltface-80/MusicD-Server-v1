@@ -17,13 +17,13 @@ Categories used per release:
 ### New
 
 - **Share button on Now Playing.** The full-screen player had no way to
-  share; it now has one beside the signal-path orb. It fetches the
+  share; it now has one pinned to the bottom-right of the album artwork. It fetches the
   rendered card, previews it in a bottom sheet, and hands the PNG to
   the system share sheet via the Web Share API, falling back to a
   download where that is unavailable. Dismissing the iOS sheet raises
   `AbortError`, which is treated as "no thanks" rather than an error.
 - **Discrete volume buttons.** Circular − and + controls sit at the
-  right end of the volume slider, stepping by 5 and clamped to 0–100.
+  right end of the volume slider, stepping by 1 and clamped to 0–100.
   They route through the same handler the slider uses, and the drag
   behaviour is unchanged.
 

@@ -20,7 +20,9 @@ function fmtTime(s) {
 }
 
 // v1.1.3.8 — step used by the − / + volume buttons beside the slider.
-const VOLUME_STEP = 5
+// One increment per tap: these are for fine adjustment, and the slider
+// is already there for coarse moves.
+const VOLUME_STEP = 1
 
 function pathOrbColor(signalPath) {
   if (!signalPath || signalPath.length === 0) return '#444'
@@ -454,6 +456,21 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
                 ? <img src={`/api/library/tracks/${currentTrack.id}/cover`} style={s.art} onError={() => setImgErr(true)} />
                 : <div style={s.artEmpty}><span style={{ fontSize: 72, opacity: 0.1 }}>♫</span></div>
               }
+
+              {/* v1.1.3.8 — share button, pinned to the bottom-right of the
+                  artwork. Self-contained on purpose: everything that places
+                  it is s.shareOnArt, so moving it elsewhere is a matter of
+                  moving this block and changing that one style. Disabled
+                  while the server renders the PNG so it can't double-fire. */}
+              <button
+                style={{ ...s.shareOnArt, opacity: currentTrack && !shareLoading ? 1 : 0.35 }}
+                onClick={handleShare}
+                disabled={!currentTrack || shareLoading}
+                title="Share this track"
+                aria-label="Share this track"
+              >
+                <Share2 size={17} />
+              </button>
             </div>
 
             {/* Track info */}
@@ -575,21 +592,6 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
                     boxShadow: `0 0 ${orbClipping ? 14 : 10}px ${orbColor}`,
                     animation: orbClipping ? 'orbClipPulse 1s ease-in-out infinite' : 'none',
                   }} />
-                </button>
-
-                {/* v1.1.3.8 — share the current track as a card. The
-                    v91 comment on bottomLeftCluster left room for
-                    exactly this: extra controls stack horizontally to
-                    the right of the orb. Disabled while the server
-                    renders the PNG so it can't be double-fired. */}
-                <button
-                  style={{ ...s.shareIconBtn, opacity: currentTrack && !shareLoading ? 1 : 0.3 }}
-                  onClick={handleShare}
-                  disabled={!currentTrack || shareLoading}
-                  title="Share this track"
-                  aria-label="Share this track"
-                >
-                  <Share2 size={18} />
                 </button>
               </div>
               <div style={{ flex: 1 }} />
@@ -1679,18 +1681,22 @@ const s = {
     borderRadius: 999,
     cursor: 'pointer',
   },
-  // v1.1.3.8 — share button beside the orb in the bottom-left
-  // cluster. Same circle as deviceIconBtn so the two ends of the
-  // bottom bar balance.
-  shareIconBtn: {
+  // v1.1.3.8 — share button sitting on the artwork, bottom-right.
+  // Scrimmed rather than translucent-white: it has to stay legible over
+  // whatever the cover happens to be, including a white sleeve. Anchored
+  // to artWrap, which clips to the art's rounded corner.
+  shareOnArt: {
+    position: 'absolute', right: 10, bottom: 10, zIndex: 2,
     width: 36, height: 36,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    color: 'rgba(255,255,255,0.85)',
-    background: 'rgba(255,255,255,0.08)',
-    border: '1px solid rgba(255,255,255,0.12)',
+    color: '#fff',
+    background: 'rgba(0,0,0,0.55)',
+    border: '1px solid rgba(255,255,255,0.22)',
     borderRadius: 999,
     cursor: 'pointer',
     touchAction: 'manipulation',
+    backdropFilter: 'blur(6px)',
+    WebkitBackdropFilter: 'blur(6px)',
   },
 
   // v1.1.3.8 — share-card sheet. Same bottom-sheet geometry as the
@@ -2246,6 +2252,8 @@ const s = {
     background: 'var(--jp-bg-surface)',
     marginBottom: 22, flexShrink: 1,
     alignSelf: 'center', width: '100%',
+    // v1.1.3.8 — positioning context for the share button pinned inside.
+    position: 'relative',
   },
   art: { width: '100%', height: '100%', objectFit: 'contain', display: 'block', background: 'var(--jp-bg-surface)' },
   artEmpty: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' },
