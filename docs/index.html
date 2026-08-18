@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MusicD Server v1 — self-hosted music server</title>
+<meta name="description" content="MusicD Server v1.1.3.8 — a self-hosted music server with a Roon-inspired web UI, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
+<style>
+  :root {
+    --bg:        #1b1d1f;   /* charcoal */
+    --bg-deep:   #141618;
+    --panel:     #232628;
+    --panel-2:   #2a2d30;
+    --line:      #35393d;
+    --text:      #e8e6e3;
+    --muted:     #a8a49e;
+    --copper:    #c47f4a;   /* subtle copper accent */
+    --copper-hi: #d99a66;
+    --copper-dim:#8a5a35;
+    --good:      #7fb47f;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  a { color: var(--copper-hi); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  :focus-visible { outline: 2px solid var(--copper-hi); outline-offset: 2px; border-radius: 4px; }
+
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+
+  .skip {
+    position: absolute; left: -9999px; top: 0;
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--copper); border-radius: 8px;
+    padding: 10px 16px; font-size: 14px; font-weight: 600; z-index: 100;
+  }
+  .skip:focus { left: 12px; top: 10px; }
+
+  /* ---------- top nav ---------- */
+  nav.topnav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(20,22,24,.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  nav.topnav .wrap {
+    display: flex; align-items: center; gap: 18px;
+    height: 52px; overflow-x: auto; white-space: nowrap;
+  }
+  nav.topnav a {
+    color: var(--muted); font-size: 14px; font-weight: 500;
+  }
+  nav.topnav a:hover { color: var(--copper-hi); text-decoration: none; }
+  nav.topnav .brand { color: var(--text); font-weight: 700; letter-spacing: .02em; }
+  nav.topnav .brand span { color: var(--copper); }
+  nav.topnav .gh { margin-left: auto; padding-left: 8px; }
+
+  /* ---------- hero ---------- */
+  header.hero {
+    text-align: center;
+    padding: 48px 20px 40px;
+    background:
+      radial-gradient(ellipse 70% 55% at 50% -10%, rgba(196,127,74,.14), transparent 65%),
+      var(--bg-deep);
+    border-bottom: 1px solid var(--line);
+  }
+  header.hero .wordmark { font-size: 44px; font-weight: 800; letter-spacing: .03em; }
+  header.hero .wordmark span { color: var(--copper); }
+  header.hero h1 { font-size: 30px; margin-top: 26px; font-weight: 700; }
+  header.hero p.tag { color: var(--muted); max-width: 660px; margin: 10px auto 0; font-size: 16px; }
+  .badges { margin-top: 18px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .badge {
+    display: inline-block; font-size: 12.5px; font-weight: 600;
+    padding: 4px 12px; border-radius: 999px;
+    border: 1px solid var(--copper-dim); color: var(--copper-hi);
+    background: rgba(196,127,74,.08);
+  }
+  .badge.plain { border-color: var(--line); color: var(--muted); background: transparent; }
+
+  /* ---------- sections ---------- */
+  section { padding: 52px 0 8px; scroll-margin-top: 56px; }
+  section > .wrap > h2 {
+    font-size: 24px; font-weight: 700; margin-bottom: 6px;
+    padding-left: 14px; border-left: 3px solid var(--copper);
+  }
+  section > .wrap > p.lead { color: var(--muted); margin-bottom: 26px; max-width: 720px; }
+  h3.sub {
+    font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--copper-hi); margin: 30px 0 12px;
+  }
+  h3.sub:first-of-type { margin-top: 0; }
+
+  /* ---------- feature grid ---------- */
+  .grid {
+    display: grid; gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 18px 16px;
+    min-width: 0;
+  }
+  .card h3, .card h4 { font-size: 15.5px; font-weight: 650; margin-bottom: 6px; }
+  .card h3 .em, .card h4 .em { margin-right: 8px; }
+  .card p { font-size: 13.5px; color: var(--muted); }
+  .card p + p { margin-top: 8px; }
+  .card ul { list-style: none; font-size: 13.5px; color: var(--muted); margin-top: 8px; }
+  .card ul li { padding-left: 15px; position: relative; }
+  .card ul li + li { margin-top: 5px; }
+  .card ul li::before {
+    content: ""; position: absolute; left: 2px; top: .62em;
+    width: 5px; height: 5px; border-radius: 50%; background: var(--copper-dim);
+  }
+
+  /* new-in-release cards get a copper edge */
+  .card.new { border-color: var(--copper-dim); background: linear-gradient(var(--panel), var(--panel)) padding-box; }
+  .card.new h3 { color: var(--text); }
+  .tagline {
+    display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--copper-hi);
+    border: 1px solid var(--copper-dim); background: rgba(196,127,74,.08);
+    border-radius: 5px; padding: 1px 7px; margin-bottom: 8px;
+  }
+
+  /* ---------- code ---------- */
+  .codebox { position: relative; margin-bottom: 14px; }
+  .codebox pre {
+    background: var(--bg-deep);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px; padding-top: 42px;
+    overflow-x: auto;
+    font: 13px/1.55 var(--mono);
+    color: #d8d4cf;
+    white-space: pre;
+  }
+  .codebox pre .k { color: var(--copper-hi); }     /* flags / keys */
+  .codebox pre .c { color: #8a857e; }              /* comments */
+  .copy-btn {
+    position: absolute; top: 10px; right: 10px;
+    font: 600 12px var(--sans); cursor: pointer;
+    color: var(--text); background: var(--panel-2);
+    border: 1px solid var(--line); border-radius: 7px;
+    padding: 6px 12px;
+  }
+  .copy-btn:hover { border-color: var(--copper); color: var(--copper-hi); }
+  .copy-btn.done { color: var(--good); border-color: var(--good); }
+  p code, li code, td code, .note code, .after-note code {
+    font: 12.5px var(--mono);
+    background: var(--bg-deep);
+    border: 1px solid var(--line);
+    border-radius: 5px; padding: 1.5px 6px;
+    color: var(--copper-hi);
+    overflow-wrap: anywhere;
+  }
+  .after-note { font-size: 13.5px; color: var(--muted); margin-bottom: 20px; }
+
+  .note {
+    font-size: 13.5px; color: var(--muted);
+    background: rgba(196,127,74,.06);
+    border: 1px solid var(--copper-dim);
+    border-radius: 10px; padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+  .note b { color: var(--copper-hi); }
+
+  /* ---------- tables ---------- */
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  th { background: var(--panel-2); color: var(--copper-hi); font-size: 12.5px; letter-spacing: .04em; text-transform: uppercase; }
+  tr:last-child td { border-bottom: none; }
+  td:first-child { font-family: var(--mono); white-space: nowrap; color: var(--text); }
+  td { color: var(--muted); }
+  .tablewrap + h3 { margin: 26px 0 10px; font-size: 16px; }
+
+  /* ---------- ordered list panel ---------- */
+  .steps {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 20px;
+  }
+  .steps ol { padding-left: 20px; font-size: 14px; display: grid; gap: 9px; color: var(--muted); }
+  .steps ol li::marker { color: var(--copper); font-weight: 700; }
+  .steps ol li b { color: var(--text); }
+
+  /* ---------- small screens ---------- */
+  @media (max-width: 600px) {
+    header.hero { padding: 32px 16px 30px; }
+    header.hero h1 { font-size: 24px; margin-top: 20px; }
+    header.hero .wordmark { font-size: 34px; }
+    header.hero p.tag { font-size: 15px; }
+    section { padding: 40px 0 6px; }
+    section > .wrap > h2 { font-size: 21px; }
+    .codebox pre { font-size: 12px; padding: 14px; padding-top: 42px; }
+    th, td { padding: 9px 10px; }
+    .steps { padding: 16px; }
+  }
+
+  footer {
+    margin-top: 64px; padding: 28px 20px 40px;
+    border-top: 1px solid var(--line);
+    text-align: center; color: var(--muted); font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<nav class="topnav" aria-label="Primary">
+  <div class="wrap">
+    <a class="brand" href="#top">MusicD <span>Server v1</span></a>
+    <a href="#whats-new">What&rsquo;s new</a>
+    <a href="#features">Features</a>
+    <a href="#install">Install</a>
+    <a href="#reference">Reference</a>
+    <a class="gh" href="https://github.com/meltface-80/MusicD-Server-v1">GitHub &rarr;</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wordmark">Music<span>D</span></div>
+  <h1>A self-hosted music server for one library and one home network</h1>
+  <p class="tag">MusicD Server scans your albums into SQLite, serves a
+  Roon-inspired mobile-first web app, and plays to DLNA&nbsp;/&nbsp;UPnP,
+  Sonos, Squeezelite and local USB DACs &mdash; with parametric EQ, AutoEQ
+  presets, FIR convolution and a per-stream signal path you can actually
+  read.</p>
+  <div class="badges">
+    <span class="badge">v1.1.3.8</span>
+    <span class="badge">Node 20 &middot; Express &middot; SQLite</span>
+    <span class="badge">React SPA &middot; PWA</span>
+    <span class="badge plain">Docker &middot; port 32700</span>
+    <span class="badge plain">MIT licence</span>
+  </div>
+</header>
+
+<main id="main">
+
+<section id="whats-new" aria-labelledby="whats-new-h">
+  <div class="wrap">
+    <h2 id="whats-new-h">What&rsquo;s new in 1.1.3.8</h2>
+    <p class="lead">Sonos bonded sets stop lying about how many speakers you
+    have, the share card gets rebuilt, and the trial gate is gone.</p>
+    <div class="grid">
+
+      <div class="card new">
+        <span class="tagline">Fixed</span>
+        <h3><span class="em" aria-hidden="true">🔊</span>Sonos stereo pairs play as one speaker</h3>
+        <p>Every ZonePlayer answers SSDP for itself, so a bonded pair of Fives
+        registered as two renderers with the same name &mdash; and only one of
+        them worked. The other was the bonded satellite: it answers discovery
+        but rejects <code>SetAVTransportURI</code>, because in a bonded set only
+        the coordinator drives playback.</p>
+        <p>Discovery now queries <code>ZoneGroupTopology</code> and registers
+        coordinators only. Three firmware representations of a bonded set are
+        handled &mdash; an <code>Invisible="1"</code> member, a satellite named
+        only in the coordinator&rsquo;s <code>ChannelMapSet</code>, and
+        home-theatre sets using nested <code>&lt;Satellite&gt;</code> elements
+        with <code>HTSatChanMapSet</code>. The query fails <em>open</em>: if no
+        speaker answers, every speaker is registered exactly as before.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">Changed</span>
+        <h3><span class="em" aria-hidden="true">🏠</span>Sonos renderers named from the room</h3>
+        <p>Display names now come from the topology&rsquo;s <code>ZoneName</code>
+        as <code>Room - Model</code> &mdash; &ldquo;Living Room - Sonos
+        Five&rdquo; &mdash; instead of being derived from the verbose UPnP
+        friendly name. Rename a room in the Sonos app and it is picked up on the
+        next discovery sweep.</p>
+        <p>Rooms grouped in the Sonos app collapse to a single renderer, driven
+        by the group coordinator, matching how the Sonos app shows a group.
+        While grouped, the volume control targets the coordinator&rsquo;s room
+        rather than the whole group; ungrouping restores the separate renderer.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">Changed</span>
+        <h3><span class="em" aria-hidden="true">🖼️</span>Redesigned share card</h3>
+        <p>The card is now 1200&nbsp;&times;&nbsp;600 with the album art
+        full-bleed across the entire left half and the release year, title and
+        artist centred in the right half &mdash; replacing the
+        1200&nbsp;&times;&nbsp;720 layout with inset art, a blurred backdrop and
+        genre pills.</p>
+        <p>There is no <code>measureText</code> server-side, so text metrics are
+        estimated from the DejaVu <code>hmtx</code> tables, calibrated never to
+        under-measure: long titles shrink or wrap one step early rather than
+        overrunning the card. <code>fonts-dejavu-core</code> is now installed
+        explicitly in the image, so cards can no longer rasterise as empty
+        boxes.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">New</span>
+        <h3><span class="em" aria-hidden="true">📤</span>Share button on Now Playing</h3>
+        <p>The full-screen player had no way to share; it now has one beside the
+        signal-path orb. It fetches the rendered card, previews it in a bottom
+        sheet, and hands the PNG to the system share sheet via the Web Share
+        API, falling back to a download where that is unavailable. Dismissing
+        the iOS sheet is treated as &ldquo;no thanks&rdquo;, not an error.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">New</span>
+        <h3><span class="em" aria-hidden="true">🎚️</span>Discrete volume buttons</h3>
+        <p>Circular &minus; and + controls sit at the right end of the volume
+        slider, stepping by 5 and clamped to 0&ndash;100. They route through the
+        same handler the slider uses, so drag behaviour is unchanged.</p>
+        <p>The volume bar also now clears <code>env(safe-area-inset-bottom)</code>
+        plus a 44px gap, so dragging it no longer fights the iOS home-indicator
+        swipe.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">Changed</span>
+        <h3><span class="em" aria-hidden="true">🔓</span>Stable is the baseline tier</h3>
+        <p>Every install starts on Stable instead of Demo. <b>There is no trial
+        gate and no album cap</b> &mdash; the baseline tier is the floor, and no
+        install can sit below it. Baseline no longer depends on the update
+        manifest either.</p>
+        <p>The four 4-digit access codes are unchanged, and now do one job only:
+        opting a machine into the Early Access, Beta or Internal update
+        channels.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section id="features" aria-labelledby="features-h">
+  <div class="wrap">
+    <h2 id="features-h">Features</h2>
+    <p class="lead">One server, one library, one home network. Everything below
+    runs on your own hardware and talks to nothing you did not ask it to.</p>
+
+    <h3 class="sub">Playback &amp; formats</h3>
+    <div class="grid">
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🎵</span>Codecs</h4>
+        <p>Scanned and played straight from disk:</p>
+        <ul>
+          <li>Lossless &mdash; FLAC, WAV, AIFF, ALAC (<code>.m4a</code>), WavPack (<code>.wv</code>)</li>
+          <li>Lossy &mdash; MP3, Ogg Vorbis, Opus, AAC (<code>.m4a</code>)</li>
+          <li>DSD &mdash; <code>.dsf</code>, <code>.dff</code>, <code>.dsd</code></li>
+        </ul>
+        <p>FLAC, MP3 and WAV pass through untouched when nothing in the chain
+        needs to alter them &mdash; no volume levelling, no DSP, no downsample.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">〰️</span>DSD handling</h4>
+        <p>DSD bitstreams are decoded by FFmpeg and resampled to
+        <b>176.4&nbsp;kHz</b> PCM &mdash; the highest 44.1-family integer
+        multiple at or below 192&nbsp;kHz. Going to 192&nbsp;kHz would force a
+        44.1&nbsp;&harr;&nbsp;48 conversion, which is audibly worse, and 176.4
+        stays inside the bandwidth ceiling of every renderer that matters.</p>
+        <p>Local ALSA output additionally has a per-DAC DSD mode setting.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">📶</span>Gapless</h4>
+        <p>The next track is pre-queued on the renderer through the UPnP-standard
+        <code>SetNextAVTransportURI</code> while the current one is still
+        playing, and the queued target is cleared on a skip so it cannot leak
+        into the new selection.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">📉</span>Volume levelling</h4>
+        <p>Per-track and per-album loudness normalisation against a configurable
+        LUFS target (default <b>&minus;18&nbsp;LUFS</b>), analysed with
+        <code>loudgain</code> (libebur128) and falling back to FFmpeg. Existing
+        R128 tags are honoured with their own reference level.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🌡️</span>CPU thermal throttling</h4>
+        <p>Background loudness and metadata jobs back off against a
+        user-configured CPU temperature ceiling (default <b>65&nbsp;&deg;C</b>),
+        read from the host&rsquo;s <code>/sys/class/thermal</code> with sensor
+        selection across <code>x86_pkg_temp</code>, <code>coretemp</code>,
+        <code>k10temp</code> and <code>cpu_thermal</code>.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">📻</span>Radio mode</h4>
+        <p>When the queue runs dry, radio mode keeps going instead of stopping,
+        with a short history so it does not immediately repeat itself.</p>
+      </div>
+    </div>
+
+    <h3 class="sub">Renderers &amp; zones</h3>
+    <div class="grid">
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🛰️</span>DLNA / UPnP</h4>
+        <p>Any AVTransport renderer, auto-discovered over SSDP. This is the
+        widest-compatibility path and the one DSP applies to.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🎶</span>Sonos</h4>
+        <p>Native integration built on raw SOAP, topology-aware since 1.1.3.8 so
+        pairs, bonded subs and surrounds, and app-side groups each appear once.
+        An optional 16-bit force mode exists for stubborn zones, using
+        triangular (TPDF) dither on the way down.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🔗</span>Squeezelite / LMS</h4>
+        <p>Squeezebox sink discovery and control, with an optional Lyrion Media
+        Server bridge configured through <code>LMS_HOST</code> and
+        <code>LMS_PORT</code>. DSP applies here too.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🎧</span>USB DAC via ALSA</h4>
+        <p>Local output with capability detection, per-device DSD mode, and a
+        DSP bypass that is on by default so a DAC doing its own processing is
+        not doubled up. Capabilities are probed lazily via
+        <code>aplay --dump-hw-params</code> when <code>/proc/asound</code> is
+        not available.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🏘️</span>Multi-zone</h4>
+        <p>Each zone is one renderer with its own queue, position and volume,
+        all running at once. The UI focuses one zone at a time; the others keep
+        playing. Per-zone queue and position survive a server restart.</p>
+      </div>
+    </div>
+
+    <h3 class="sub">DSP</h3>
+    <div class="grid">
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🎛️</span>Parametric EQ</h4>
+        <p>Biquad bands per profile &mdash; peaking, low shelf and high shelf
+        &mdash; compiled into an FFmpeg filter chain per stream. Profiles are
+        assigned per renderer, so your headphone amp and your living-room
+        speakers do not share an EQ.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">📚</span>AutoEQ presets</h4>
+        <p>A starter set of 22 headphone presets ships in the image. One action
+        in Settings pulls the full AutoEQ parametric database &mdash; thousands
+        of measured models &mdash; straight from the upstream AutoEq project and
+        rebuilds the local index.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🌀</span>FIR convolution</h4>
+        <p>Upload impulse-response WAVs, one per supported sample rate, with
+        independent dry and wet gain. Malformed IRs are rejected with an actual
+        explanation rather than silence.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🎚️</span>Crossfeed &amp; headroom</h4>
+        <p>Crossfeed profiles <code>cmoy</code>, <code>meier</code> and
+        <code>jmeier</code> via bs2b, plus a manual headroom slider from
+        &minus;12&nbsp;dB to 0&nbsp;dB (default &minus;3&nbsp;dB) at the end of
+        the chain.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🛡️</span>Auto-preamp</h4>
+        <p>The maximum gain the PEQ chain can apply is computed when the profile
+        is saved and negated into a preamp, keeping peaks at or under
+        0&nbsp;dBFS without you doing arithmetic.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🔁</span>Chain order</h4>
+        <p>Fixed and inspectable:</p>
+        <ul>
+          <li>source &rarr; auto-preamp &rarr; PEQ</li>
+          <li>&rarr; convolution &rarr; crossfeed</li>
+          <li>&rarr; downsample &rarr; dither</li>
+        </ul>
+        <p>DSP is applied for DLNA and Squeezelite renderers. Sonos zones keep
+        their stored profile but are not processed, because Sonos runs its own
+        EQ.</p>
+      </div>
+    </div>
+
+    <h3 class="sub">Signal path</h3>
+    <div class="grid">
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🔍</span>Per-play signal path</h4>
+        <p>A Roon-style chain is built for every play and pushed to the client
+        with the rest of the player state, reachable from the orb in the
+        full-screen player. It shows what actually happened to the stream on the
+        way to that specific renderer &mdash; decode, EQ, resampling and the
+        renderer itself &mdash; rather than what the file claims on disk.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🚚</span>Transcoding &amp; streaming</h4>
+        <p>A real-time FFmpeg pipeline downsamples to the renderer&rsquo;s
+        maximum supported rate, dithers on bit-depth reduction, and reports the
+        chosen output rate back on the response. Diagnostic headers are
+        ASCII-sanitised so a stray em dash cannot kill the stream mid-play.</p>
+      </div>
+    </div>
+
+    <h3 class="sub">Library, search &amp; Focus</h3>
+    <div class="grid">
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🗂️</span>Scanning</h4>
+        <p>Auto-scan on startup plus a filesystem watcher, which polls by default
+        because inotify does not propagate across Docker bind mounts and
+        NFS&nbsp;/&nbsp;SMB shares. Multi-disc albums are flattened &mdash;
+        <code>CD1</code>, <code>CD2</code>, <code>Disc 2</code> folders group
+        into one album.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🔎</span>Search</h4>
+        <p>SQLite FTS5 across title, artist, album and genre, indexed in the
+        same database as everything else.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🎯</span>Focus filters</h4>
+        <p>Roon-style include and exclude pills, ANDed across sub-sections and
+        ORed within one:</p>
+        <ul>
+          <li>Format, genre, decade, artist</li>
+          <li>Bit depth, sample rate, channel count</li>
+          <li>Last played, added on</li>
+        </ul>
+        <p>Combinations you keep reaching for can be saved and re-applied.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🏷️</span>Tags &amp; bookmarks</h4>
+        <p>User tags with hex colours, applied to albums and tracks, plus a
+        save-for-later flag on both that is deliberately separate from tags
+        &mdash; it is a pinned bookmark, not a label.</p>
+      </div>
+    </div>
+
+    <h3 class="sub">Metadata &amp; discovery</h3>
+    <div class="grid">
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🖼️</span>Cover art</h4>
+        <p>Embedded artwork and folder images (<code>cover</code>,
+        <code>folder</code>, <code>front</code>&hellip;) first, then Cover Art
+        Archive via the matched MusicBrainz release. Results are cached on disk
+        and in a bounded in-memory LRU.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🧬</span>MusicBrainz &amp; AcoustID</h4>
+        <p>Album and artist matching against MusicBrainz release-groups, run by
+        a scheduler and throttled to the 1&nbsp;req/s their terms require. For
+        files too poorly tagged to match, <code>fpcalc</code> generates an
+        acoustic fingerprint and looks it up against AcoustID.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">✍️</span>Bios &amp; logos</h4>
+        <p>Artist biographies from Last.fm, cached locally. Artist logos come
+        from a waterfall &mdash; MusicBrainz ID, then fanart.tv, then
+        TheAudioDB, then a typographic SVG rendered on the server so there is
+        always something to show.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">📰</span>Music news</h4>
+        <p>An in-app feed built from Pitchfork&rsquo;s RSS channels plus Qobuz
+        Magazine and Bandcamp Daily, rate-limited so a client stuck in a refresh
+        loop cannot hammer anyone&rsquo;s server.</p>
+      </div>
+    </div>
+
+    <h3 class="sub">Sharing &amp; integrations</h3>
+    <div class="grid">
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🪪</span>Share cards</h4>
+        <p>1200&nbsp;&times;&nbsp;600 PNGs rendered server-side from SVG with
+        sharp &mdash; one for the current track, one for any album. Shared from
+        the full-screen player or an album page through the system share sheet.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">📊</span>Last.fm scrobbling</h4>
+        <p>Per-zone now-playing updates and scrobbles under your own Last.fm
+        account. Failed scrobbles persist to a queue table on disk, so a network
+        blip does not silently lose your listening history.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">⚡</span>WebSocket events</h4>
+        <p>The client stays in sync over one WebSocket carrying
+        <code>state</code>, <code>renderers_updated</code> and
+        <code>library_updated</code> events &mdash; no polling for playback
+        state.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">📱</span>Installable web app</h4>
+        <p>The client is a mobile-first React SPA shipping a web app manifest,
+        a service worker and iOS standalone metadata, so it can be added to a
+        phone home screen and run without browser chrome.</p>
+      </div>
+    </div>
+
+    <h3 class="sub">Administration &amp; ops</h3>
+    <div class="grid">
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">⬆️</span>In-app updater</h4>
+        <p>The server polls an update manifest on the repo, compares the
+        published version against its own, and on request downloads the release,
+        builds it, and swaps itself out through an ephemeral container spawned
+        via the Docker socket. The previous image is tagged
+        <code>rollback</code> first and restored automatically if the build
+        fails.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🎟️</span>Update channels</h4>
+        <p>Stable is the baseline &mdash; a fresh install is fully unlocked with
+        no code. Four 4-digit codes exist purely to opt a machine into the Early
+        Access, Beta or Internal channels; they gate release channels, not
+        features.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">💾</span>Backup &amp; restore</h4>
+        <p>Snapshot exports of the database and DSP state as tar archives, with
+        restores staged into a holding directory and swapped in atomically, then
+        a clean self-restart.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🐞</span>Bug reporter</h4>
+        <p>Reports captured locally as JSON with system diagnostics attached and
+        a retention policy of 90 days plus the 50 most recent, swept at boot and
+        daily. Client console output can be relayed to the server for
+        debugging.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">❤️</span>Health &amp; guards</h4>
+        <p><code>GET /api/healthz</code> is the liveness probe and the image
+        ships a HEALTHCHECK against it. Every other <code>/api</code> route
+        returns a clean 503 until the database is ready, with the
+        <code>chown</code> hint in the body rather than a stack trace.</p>
+      </div>
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">🗃️</span>One data directory</h4>
+        <p>The database, DSP profiles and impulse responses, cover-art and
+        artist-logo caches, and backups all live under a single bind-mounted
+        directory. Back that up and you have backed up the server.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="install" aria-labelledby="install-h">
+  <div class="wrap">
+    <h2 id="install-h">Install</h2>
+    <p class="lead">Source ships in the repo, so a build is two commands &mdash;
+    there is no tarball to download and unpack first.</p>
+
+    <div class="codebox">
+      <button class="copy-btn" type="button" data-copy="build">Copy</button>
+      <pre id="build"><span class="c"># build (once)</span>
+git clone https://github.com/meltface-80/MusicD-Server-v1
+docker build <span class="k">-t</span> musicd-server ./MusicD-Server-v1/musicd</pre>
+    </div>
+
+    <div class="note">
+      Before the first run, create the data directory and give it to UID 1000
+      &mdash; the container runs as <code>1000:1000</code> and writes the SQLite
+      WAL: <code>sudo mkdir -p /var/lib/musicd-server-v1 &amp;&amp; sudo chown -R
+      1000:1000 /var/lib/musicd-server-v1</code>. Skip this and it fails at boot
+      with <b>SQLITE_READONLY</b>.
+    </div>
+
+    <div class="codebox">
+      <button class="copy-btn" type="button" data-copy="run">Copy</button>
+      <pre id="run"><span class="c"># run</span>
+docker run <span class="k">-d</span> <span class="k">--name</span> musicd-server \
+  <span class="k">--network</span> host \
+  <span class="k">--device</span> /dev/snd <span class="k">--group-add</span> 29 \
+  <span class="k">-v</span> /var/lib/musicd-server-v1:/data \
+  <span class="k">-v</span> /path/to/your/music:/music:ro \
+  <span class="k">-v</span> /sys/class/thermal:/sys/class/thermal:ro \
+  <span class="k">-v</span> /var/run/docker.sock:/var/run/docker.sock \
+  <span class="k">-e</span> PORT=32700 <span class="k">-e</span> MUSIC_DIR=/music <span class="k">-e</span> DB_PATH=/data/musicd.db \
+  <span class="k">--restart</span> unless-stopped \
+  musicd-server</pre>
+    </div>
+    <p class="after-note">Then open <code>http://&lt;host&gt;:32700</code>. The
+    first library scan starts automatically. A
+    <code>docker-compose.yml</code> ships in <code>musicd/</code> if you prefer
+    that.</p>
+
+    <h3 class="sub">The three flags that matter</h3>
+    <div class="steps">
+      <ol>
+        <li><b><code>--network host</code></b> is required on Linux for
+        SSDP&nbsp;/&nbsp;UPnP multicast on UDP 1900. Without it, renderers are
+        not discovered. On Docker Desktop fall back to
+        <code>-p 32700:32700 -p 1900:1900/udp</code> and expect to add renderers
+        by IP.</li>
+        <li><b><code>--group-add 29</code></b> is the Debian&nbsp;/&nbsp;DietPi
+        <code>audio</code> GID, needed only for local USB DAC output. Check
+        yours with <code>getent group audio</code>.</li>
+        <li><b><code>/var/run/docker.sock</code></b> is what lets the server
+        update itself in place. Leave it out and everything else still works;
+        you just update by rebuilding.</li>
+      </ol>
+    </div>
+
+    <div class="note" style="margin-top:16px">
+      <b>Deliberately omitted:</b> <code>-v /proc/asound:/proc/asound:ro</code>.
+      On DietPi and other stock kernels <code>runc</code> rejects mounts inside
+      <code>/proc</code> and the container will not start. USB DACs still work
+      without it &mdash; capability detection falls back to
+      <code>aplay --dump-hw-params</code>.
+    </div>
+
+    <h3 class="sub">Updating</h3>
+    <p class="after-note">After the first install, updates happen in the app:
+    <b>Settings &rarr; Check for updates</b>. The server polls the update
+    manifest on the repo&rsquo;s <code>main</code> branch, compares the
+    published version against its own, and on request downloads the release and
+    restarts itself. The Docker socket mount above is what makes that possible.
+    You should not need to run <code>docker build</code> a second time.</p>
+  </div>
+</section>
+
+<section id="reference" aria-labelledby="reference-h">
+  <div class="wrap">
+    <h2 id="reference-h">Reference</h2>
+    <p class="lead">What the container listens on, reads, and writes.</p>
+
+    <h3 class="sub">Environment variables</h3>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th scope="col">Variable</th><th scope="col">Default</th><th scope="col">Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>PORT</td><td>32700</td><td>HTTP and WebSocket port</td></tr>
+          <tr><td>MUSIC_DIR</td><td>/music</td><td>Library root inside the container</td></tr>
+          <tr><td>DB_PATH</td><td>/data/musicd.db</td><td>SQLite database path</td></tr>
+          <tr><td>NODE_ENV</td><td>production</td><td>Node environment</td></tr>
+          <tr><td>LMS_HOST</td><td>127.0.0.1</td><td>Lyrion Media Server host for the Squeezelite bridge</td></tr>
+          <tr><td>LMS_PORT</td><td>9000</td><td>Lyrion Media Server port</td></tr>
+          <tr><td>SSDP_INTERFACE</td><td>(auto)</td><td>Interface for SSDP multicast &mdash; set when <code>--network host</code> is unavailable</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="sub">Mounts</h3>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th scope="col">Mount</th><th scope="col">Purpose</th><th scope="col">Required</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>/data</td><td>SQLite database, DSP profiles and impulse responses, cover-art and artist-logo caches, backups</td><td>yes</td></tr>
+          <tr><td>/music:ro</td><td>Your library, read-only</td><td>yes</td></tr>
+          <tr><td>/dev/snd</td><td>USB DAC / ALSA access, with <code>--group-add 29</code></td><td>local output only</td></tr>
+          <tr><td>/sys/class/thermal:ro</td><td>Host CPU temperature for background-job throttling</td><td>recommended</td></tr>
+          <tr><td>/var/run/docker.sock</td><td>In-app updater builds and restarts the container</td><td>optional</td></tr>
+          <tr><td>/proc/asound:ro</td><td>Richer DAC capability probing &mdash; <b>omit on DietPi and stock kernels</b></td><td>optional</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="sub">Under the data directory</h3>
+    <div class="codebox">
+      <button class="copy-btn" type="button" data-copy="tree">Copy</button>
+      <pre id="tree">/var/lib/musicd-server-v1/
+├── musicd.db            <span class="c"># SQLite primary (+ -wal, -shm)</span>
+├── dsp/                 <span class="c"># user PEQ profiles, FIR impulse responses</span>
+├── coverart/            <span class="c"># cover-art cache</span>
+├── artistlogos/         <span class="c"># artist logo cache</span>
+├── backups/             <span class="c"># snapshot exports</span>
+└── .pending-restore/    <span class="c"># atomic-swap staging for restores</span></pre>
+    </div>
+
+    <h3 class="sub">Stack</h3>
+    <p class="after-note">CommonJS Node 20 on Express, <code>better-sqlite3</code>,
+    <code>ws</code>, <code>node-ssdp</code>, <code>sharp</code> and
+    <code>music-metadata</code>, shelling out to <code>ffmpeg</code>,
+    <code>loudgain</code> and <code>fpcalc</code>. The client is a React 18 +
+    Vite SPA served as static assets. Three-stage Docker build on
+    <code>node:20-trixie-slim</code>, so native modules compile against the same
+    glibc the runtime uses.</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  MusicD Server v1.1.3.8 &mdash; self-hosted music, one user, one library, one home network.
+  <br>MIT licence &middot; <a href="https://github.com/meltface-80/MusicD-Server-v1">Source on GitHub</a>
+</footer>
+
+<script>
+(function () {
+  document.querySelectorAll('.copy-btn').forEach(function (btn) {
+    btn.addEventListener('click', async function () {
+      var target = document.getElementById(btn.dataset.copy);
+      if (!target) return;
+      var text = target.innerText;
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch (e) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+      btn.textContent = 'Copied ✓';
+      btn.classList.add('done');
+      setTimeout(function () {
+        btn.textContent = 'Copy';
+        btn.classList.remove('done');
+      }, 1400);
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

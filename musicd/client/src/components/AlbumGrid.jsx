@@ -1,0 +1,1186 @@
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
+import { useStore } from '../store'
+import { api } from '../api'
+import { Heart, Shuffle, Play, Plus, SlidersHorizontal } from 'lucide-react'
+import { FocusBar, FocusPills, FocusModal, useFocusState, FOCUS_SECTIONS, applySectionOrder } from './Focus'
+
+const PAGE_SIZE = 200
+
+// v1.1.0.94 — module-level focus options cache.
+//
+// Previously focusOptions was held only in React state on AlbumGrid.
+// When the user navigated away from the albums screen and back, the
+// component unmounted/remounted and focusOptions reset to null,
+// forcing a re-fetch. With the server's 1-hour TTL the response is
+// fast but the bar still shows "Loading focus options…" during the
+// network round-trip, which the user found jarring after v91 made
+// most operations instant.
+//
+// This cache persists across mount/unmount cycles within the same
+// page session. It expires after 1 hour to match the server TTL,
+// or sooner if the library is rescanned (the server's cache
+// invalidation already handles that — the next fetch will refresh
+// this cache too).
+//
+// Persisted in memory only, not localStorage — the data can be large
+// (tens of KB for a 50k-track library) and a fresh page load should
+// always re-fetch to pick up library changes since last session.
+const _focusOptionsCache = { value: null, fetchedAt: 0 };
+const FOCUS_OPTIONS_CLIENT_TTL_MS = 60 * 60 * 1000;
+
+// v1.1.0.70 — `savedOnly` mirrors the v1.1.0.27-era favoritesOnly flag.
+// When true (set by App.jsx when rendering this grid as the dedicated
+// Saved-for-later screen) we add ?saved=1 to the album-list query and
+// switch the heading to "Saved for later." Because the server's
+// favourites and saved filters are composable, the user could in
+// future combine both — but for now this prop is exposed only on
+// the Saved-for-later screen, where favoritesOnly will be false.
+export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedOnly = false, headingOverride = null }) {
+  const { setSelectedAlbum, libraryStatus, rendererId, playQueue, appendToQueue } = useStore()
+  // v1.1.0.82 — pickup hatch for saved focuses loaded from the
+  // Focus Library screen. The screen sets this then routes to
+  // 'albums'; AlbumGrid mounts, sees the pending row, hydrates the
+  // focus picks, and clears the pending field. We deliberately
+  // separate the read and the setter calls so the effect runs once
+  // per pending value, not on every render.
+  const pendingFocusToLoad = useStore(s => s.pendingFocusToLoad)
+  const setPendingFocusToLoad = useStore(s => s.setPendingFocusToLoad)
+  const selectAlbum = onAlbumSelect || setSelectedAlbum
+  const [albums, setAlbums] = useState([])
+  const [totalAlbums, setTotalAlbums] = useState(0)
+  const [totalTracks, setTotalTracks] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [sort, setSort] = useState('title')
+  const [offset, setOffset] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
+  const [contextMenu, setContextMenu] = useState(null)
+  // Local heart-filter chip (#19). Combined with the favoritesOnly *prop*
+  // (set when this grid is rendered as the dedicated Favourites screen) via
+  // OR — either route makes us show only favourites.
+  const [filterFavorites, setFilterFavorites] = useState(false)
+  const [randomBusy, setRandomBusy] = useState(false)
+  // Busy flag shared by Play All / Queue All on the Favourites screen so we
+  // can disable both while the bulk track fetch is in flight.
+  const [bulkBusy, setBulkBusy] = useState(false)
+  // v1.1.0.71 — chip-strip tag filter. tagFilter is the id of the
+  // currently-selected user tag, or null for "show everything." All
+  // tags is loaded once on mount and refreshed when the chip strip
+  // is interacted with — there's no live websocket push for tag
+  // changes, but the chip strip is small enough that a refetch on
+  // each filter change is fine (a few ms even with hundreds of tags).
+  // The chip strip is suppressed entirely when there are zero tags
+  // and on the dedicated Favourites/Saved-for-later screens — those
+  // screens are themselves "filtered" views, and stacking another
+  // tag filter on top would be confusing without a clear UX for
+  // multi-filter combination.
+  const [allTags, setAllTags] = useState([])
+  // v1.1.0.73 — tagFilter is now a Set<id> (was single id in v71).
+  // Tap a chip toggles its membership in the set; the server
+  // intersects (AND) the active set. The "All albums" chip clears
+  // the set entirely. State is held as a Set instance and replaced
+  // wholesale on each toggle so React's identity-based change
+  // detection fires.
+  const [tagFilter, setTagFilter] = useState(() => new Set())
+  const sentinelRef = useRef(null)
+
+  // v1.1.0.80 — Focus state. Only used when this AlbumGrid is the
+  // main Albums view (not Favourites or Saved For Later, which have
+  // their own intrinsic filter and don't need Focus on top).
+  // The funnel pill toggles `focusOpen`; the bar renders only when
+  // open. Pills render whenever any picks exist, regardless of bar
+  // state — closing the bar preserves selections per spec.
+  const focusEnabled = !favoritesOnly && !savedOnly
+  const focus = useFocusState()
+  const [focusOpen, setFocusOpen] = useState(false)
+  // v1.1.0.94 — initialise from module-level cache so navigating
+  // back to this screen doesn't show "Loading focus options…".
+  // The cache is bounded by FOCUS_OPTIONS_CLIENT_TTL_MS.
+  const [focusOptions, setFocusOptions] = useState(() => {
+    if (_focusOptionsCache.value &&
+        Date.now() - _focusOptionsCache.fetchedAt < FOCUS_OPTIONS_CLIENT_TTL_MS) {
+      return _focusOptionsCache.value;
+    }
+    return null;
+  })
+
+  // v1.1.0.83 — Focus sub-section order. Server stores user's
+  // preferred column order in the settings table; client applies
+  // it on render. null means "use the default" (FOCUS_SECTIONS as
+  // shipped). Computed `orderedSections` is what FocusBar consumes.
+  const [sectionOrder, setSectionOrder] = useState(null)
+  const orderedSections = useMemo(
+    () => applySectionOrder(sectionOrder),
+    [sectionOrder]
+  )
+  const isOrderCustomised = sectionOrder !== null && sectionOrder.length > 0
+
+  // Fetch persisted section order on mount (only when focus is
+  // enabled — i.e. on the main Albums view, not Favourites/Saved).
+  useEffect(() => {
+    if (!focusEnabled) return
+    let cancelled = false
+    api.get('/library/focus/section-order').then(r => {
+      if (cancelled) return
+      // r.order is an array of section keys, or null. Either is fine.
+      setSectionOrder(r?.order || null)
+    }).catch(e => {
+      // v1.1.0.96 — was silent. The section-order load is non-critical
+      // (the bar still works with default order) but a persistent
+      // error is worth surfacing for diagnosis. Logged to console
+      // since there's no user-actionable recovery — this is
+      // dev-facing.
+      console.warn('[focus] section-order load failed:', e?.message || e)
+    })
+    return () => { cancelled = true }
+  }, [focusEnabled])
+
+  // Reorder handler — called when the user drops a column in a new
+  // slot. Optimistically updates local state, then persists. If the
+  // PUT fails we roll back.
+  const handleReorder = useCallback(async (newOrder) => {
+    const previous = sectionOrder
+    setSectionOrder(newOrder)
+    try {
+      await api.put('/library/focus/section-order', { order: newOrder })
+    } catch (e) {
+      // Rollback on failure. The UI snaps back to the previous order.
+      console.warn('[focus] section reorder persistence failed:', e?.message)
+      setSectionOrder(previous)
+    }
+  }, [sectionOrder])
+
+  const handleResetOrder = useCallback(async () => {
+    const previous = sectionOrder
+    setSectionOrder(null)
+    try {
+      // v1.1.0.92 — was `api.delete(...)` which doesn't exist on
+      // the api object (it exports `del`, not `delete`). The result
+      // was `undefined.then is not a function`, swallowed by the
+      // catch, so the button silently did nothing. Now uses `del`.
+      await api.del('/library/focus/section-order')
+    } catch (e) {
+      console.warn('[focus] section reset failed:', e?.message)
+      setSectionOrder(previous)
+    }
+  }, [sectionOrder])
+
+  // v1.1.0.82 — saved-focus save flow.
+  // saveModal: null (closed) or { name: '', error: null, busy: false }
+  // The modal sets `name` as the user types and surfaces validation
+  // errors inline. The Focus Library screen handles loading; we
+  // just need to support "save current picks under a new name" and
+  // "update the currently-loaded one" from here.
+  const [saveModal, setSaveModal] = useState(null)
+  const [saveError, setSaveError] = useState(null)
+
+  const handleSaveAsNew = useCallback(() => {
+    setSaveError(null)
+    setSaveModal({ name: '', busy: false })
+  }, [])
+
+  const handleConfirmSave = useCallback(async () => {
+    const name = (saveModal?.name || '').trim()
+    if (!name) {
+      setSaveModal(prev => prev ? { ...prev, error: 'Name required' } : prev)
+      return
+    }
+    setSaveModal(prev => prev ? { ...prev, busy: true, error: null } : prev)
+    try {
+      const r = await api.post('/library/focus/saved', {
+        name,
+        picks: focus.serialisePicks(),
+      })
+      // After save, mark this as the new loaded focus so subsequent
+      // edits are dirty against the right baseline.
+      focus.markSaved(r.row)
+      setSaveModal(null)
+    } catch (e) {
+      const msg = e?.message || 'Save failed'
+      setSaveModal(prev => prev ? { ...prev, busy: false, error: msg } : prev)
+    }
+  }, [saveModal, focus])
+
+  const handleUpdateLoaded = useCallback(async () => {
+    if (!focus.loadedFocus) return
+    setSaveError(null)
+    try {
+      const r = await api.put(`/library/focus/saved/${focus.loadedFocus.id}`, {
+        picks: focus.serialisePicks(),
+      })
+      focus.markSaved(r.row)
+    } catch (e) {
+      setSaveError(e?.message || 'Update failed')
+    }
+  }, [focus])
+
+  // Fetch focus options on first mount when needed. The endpoint
+  // computes from the live library, so we re-fetch when the bar
+  // opens — that way picks reflect any albums added since the
+  // initial load. Cached server-side for 60s so reopen is cheap.
+  // v1.1.0.94 — also writes to the module-level cache so a later
+  // mount picks up the same value without the network round-trip.
+  useEffect(() => {
+    if (!focusEnabled) return
+    if (!focusOpen && focusOptions) return  // already loaded; only refresh on open
+    if (!focusOpen) return
+    let cancelled = false
+    api.get('/library/focus/options').then(opts => {
+      if (!cancelled) {
+        setFocusOptions(opts)
+        _focusOptionsCache.value = opts
+        _focusOptionsCache.fetchedAt = Date.now()
+      }
+    }).catch(e => {
+      // v1.1.0.96 — was silent.
+      console.warn('[focus] options load failed:', e?.message || e)
+    })
+    return () => { cancelled = true }
+  }, [focusEnabled, focusOpen])
+
+  // v1.1.0.82 — consume pendingFocusToLoad set by the Focus Library
+  // screen. Hydrate the focus state once, then clear the pending
+  // value so a subsequent navigation doesn't re-load. Deliberately
+  // doesn't open the focus bar — the picks become visible via the
+  // pills row, which is enough to confirm the load succeeded.
+  useEffect(() => {
+    if (!focusEnabled) return
+    if (!pendingFocusToLoad) return
+    focus.loadSaved(pendingFocusToLoad)
+    setPendingFocusToLoad(null)
+  }, [focusEnabled, pendingFocusToLoad])
+
+  const showOnlyFavorites = favoritesOnly || filterFavorites
+
+  const fetchPage = useCallback(async (s, off, append) => {
+    const favParam = showOnlyFavorites ? '&favorites=1' : ''
+    // v1.1.0.70 — composable savedOnly param. The prop is only set when
+    // App.jsx renders this grid as the Saved-for-later screen; the
+    // chip-strip filter introduced for tags in a future release will
+    // also be free to set this flag.
+    const savedParam = savedOnly ? '&saved=1' : ''
+    // v1.1.0.71 / v1.1.0.73 — tag filter param. v71 sent &tag_id=N
+    // (single); v73 sends &tag_ids=N,M,P (comma-separated, AND-
+    // semantics on the server). Sorting before joining keeps the
+    // URL stable for the same filter set, which keeps server cache
+    // hits high.
+    const tagParam = tagFilter.size > 0
+      ? `&tag_ids=${[...tagFilter].sort((a,b)=>a-b).join(',')}`
+      : ''
+    // v1.1.0.80 — focus filter params. The hook returns a complete
+    // pre-encoded fragment beginning with '&' (or empty string if
+    // no picks). Suppressed on Favourites/Saved For Later because
+    // the funnel UI isn't shown there.
+    const focusParam = focusEnabled ? focus.queryString : ''
+    const data = await api.get(`/library/albums?sort=${s}&limit=${PAGE_SIZE}&offset=${off}${favParam}${savedParam}${tagParam}${focusParam}`)
+    if (append) setAlbums(prev => [...prev, ...data])
+    else setAlbums(data)
+    setHasMore(data.length === PAGE_SIZE)
+    return data.length
+  }, [showOnlyFavorites, savedOnly, tagFilter, focusEnabled, focus.queryString])
+
+  // v1.1.1.0 — track whether we've ever loaded successfully. The
+  // initial mount shows a spinner; subsequent fetches (sort change,
+  // filter change, etc.) keep the existing grid on screen and just
+  // replace the data when it arrives. This avoids the jolt of the
+  // grid disappearing for ~50-300ms on every interaction.
+  const hasLoadedOnce = useRef(false)
+
+  // Load first page + stats
+  useEffect(() => {
+    if (!hasLoadedOnce.current) setLoading(true)
+    setOffset(0)
+    setHasMore(true)
+    Promise.all([
+      fetchPage(sort, 0, false),
+      api.get('/library/stats'),
+    ]).then(([count, stats]) => {
+      setOffset(count)
+      setTotalAlbums(stats.total_albums || 0)
+      setTotalTracks(stats.total_tracks || 0)
+      hasLoadedOnce.current = true
+    }).finally(() => setLoading(false))
+  }, [sort, showOnlyFavorites, savedOnly, tagFilter, fetchPage])
+
+  // v1.1.0.71 — load the tag catalog for the chip strip. Only on the
+  // main Albums screen (not Favourites or Saved-for-later — those are
+  // already filtered views and we don't render the chip strip there).
+  // Re-fetches when the user navigates back to Albums after potentially
+  // creating new tags via the TagPicker — the App-level focus event
+  // would be cleaner but a simple mount-effect plus a manual refresh on
+  // every grid load (next effect, sort/filter dep) covers the common
+  // case. If users frequently add tags during a session and want to
+  // see them appear without leaving the screen, we can add a refetch
+  // tied to a window focus listener in v72.
+  useEffect(() => {
+    if (favoritesOnly || savedOnly) return
+    let cancelled = false
+    api.get('/tags').then(tags => {
+      if (cancelled) return
+      // Filter to tags with at least one album — a tag that's only
+      // attached to tracks shouldn't appear on the *album* grid's
+      // filter strip. (Track-tag filtering is a separate UI surface.)
+      const albumTags = (tags || []).filter(t => (t.album_count || 0) > 0)
+      setAllTags(albumTags)
+    }).catch(() => {
+      // Network hiccup: leave the previous list in place rather than
+      // clearing it.
+    })
+    return () => { cancelled = true }
+  }, [favoritesOnly, savedOnly, sort])
+
+  // When the scanner moves out of 'scanning' (or 'rebuilding_stats'), refresh the
+  // visible album list so newly-added albums appear without a manual reload.
+  const lastScanPhase = useRef(libraryStatus?.phase)
+  useEffect(() => {
+    const prev = lastScanPhase.current
+    const cur = libraryStatus?.phase
+    lastScanPhase.current = cur
+    const wasScanning = prev === 'scanning' || prev === 'rebuilding_stats'
+    if (!wasScanning) return
+    if (cur === prev) return
+    setOffset(0)
+    setHasMore(true)
+    Promise.all([
+      fetchPage(sort, 0, false),
+      api.get('/library/stats'),
+    ]).then(([count, stats]) => {
+      setOffset(count)
+      setTotalAlbums(stats.total_albums || 0)
+      setTotalTracks(stats.total_tracks || 0)
+    })
+  }, [libraryStatus?.phase, sort, fetchPage])
+
+  // Infinite scroll
+  useEffect(() => {
+    if (!sentinelRef.current) return
+    const observer = new IntersectionObserver(async ([entry]) => {
+      if (entry.isIntersecting && !loadingMore && hasMore) {
+        setLoadingMore(true)
+        const count = await fetchPage(sort, offset, true)
+        setOffset(prev => prev + count)
+        setLoadingMore(false)
+      }
+    }, { rootMargin: '300px' })
+    observer.observe(sentinelRef.current)
+    return () => observer.disconnect()
+  }, [offset, sort, loadingMore, hasMore, fetchPage])
+
+  // #13 — Play a randomly-chosen album end-to-end. Asks the server for a
+  // random album id, fetches its full track list, and starts the queue.
+  // When we're in a favourites-scoped view the server is told to pick from
+  // favourites only — so the Random button on the Favourites page returns
+  // a random favourite, not a random album from the whole library.
+  const playRandomAlbum = async () => {
+    if (!rendererId) { alert('Tap ☰ → Output to select a renderer first'); return }
+    setRandomBusy(true)
+    try {
+      const favParam = showOnlyFavorites ? '?favorites=1' : ''
+      const { id } = await api.get(`/library/albums/random${favParam}`)
+      if (!id) return
+      const album = await api.get(`/library/albums/${id}`)
+      if (album?.tracks?.length) {
+        playQueue(album.tracks, 0)
+        // Open the album so the user sees what's playing
+        selectAlbum(id)
+      }
+    } catch (e) { console.warn('Random album failed:', e) }
+    finally { setRandomBusy(false) }
+  }
+
+  // #4 (28.4) — Play All / Queue All for the Favourites screen. Hits the
+  // dedicated /favorites/tracks endpoint so we get every favourited album's
+  // tracks in one round-trip rather than N. Ordered the way the screen
+  // displays them (artist → album title).
+  const playAllFavorites = async () => {
+    if (!rendererId) { alert('Tap ☰ → Output to select a renderer first'); return }
+    setBulkBusy(true)
+    try {
+      const r = await api.get('/library/favorites/tracks')
+      if (r?.tracks?.length) playQueue(r.tracks, 0)
+    } catch (e) { console.warn('Play all favourites failed:', e) }
+    finally { setBulkBusy(false) }
+  }
+
+  const queueAllFavorites = async () => {
+    setBulkBusy(true)
+    try {
+      const r = await api.get('/library/favorites/tracks')
+      if (r?.tracks?.length) appendToQueue(r.tracks)
+    } catch (e) { console.warn('Queue all favourites failed:', e) }
+    finally { setBulkBusy(false) }
+  }
+
+  const handleRescanAlbum = async (album) => {
+    setContextMenu(null)
+    try {
+      await api.post('/library/artwork-album', {
+        albumId: album.id,
+        artist: album.album_artist,
+        title: album.title,
+      })
+    } catch {}
+  }
+
+  // v1.1.0.70 — heading reflects the active filter prop. Saved
+  // takes precedence over Favourites if both were ever set
+  // simultaneously (currently impossible — App.jsx routes them as
+  // separate sections — but defensive in case a future caller
+  // composes them).
+  const heading = headingOverride || (savedOnly ? 'Saved for later' : (favoritesOnly ? 'Favourites' : 'Albums'))
+
+  return (
+    <div style={s.page}>
+      {contextMenu && (
+        <div style={s.ctxOverlay} onClick={() => setContextMenu(null)}>
+          <div style={{ ...s.ctxMenu, top: Math.min(contextMenu.y, window.innerHeight - 130), left: Math.min(contextMenu.x, window.innerWidth - 200) }}
+            onClick={e => e.stopPropagation()}>
+            <div style={s.ctxTitle}>{contextMenu.album.title}</div>
+            <button style={s.ctxItem} onClick={() => handleRescanAlbum(contextMenu.album)}>🎨 Fetch artwork</button>
+            <button style={s.ctxItem} onClick={() => { setSelectedAlbum(contextMenu.album.id); setContextMenu(null) }}>▶ Open album</button>
+            <button style={{ ...s.ctxItem, color: 'var(--text-tertiary)' }} onClick={() => setContextMenu(null)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      <div style={s.header}>
+        <div style={s.titleRow}>
+          <h1 style={s.heading}>{heading}</h1>
+        </div>
+        {/* Action row — different content for the dedicated Favourites screen
+            vs the main Albums grid. Both share the chip styling. */}
+        {favoritesOnly ? (
+          // Favourites screen: Play All, Queue All, and a Random favourite.
+          // No "show favourites only" chip here — the page is already that.
+          <div className="jp-chip-row" style={s.actionRow}>
+            <button
+              style={{ ...s.iconChip, ...s.iconChipPrimary, ...(bulkBusy ? { opacity: 0.5 } : {}) }}
+              onClick={playAllFavorites}
+              disabled={bulkBusy || albums.length === 0}
+              title="Play all favourite albums"
+            >
+              <Play size={12} fill="currentColor" strokeWidth={0} />
+              <span>Play all</span>
+            </button>
+            <button
+              style={{ ...s.iconChip, ...(bulkBusy ? { opacity: 0.5 } : {}) }}
+              onClick={queueAllFavorites}
+              disabled={bulkBusy || albums.length === 0}
+              title="Queue all favourite albums"
+            >
+              <Plus size={13} />
+              <span>Queue all</span>
+            </button>
+            <button
+              style={{ ...s.iconChip, ...(randomBusy ? { opacity: 0.5 } : {}) }}
+              onClick={playRandomAlbum}
+              disabled={randomBusy || albums.length === 0}
+              title="Play a random favourite album"
+            >
+              <Shuffle size={13} />
+              <span>Random</span>
+            </button>
+          </div>
+        ) : (
+          // Main Albums screen: 5-pill row (#v1.1.0.30) -- Title /
+          // Artist / Year sort pills + Random + Favourites (heart only)
+          // all in a single row, equal sizing.
+          <div className="jp-chip-row" style={s.pillRow}>
+            {['title', 'artist', 'year'].map(o => (
+              <button
+                key={o}
+                style={{ ...s.iconChip, ...(sort === o ? s.sortChipActive : {}) }}
+                onClick={() => setSort(o)}
+                title={`Sort by ${o}`}
+                aria-pressed={sort === o}
+              >
+                <span>{o[0].toUpperCase() + o.slice(1)}</span>
+              </button>
+            ))}
+            <button
+              style={{ ...s.iconChip, ...(randomBusy ? { opacity: 0.5 } : {}) }}
+              onClick={playRandomAlbum}
+              disabled={randomBusy}
+              title="Play a random album"
+            >
+              <Shuffle size={15} />
+              <span>Random</span>
+            </button>
+            <button
+              style={{ ...s.iconChip, ...(filterFavorites ? s.iconChipActive : {}) }}
+              onClick={() => setFilterFavorites(v => !v)}
+              title={filterFavorites ? 'Showing favourites' : 'Show favourites only'}
+              aria-pressed={filterFavorites}
+              aria-label="Favourites"
+            >
+              <Heart
+                size={15}
+                fill={filterFavorites ? '#ff3b5c' : 'none'}
+                color={filterFavorites ? '#ff3b5c' : 'currentColor'}
+                strokeWidth={filterFavorites ? 0 : 2}
+              />
+            </button>
+            {/* v1.1.0.80 — Focus funnel. Tapping toggles the Focus bar
+                visibility. The pill highlights when the bar is open
+                AND when there are active picks (so the user can see at
+                a glance whether the visible album list is filtered by
+                anything). */}
+            <button
+              style={{
+                ...s.iconChip,
+                ...((focusOpen || focus.anyPicks) ? s.iconChipActive : {}),
+              }}
+              onClick={() => setFocusOpen(v => !v)}
+              title={focusOpen ? 'Close focus' : (focus.anyPicks ? 'Focus filters active' : 'Focus')}
+              aria-pressed={focusOpen}
+              aria-label="Focus"
+            >
+              <SlidersHorizontal size={15} />
+            </button>
+          </div>
+        )}
+        {/* v1.1.0.71 — tag chip strip. Only rendered on the main
+            Albums screen (not Favourites or Saved-for-later) when
+            there's at least one user tag with album-side usage.
+            v1.1.0.73: multi-select. Tap a chip to add/remove it
+            from the active filter Set; the server intersects
+            (AND) all selected tags. The "All albums" leading
+            chip clears the entire set in one tap. Per-tag album
+            counts are hidden when 2+ tags are active because the
+            single-tag count would mislead in that context (it's
+            the count for that tag in isolation, not the size of
+            the current intersection). */}
+        {!favoritesOnly && !savedOnly && allTags.length > 0 && (
+          <div className="jp-chip-row" style={s.tagChipRow}>
+            <button
+              style={{ ...s.tagChip, ...(tagFilter.size === 0 ? s.tagChipActive : {}) }}
+              onClick={() => setTagFilter(new Set())}
+              aria-pressed={tagFilter.size === 0}
+              title="Show all albums"
+            >
+              All albums
+            </button>
+            {allTags.map(tag => {
+              const on = tagFilter.has(tag.id)
+              const chipStyle = {
+                ...s.tagChip,
+                ...(on ? s.tagChipActive : {}),
+                ...(tag.color && on ? {
+                  borderColor: tag.color,
+                  background: hexToRgba(tag.color, 0.18),
+                } : {}),
+              }
+              return (
+                <button
+                  key={tag.id}
+                  style={chipStyle}
+                  onClick={() => {
+                    // v1.1.0.73 — toggle membership in the active
+                    // filter set. Always replace the Set wholesale
+                    // so React's identity-based change detection
+                    // fires.
+                    const next = new Set(tagFilter)
+                    if (next.has(tag.id)) next.delete(tag.id)
+                    else next.add(tag.id)
+                    setTagFilter(next)
+                  }}
+                  aria-pressed={on}
+                  title={`${tag.album_count} album${tag.album_count !== 1 ? 's' : ''}`}
+                >
+                  {tag.name}
+                  {tagFilter.size < 2 && (
+                    <span style={s.tagChipCount}>{tag.album_count}</span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        )}
+        {(totalAlbums > 0) && !showOnlyFavorites && (
+          <div style={s.statsRow}>{totalAlbums} albums · {totalTracks} tracks</div>
+        )}
+        {showOnlyFavorites && (
+          <div style={s.statsRow}>{albums.length} favourite{albums.length !== 1 ? 's' : ''}</div>
+        )}
+
+        {/* v1.1.0.80 — Focus pills row. Inside the sticky header so
+            the pills move with the rest of the top UI rather than
+            getting their own sticky stacking position (multi-sticky
+            stacking with dynamic heights is fiddly; one container
+            sidesteps the problem). Renders only when picks exist
+            and only on the main Albums view. Closing the bar with
+            X preserves picks via these pills per spec. */}
+        {focusEnabled && focus.anyPicks && (
+          <FocusPills
+            picks={focus.picks}
+            onTogglePillSign={focus.togglePillSign}
+            onRemovePill={focus.removePill}
+            onClearAll={focus.clearAll}
+          />
+        )}
+        {/* v1.1.0.80 — Focus bar. Renders only when funnel is open.
+            v1.1.0.82 adds save/update buttons inside the bar. */}
+        {focusEnabled && focusOpen && (
+          <FocusBar
+            picks={focus.picks}
+            options={focusOptions}
+            onTogglePick={focus.togglePick}
+            onClose={() => setFocusOpen(false)}
+            loadedFocus={focus.loadedFocus}
+            isDirty={focus.isDirty}
+            anyPicks={focus.anyPicks}
+            onSaveAsNew={handleSaveAsNew}
+            onUpdateLoaded={handleUpdateLoaded}
+            sections={orderedSections}
+            onReorder={handleReorder}
+            onResetOrder={handleResetOrder}
+            isOrderCustomised={isOrderCustomised}
+          />
+        )}
+      </div>
+
+      {/* v1.1.0.82 — save-as-new modal. Renders into a portal-style
+          fixed overlay so it doesn't get clipped by the sticky
+          header. */}
+      <FocusModal
+        open={!!saveModal}
+        onCancel={() => !saveModal?.busy && setSaveModal(null)}
+        title="Save focus"
+      >
+        {saveModal && (
+          <div>
+            <input
+              type="text"
+              autoFocus
+              value={saveModal.name}
+              onChange={e => setSaveModal(prev => prev ? { ...prev, name: e.target.value, error: null } : prev)}
+              onKeyDown={e => { if (e.key === 'Enter' && !saveModal.busy) handleConfirmSave() }}
+              placeholder="Name (e.g. Late Night Jazz)"
+              maxLength={60}
+              disabled={saveModal.busy}
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                padding: 10,
+                fontSize: 13,
+                background: 'var(--jp-bg-surface)',
+                border: '1px solid var(--jp-border)',
+                borderRadius: 6,
+                color: 'var(--jp-text)',
+                marginBottom: 6,
+              }}
+            />
+            {saveModal.error && (
+              <div style={{ fontSize: 11, color: '#ff8a9a', marginBottom: 6 }}>
+                {saveModal.error}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 10 }}>
+              <button
+                onClick={() => setSaveModal(null)}
+                disabled={saveModal.busy}
+                style={{
+                  padding: '7px 14px',
+                  background: 'transparent',
+                  border: '1px solid var(--jp-border)', borderRadius: 6,
+                  color: 'var(--jp-text-2)', fontSize: 12, cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmSave}
+                disabled={saveModal.busy || !saveModal.name.trim()}
+                style={{
+                  padding: '7px 14px',
+                  background: 'var(--jp-accent)',
+                  border: 'none', borderRadius: 6,
+                  color: '#0a0a0c', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  opacity: (saveModal.busy || !saveModal.name.trim()) ? 0.5 : 1,
+                }}
+              >
+                {saveModal.busy ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        )}
+      </FocusModal>
+
+      {saveError && (
+        <div style={{
+          position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+          padding: '8px 14px',
+          background: 'rgba(255,59,92,0.18)',
+          border: '1px solid rgba(255,59,92,0.36)',
+          borderRadius: 6,
+          color: '#ff8a9a', fontSize: 12,
+          zIndex: 100,
+        }}>
+          {saveError}
+        </div>
+      )}
+
+      {loading ? (
+        <div style={s.loadWrap}><div style={s.spinner} /></div>
+      ) : albums.length === 0 && libraryStatus?.phase !== 'idle' && !showOnlyFavorites && !savedOnly && tagFilter.size === 0 ? (
+        <FirstScanProgress status={libraryStatus} />
+      ) : albums.length === 0 ? (
+        <div style={s.emptyMsg}>
+          {tagFilter.size > 0 ? (
+            <>
+              {tagFilter.size === 1
+                ? 'No albums match this tag.'
+                : `No albums match all ${tagFilter.size} selected tags.`}
+              <br /><br />
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                <button
+                  onClick={() => setTagFilter(new Set())}
+                  style={{ background: 'none', border: 'none', color: 'var(--jp-text-2)', textDecoration: 'underline', cursor: 'pointer', padding: 0 }}
+                >Clear filter</button>
+                {tagFilter.size > 1 ? ' or remove some chips above to widen the result.' : ' or tag more albums via the ⋯ menu.'}
+              </span>
+            </>
+          ) : (focusEnabled && focus.anyPicks) ? (
+            // v1.1.1.0 — Focus-driven empty state. Previously fell
+            // through to "No albums in library yet" which is wrong
+            // when the user has filtered themselves into nothing.
+            <>
+              No albums match the current Focus filters.
+              <br /><br />
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                Open the Focus bar to remove pills, or
+                {' '}<button
+                  onClick={() => focus.clearAll && focus.clearAll()}
+                  style={{ background: 'none', border: 'none', color: 'var(--jp-text-2)', textDecoration: 'underline', cursor: 'pointer', padding: 0 }}
+                >clear all picks</button>.
+              </span>
+            </>
+          ) : savedOnly ? (
+            <>
+              Nothing saved for later yet.
+              <br /><br />
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                Tap an album's <strong>⋯</strong> menu and choose <strong>Save for later</strong> to add it here.
+              </span>
+            </>
+          ) : showOnlyFavorites ? (
+            <>
+              No favourites yet.
+              <br /><br />
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                Tap the heart on any album page to add it here.
+              </span>
+            </>
+          ) : (
+            <>
+              No albums in library yet.
+              <br /><br />
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                Add music to <code>/mnt/dietpi_userdata/4tb</code> and tap Rescan in the side menu.
+              </span>
+            </>
+          )}
+        </div>
+      ) : (
+        <div style={s.gridArea}>
+          <div className="album-grid">
+            {albums.map(album => (
+              <AlbumCard
+                key={album.id}
+                album={album}
+                onClick={() => {
+                  // v1.1.1.2 diagnostic — logs every album tap so we
+                  // can see in the browser console whether the
+                  // handler fires.
+                  console.log('[album-tap]', album.id, album.title)
+                  // v1.1.1.4 — also relay to the SERVER log so we
+                  // can diagnose remotely on phones/tablets where
+                  // the browser console isn't accessible. This is
+                  // fire-and-forget — never blocks the tap action.
+                  try {
+                    fetch('/api/debug/client-log', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        tag: 'album-tap',
+                        message: `tapped album id=${album.id}`,
+                        data: {
+                          title: album.title,
+                          selectedBefore: useStore.getState().selectedAlbumId,
+                        }
+                      })
+                    }).catch(() => {})
+                  } catch {}
+                  // Defensive: call selectAlbum (which is either the
+                  // parent-provided callback or the store setter
+                  // fallback) AND directly call setSelectedAlbum
+                  // from the store. Belt-and-braces — covers the
+                  // case where onAlbumSelect was somehow stale.
+                  // A double-set with the same value is a no-op
+                  // in zustand.
+                  try { selectAlbum(album.id) } catch (e) {
+                    console.warn('[album-tap] selectAlbum threw:', e)
+                    fetch('/api/debug/client-log', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ tag: 'album-tap', message: 'selectAlbum threw', data: { error: String(e) }})
+                    }).catch(() => {})
+                  }
+                  try { setSelectedAlbum(album.id) } catch (e) {
+                    console.warn('[album-tap] setSelectedAlbum threw:', e)
+                    fetch('/api/debug/client-log', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ tag: 'album-tap', message: 'setSelectedAlbum threw', data: { error: String(e) }})
+                    }).catch(() => {})
+                  }
+                  // v1.1.1.4 — log the resulting state so we can see
+                  // whether the store actually updated. Tiny delay
+                  // because zustand state updates are scheduled, not
+                  // synchronous from the action's POV.
+                  setTimeout(() => {
+                    fetch('/api/debug/client-log', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        tag: 'album-tap',
+                        message: 'post-set state',
+                        data: { selectedAlbumId: useStore.getState().selectedAlbumId }
+                      })
+                    }).catch(() => {})
+                  }, 100)
+                }}
+                onLongPress={(e) => setContextMenu({
+                  album,
+                  x: e.touches?.[0]?.clientX ?? e.clientX,
+                  y: e.touches?.[0]?.clientY ?? e.clientY,
+                })}
+              />
+            ))}
+          </div>
+          <div ref={sentinelRef} style={{ height: 20 }} />
+          {loadingMore && (
+            <div style={s.loadMore}><div style={s.spinnerSm} /></div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FirstScanProgress({ status }) {
+  const { phase, processedFiles, totalFiles, artProcessed, artTotal, isFirstScan } = status
+  const phases = [
+    { id: 'walking', label: 'Looking for files' },
+    { id: 'loading_existing', label: 'Reading database' },
+    { id: 'scanning', label: 'Reading metadata' },
+    { id: 'rebuilding_stats', label: 'Building album stats' },
+    { id: 'enriching_art', label: 'Fetching cover art' },
+  ]
+  const idx = phases.findIndex(p => p.id === phase)
+
+  let detail = ''
+  let pct = null
+  if (phase === 'scanning' && totalFiles > 0) {
+    pct = (processedFiles / totalFiles) * 100
+    detail = `${processedFiles.toLocaleString()} of ${totalFiles.toLocaleString()} files`
+  } else if (phase === 'enriching_art' && artTotal > 0) {
+    pct = (artProcessed / artTotal) * 100
+    detail = `${artProcessed} of ${artTotal} albums`
+  }
+
+  return (
+    <div style={fs.wrap}>
+      <div style={fs.card}>
+        <div style={fs.title}>{isFirstScan ? 'Building your library' : 'Updating your library'}</div>
+        <div style={fs.subtitle}>
+          {isFirstScan
+            ? "This is a one-time setup. Albums will appear here as they're scanned."
+            : "Albums will refresh as new files are read."}
+        </div>
+
+        <div style={fs.steps}>
+          {phases.map((p, i) => {
+            const done = i < idx
+            const active = i === idx
+            return (
+              <div key={p.id} style={fs.step}>
+                <div style={{ ...fs.stepDot, ...(done ? fs.stepDone : active ? fs.stepActive : {}) }}>
+                  {done ? '✓' : active ? '•' : ''}
+                </div>
+                <div style={{ ...fs.stepLabel, ...(active ? fs.stepLabelActive : {}) }}>
+                  {p.label}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {detail && (
+          <div style={fs.detailBlock}>
+            <div style={fs.detailText}>{detail}</div>
+            {pct !== null && (
+              <div style={fs.progressTrack}>
+                <div style={{ ...fs.progressFill, width: `${pct}%` }} />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function AlbumCard({ album, onClick, onLongPress }) {
+  const [imgSrc, setImgSrc] = useState(null)
+  const [imgErr, setImgErr] = useState(false)
+  const cardRef = useRef(null)
+  const timerRef = useRef(null)
+
+  // Lazy load image when card scrolls into view
+  useEffect(() => {
+    if (!album.cover_art) return
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setImgSrc(album.cover_art)
+        observer.disconnect()
+      }
+    }, { rootMargin: '150px' })
+    if (cardRef.current) observer.observe(cardRef.current)
+    return () => observer.disconnect()
+  }, [album.cover_art])
+
+  const handleTouchStart = (e) => {
+    timerRef.current = setTimeout(() => onLongPress(e), 600)
+  }
+  const cancelLongPress = () => clearTimeout(timerRef.current)
+
+  return (
+    <button
+      ref={cardRef}
+      style={s.card}
+      onClick={onClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={cancelLongPress}
+      onTouchMove={cancelLongPress}
+      onContextMenu={onLongPress}
+    >
+      <div style={s.artBox}>
+        {imgSrc && !imgErr
+          ? <img src={imgSrc} alt="" style={s.art} onError={() => setImgErr(true)} loading="lazy" />
+          : <div style={s.artEmpty}>♫</div>
+        }
+      </div>
+      <div style={s.cardTitle}>{album.title}</div>
+      <div style={s.cardArtist}>{album.album_artist || album.artist}</div>
+    </button>
+  )
+}
+
+const s = {
+  // v1.1.0.62 — JPLAY-style page layout. Was 14px 10px with 120px
+  // bottom for the now-playing strip; JPLAY uses generous side
+  // padding (16px+) so the grid doesn't crowd the edges. Bottom
+  // padding kept the same so the now-playing bar overlap behaviour
+  // is unchanged.
+  // v1.1.0.79 — page no longer has top/bottom padding. Vertical
+  // padding moves to .header (top) and .gridArea (bottom) so the
+  // sticky header can pin at the top of the scroll container
+  // without a 20-pixel gap above it.
+  page: { padding: '0 16px', background: 'var(--jp-bg)', minHeight: '100%' },
+  // Heading: 24/600 with tight tracking. Was 22/700 with -0.4
+  // letterSpacing — fine but reading too "headline-y". The 600
+  // weight + slight tightening reads more "shelf label", less
+  // "magazine title", which is the JPLAY tone.
+  //
+  // v1.1.0.79 — header is now sticky-positioned at the top of the
+  // scroll container so the heading + sort pills + tag chips
+  // remain visible while the album grid scrolls underneath.
+  // Solid bg with a subtle bottom border to mask album art that
+  // would otherwise scroll through. zIndex above the grid so
+  // tag-chip popovers and pill text stay legible. The 16px-side
+  // negative margins extend the bg to the page edges (page's own
+  // padding only applies horizontally) so we don't show a strip
+  // of bg-page around the header when sticky.
+  header: {
+    position: 'sticky',
+    top: 0,
+    zIndex: 10,
+    marginBottom: 8,
+    paddingTop: 12,
+    paddingBottom: 8,
+    marginLeft: -16,
+    marginRight: -16,
+    paddingLeft: 16,
+    paddingRight: 16,
+    background: 'var(--jp-bg)',
+    borderBottom: '1px solid var(--jp-border)',
+  },
+  // v1.1.0.79 — wrapper around the album grid so the bottom
+  // padding (was on .page) follows the grid rather than the
+  // sticky header.
+  gridArea: { paddingTop: 8, paddingBottom: 120 },
+  titleRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  heading: { fontSize: 24, fontWeight: 600, letterSpacing: '-0.3px', color: 'var(--jp-text)' },
+  statsRow: { fontSize: 11, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)' },
+  sortRow: { display: 'flex', gap: 4 },
+  sortBtn: { padding: '4px 9px', borderRadius: 6, fontSize: 11, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border)' },
+  sortActive: { background: 'var(--accent-dim)', color: 'var(--accent)', borderColor: 'transparent' },
+  // v1.1.0.62 — JPLAY-style chip row. Was a wrap-flex centred
+  // pill row with bordered chips on var(--bg-elevated). JPLAY
+  // uses a horizontal scroller pinned to the start, no-border
+  // chips with a quiet fill, and white-fill / black-text for the
+  // active state. The favourites chip stays heart-red as its
+  // dedicated identity colour.
+  actionRow: {
+    display: 'flex', gap: 8,
+    marginTop: 4, marginBottom: 8,
+    overflowX: 'auto', overflowY: 'hidden',
+    WebkitOverflowScrolling: 'touch',
+    scrollbarWidth: 'none',
+    paddingBottom: 2,  // room for any focus ring when tab-navigating
+  },
+  pillRow: {
+    display: 'flex', gap: 8,
+    marginTop: 4, marginBottom: 8,
+    overflowX: 'auto', overflowY: 'hidden',
+    WebkitOverflowScrolling: 'touch',
+    scrollbarWidth: 'none',
+    paddingBottom: 2,
+  },
+  iconChip: {
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '7px 13px', borderRadius: 999,
+    fontSize: 12, fontWeight: 500,
+    color: 'var(--jp-text-2)',
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid transparent',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
+  },
+  iconChipActive: {
+    color: 'var(--jp-hot)',
+    background: 'rgba(255,59,92,0.10)',
+    borderColor: 'rgba(255,59,92,0.32)',
+  },
+  // Active sort chip: white fill, black text. JPLAY's "this filter
+  // is on" pattern. Reads as a positive selection state without
+  // resorting to chromatic accent.
+  sortChipActive: {
+    color: '#000',
+    background: 'var(--jp-accent)',
+    borderColor: 'var(--jp-accent)',
+    fontWeight: 600,
+  },
+  iconChipPrimary: {
+    color: '#000',
+    background: 'var(--jp-accent)',
+    borderColor: 'var(--jp-accent)',
+    fontWeight: 600,
+  },
+  loadWrap: { display: 'flex', justifyContent: 'center', paddingTop: 60 },
+  spinner: { width: 24, height: 24, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
+  spinnerSm: { width: 18, height: 18, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
+  loadMore: { display: 'flex', justifyContent: 'center', padding: '16px 0' },
+  grid: { /* unused since #30.17 -- replaced by .album-grid CSS class
+             which uses media queries to vary column count by viewport.
+             Left here as a no-op so any code path that still reads it
+             doesn't blow up; safe to delete in a future cleanup. */ },
+  card: { display: 'block', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', minWidth: 0 },
+  // v1.1.0.62 — JPLAY-style art tile. Was rounded-8 with a charcoal
+  // fallback bg and small marginBottom. Now: 4px radius (almost
+  // square — JPLAY uses sharper corners that read as "physical
+  // record sleeve" rather than "iOS app icon"), pure black
+  // fallback so the absent-art state doesn't pop out as a charcoal
+  // hole in the grid, and a more generous marginBottom (8px) so
+  // the title has room to breathe.
+  artBox: { width: '100%', aspectRatio: '1/1', borderRadius: 4, overflow: 'hidden', background: 'var(--jp-bg-surface)', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  art: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
+  artEmpty: { fontSize: 24, color: 'rgba(255,255,255,0.18)' },
+  // Title 13/500 (was 11/500) — large enough to read at arm's
+  // length on a phone, restrained enough to let the cover dominate.
+  cardTitle: { fontSize: 13, fontWeight: 500, color: 'var(--jp-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 2, lineHeight: 1.25 },
+  // Artist 12/400 secondary (was 10/400) — pairs visually with the
+  // title without competing.
+  cardArtist: { fontSize: 12, fontWeight: 400, color: 'var(--jp-text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  // Year line dropped from the JPLAY-style card. Year is auxiliary
+  // info; in JPLAY it lives on the album detail screen, not in the
+  // grid. The cardYear style is kept defined for any leftover
+  // callers but no longer rendered by AlbumCard.
+  cardYear: { fontSize: 9, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', marginTop: 1 },
+  ctxOverlay: { position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(0,0,0,0.4)' },
+  ctxMenu: { position: 'fixed', background: 'var(--bg-elevated)', border: '1px solid var(--border-bright)', borderRadius: 12, minWidth: 180, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' },
+  ctxTitle: { padding: '10px 14px 6px', fontSize: 11, color: 'var(--text-tertiary)', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  ctxItem: { display: 'block', width: '100%', textAlign: 'left', padding: '11px 14px', fontSize: 13, color: 'var(--text-primary)', background: 'none', border: 'none', cursor: 'pointer' },
+  emptyMsg: { padding: '40px 24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.5 },
+
+  // v1.1.0.71 — tag chip strip styles. Sits below the sort/heart pill
+  // row on the Albums screen. Horizontal scroll for overflow (the
+  // .jp-chip-row class hides the scrollbar). Smaller padding + font
+  // than the pill row above so the two strips read as different
+  // hierarchical levels — the upper row is "view controls," the
+  // lower row is "filter to a slice." Active chip uses the same
+  // 10%-white treatment as the favourites pill, with optional
+  // per-tag colour for users who set one.
+  tagChipRow: {
+    display: 'flex',
+    gap: 6,
+    overflowX: 'auto',
+    overflowY: 'hidden',
+    padding: '8px 0 4px',
+    marginTop: -2,
+    flexWrap: 'nowrap',
+    whiteSpace: 'nowrap',
+  },
+  tagChip: {
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '5px 10px',
+    fontSize: 12, fontWeight: 500,
+    background: 'transparent',
+    color: 'var(--jp-text-2)',
+    border: '1px solid var(--jp-border)',
+    borderRadius: 999,
+    cursor: 'pointer',
+    flexShrink: 0,
+  },
+  tagChipActive: {
+    background: 'rgba(255,255,255,0.10)',
+    borderColor: 'var(--jp-border-hot)',
+    color: 'var(--jp-text)',
+  },
+  tagChipCount: {
+    fontSize: 10,
+    fontFamily: 'var(--font-mono)',
+    color: 'var(--jp-text-3)',
+    fontWeight: 400,
+  },
+}
+
+// v1.1.0.71 — same helper as TagPicker. Could live in a shared util
+// file but it's three lines and only two callers; not worth the import
+// churn yet.
+function hexToRgba(hex, alpha) {
+  if (!hex || hex.length !== 7) return `rgba(255,255,255,${alpha})`
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r},${g},${b},${alpha})`
+}
+
+const fs = {
+  wrap: { padding: '24px 16px', display: 'flex', justifyContent: 'center' },
+  card: { width: '100%', maxWidth: 360, padding: '22px 22px 24px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' },
+  title: { fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 },
+  subtitle: { fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.45, marginBottom: 18 },
+  steps: { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 },
+  step: { display: 'flex', alignItems: 'center', gap: 10 },
+  stepDot: { width: 18, height: 18, borderRadius: '50%', background: 'var(--bg-overlay)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0 },
+  stepActive: { background: 'var(--accent)', borderColor: 'var(--accent)', color: '#fff', animation: 'pulse 1.4s ease-in-out infinite' },
+  stepDone: { background: 'rgba(63,208,122,0.15)', borderColor: 'rgba(63,208,122,0.4)', color: '#3fd07a' },
+  stepLabel: { fontSize: 12, color: 'var(--text-tertiary)' },
+  stepLabelActive: { color: 'var(--text-primary)', fontWeight: 600 },
+  detailBlock: { paddingTop: 12, borderTop: '1px solid var(--border)' },
+  detailText: { fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', marginBottom: 6 },
+  progressTrack: { height: 3, background: 'var(--bg-overlay)', borderRadius: 1.5, overflow: 'hidden' },
+  progressFill: { height: '100%', background: 'var(--accent)', transition: 'width 0.4s ease' },
+}

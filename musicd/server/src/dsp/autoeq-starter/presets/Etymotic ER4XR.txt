@@ -1,0 +1,9 @@
+Preamp: -3.0 dB
+Filter 1: ON LSC Fc 105 Hz Gain 3.0 dB Q 0.70
+Filter 2: ON PK Fc 2700 Hz Gain 1.5 dB Q 2.00
+Filter 3: ON HSC Fc 10000 Hz Gain 1.5 dB Q 0.70
+
+# Etymotic ER4XR
+# Starter preset shipped with musicd. For the most accurate per-headphone
+# data, use Settings → AutoEQ → Update database to fetch the full
+# AutoEQ project archive (https://github.com/jaakkopasanen/AutoEq).

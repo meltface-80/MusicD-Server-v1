@@ -1,0 +1,274 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Scroll behaviour fixes (#29.3)
+   ─────────────────────────────────
+   Without these, the Settings page sticks when the user starts a vertical
+   touch on a slider, the PEQ frequency-response SVG, or one of the
+   nested-scroll regions (AutoEQ model list, FIR rate table). Each of
+   these elements grabs the touch by default and prevents page scroll.
+
+   pan-y on sliders means: this element accepts horizontal drags, but
+   vertical drags should pass through to the page scroller. Browsers
+   handle this gracefully — the slider still drags horizontally when the
+   user's finger is moving sideways. Same logic for the SVG graph.
+
+   The AutoEQ list is itself a vertical scroller, so it needs pan-y too
+   (its own scroll handler will pick up the gesture; the page scroll
+   only kicks in if the list reaches its bounds).
+*/
+input[type="range"] {
+  touch-action: pan-y;
+}
+.peq-graph svg {
+  touch-action: pan-y;
+}
+.dsp-scroll-region {
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Album grid responsive columns (#30.17)
+   ─────────────────────────────────────
+   Phone-sized viewports get 3 columns (matching what fits comfortably
+   at ~110px per card on a typical 375-414px-wide phone). Anything wider
+   than 600px is assumed to be a tablet portrait or larger -- the cards
+   would otherwise grow uncomfortably big, so we add columns instead.
+
+   We use explicit breakpoints rather than `auto-fill` minmax because
+   minmax can't easily express "stay at 3 on small phones, jump to 4 on
+   tablets" -- the card width on a phone is just naturally smaller and
+   we want to honour that, not stretch them. Breakpoints chosen to match
+   common device classes:
+     - up to 599px: phones (portrait)
+     - 600-899px: tablets in portrait, big phones in landscape
+     - 900-1399px: tablets in landscape, small laptops
+     - 1400px+:   desktop
+
+   The same class drives both the main Albums grid and the per-artist
+   album list, so they stay visually consistent. */
+/* v1.1.0.62 — JPLAY-style album grid.
+ *
+ * Was a tight 3-col grid on phone with 8px gap; that read as
+ * "thumbnail browser" rather than "library shelf". JPLAY uses a
+ * generous 2-col on phone with 12px gutters so each cover gets
+ * proper presence — the cover IS the content, and packing them too
+ * tightly fights against that.
+ *
+ * Counts adjusted at every breakpoint to match: 2 phone, 3 large
+ * phone / portrait tablet, 4 landscape tablet, 5 desktop. The
+ * earlier 6-col desktop was too thumbnail-y at typical desk
+ * viewing distance.
+ */
+.album-grid {
+  display: grid;
+  /* v1.1.0.91 — phone portrait now shows 3 equal-width columns
+     (was 2). Smaller tiles, more albums visible at once, matches
+     the density users have come to expect from streaming apps. */
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+@media (min-width: 600px) {
+  .album-grid { grid-template-columns: repeat(4, 1fr); gap: 12px; }
+}
+@media (min-width: 900px) {
+  .album-grid { grid-template-columns: repeat(5, 1fr); gap: 12px; }
+}
+@media (min-width: 1400px) {
+  .album-grid { grid-template-columns: repeat(6, 1fr); gap: 12px; }
+}
+
+:root {
+  /* Theme nudged lighter in #v1.1.0.30 -- backgrounds shifted up a
+     step (less black, more charcoal), text brought closer to true
+     white where it carries information. Borders slightly more
+     visible so card edges read clearly without ringing. The palette
+     stays dark on purpose -- this is a tuning, not a redesign. */
+  --bg-base:       #16161a;   /* was #111113 -- lifted ~3 levels */
+  --bg-surface:    #1d1d24;   /* was #18181c */
+  --bg-elevated:   #25252e;   /* was #1e1e24 */
+  --bg-overlay:    #2d2d38;   /* was #26262e */
+  --bg-hover:      #353542;   /* was #2a2a34 */
+  --border:        rgba(255,255,255,0.10);   /* was 0.07 -- more visible edges */
+  --border-bright: rgba(255,255,255,0.18);   /* was 0.14 */
+
+  /* Text contrast bumped (#v1.1.0.30). Primary is brighter, secondary
+     lifted out of the muddy mid-grey so labels and metadata read
+     easily on the lighter surfaces. Tertiary stays restrained for
+     truly auxiliary content. */
+  --text-primary:  #f5f5f8;   /* was #f0f0f2 */
+  --text-secondary:#b0b0c0;   /* was #9090a0 -- much more readable */
+  --text-tertiary: #7a7a8c;   /* was #5a5a6a */
+  --text-muted:    #4a4a5a;   /* was #3a3a4a */
+
+  /* Accent slightly brighter for subtle additional pop (#v1.1.0.30). */
+  --accent:        #6b8aff;   /* was #5b7fff */
+  --accent-dim:    rgba(107,138,255,0.20);
+  --accent-hover:  #88a0ff;   /* was #7090ff */
+  --green:         #4caf82;
+  --amber:         #e8a44a;
+  --red:           #e05555;
+
+  --sidebar-w:     220px;
+  /* v1.1.0.91 — was 90px. User wanted "half as much again" — 135px.
+     Gives the mini now-playing bar more presence on phone screens
+     and matches better with the larger transport icons. The volume
+     bar uses this value too so they stay in proportion. */
+  --nowplaying-h:  135px;
+
+  --font: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'DM Mono', monospace;
+
+  --radius-sm: 4px;
+  --radius:    8px;
+  --radius-lg: 14px;
+
+  /* ─────────────────────────────────────────────────────────────────
+   * v1.1.0.62 — JPLAY-style theme tokens (proof-of-concept).
+   * ─────────────────────────────────────────────────────────────────
+   * Existing tokens above stay as-is so legacy screens keep working
+   * while we migrate. New components opt in by reading these `--jp-*`
+   * variables. Once every screen has migrated we can either alias the
+   * old names to the new values, or delete the old set entirely.
+   *
+   * The aesthetic targets:
+   *   - Pure dark backgrounds (no charcoal blue tint)
+   *   - Near-monochrome accent (a very pale white-ish accent for state
+   *     and active items) — JPLAY almost never uses chromatic accent
+   *     on its surfaces; only the favourite heart is hot
+   *   - Two-step text contrast plus a tertiary; no muddy mid-greys
+   *   - Borders are barely-there at 6% white; mostly we use whitespace
+   *     and content density to do the work that borders did
+   *   - Generous spacing scale (16/24/32) — the 12/16 mix on legacy
+   *     screens reads as cluttered next to JPLAY's airier layouts
+   *   - Three font weights (400/500/600). No 700, no italics.
+   *
+   * v1.1.0.69 — lifted the floor off pure #000.  Pure black on OLED
+   * panels causes harsh edge contrast on bright artwork and visible
+   * smearing on motion (e.g. progress fill, scrolling lists).  The
+   * JPLAY iOS app itself doesn't use true black — it uses an
+   * imperceptibly-tinted near-black around #0a0a0c.  The lift is
+   * below the contrast-perception threshold for text (92% white on
+   * #0a0a0c reads the same as on #000) but above the threshold for
+   * "is this smearing or am I imagining it".  Elevated tiers were
+   * lifted proportionally; borders unchanged.
+   */
+  --jp-bg:           #0a0a0c;
+  --jp-bg-elevated:  #14141a;   /* sheets, modals, mini-player */
+  --jp-bg-surface:   #1a1a22;   /* the rare element that needs lift */
+  --jp-text:         rgba(255,255,255,0.92);
+  --jp-text-2:       rgba(255,255,255,0.55);
+  --jp-text-3:       rgba(255,255,255,0.32);
+  --jp-border:       rgba(255,255,255,0.06);
+  --jp-border-hot:   rgba(255,255,255,0.16);   /* hover/focus only */
+  --jp-accent:       #e6e6ea;                  /* near-white, monochrome */
+  --jp-hot:          #ff3b5c;                  /* favourite heart only */
+  --jp-gap:          12px;
+  --jp-pad:          16px;
+  --jp-section-gap:  24px;
+}
+
+html, body, #root {
+  height: 100%;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* Scrollbars (#v1.1.0.19)
+ *
+ * Wider track and thumb than the previous 6px so the thumb is
+ * comfortable to grab on a phone. The thumb is given a subtle
+ * horizontal-ridge texture (faint repeating gradient) so it reads
+ * as something to grip rather than a flat coloured line. We keep
+ * the track transparent so the bar doesn't visually hem the page
+ * in -- only the thumb itself is visible.
+ *
+ * Touch behaviour: webkit's scrollbar pseudo-elements are pointer-
+ * targets on touch by default. The 14px width gives ~4mm of finger
+ * target which is comfortable on most devices. */
+::-webkit-scrollbar { width: 14px; height: 14px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background-color: var(--bg-overlay);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.10) 0px,
+    rgba(255, 255, 255, 0.10) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  border-radius: 6px;
+  /* Inset border keeps the thumb from butting against the very edge
+   * of the viewport -- gives it a small breathing margin so it looks
+   * like a control rather than a clipped blob. */
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  min-height: 40px;
+}
+::-webkit-scrollbar-thumb:hover { background-color: var(--bg-hover); }
+/* Firefox / Gecko equivalent. Less control but at least we get the
+ * width and the thumb colour. */
+* { scrollbar-width: auto; scrollbar-color: var(--bg-overlay) transparent; }
+
+button { cursor: pointer; border: none; background: none; font-family: inherit; color: inherit; }
+a { color: inherit; text-decoration: none; }
+input { font-family: inherit; }
+
+/* v1.1.0.65 — JPLAY-style artist grid breakpoints. Mirrors the
+ * album-grid count progression (2/3/4/5) but the columns are slightly
+ * less dense at every breakpoint because circular avatars need more
+ * breathing room than rectangular album tiles to read clearly.
+ */
+.jp-artist-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+@media (min-width: 600px) {
+  .jp-artist-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 900px) {
+  .jp-artist-grid { grid-template-columns: repeat(4, 1fr); }
+}
+@media (min-width: 1400px) {
+  .jp-artist-grid { grid-template-columns: repeat(5, 1fr); }
+}
+
+/* v1.1.0.62 — JPLAY-style horizontal chip rows hide their scrollbar.
+ * The strip is meant to look like a clean line of capsules; a visible
+ * scrollbar gutter at the bottom reads as a generic table widget. We
+ * inline `scrollbar-width: none` in the React style for Firefox; this
+ * rule covers WebKit-based browsers (Safari, Chrome, the iOS WKWebView
+ * we render in). The row still scrolls — no functional loss. */
+.jp-chip-row::-webkit-scrollbar { display: none; }
+
+/* Animations */
+@keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%,100%{ opacity:0.6 } 50%{ opacity:1 } }
+@keyframes eq-bar { 0%,100%{ height:4px } 50%{ height:14px } }
+@keyframes indeterminate { 0% { transform: translateX(-100%); } 100% { transform: translateX(400%); } }
+/* v1.1.0.53: signal-path orb clipping pulse. Soft scale + brightness
+   wobble at 1Hz so the user notices it from the corner of the eye
+   without it being annoying. Only triggered when the DSP profile
+   predicts the post-FIR peak will exceed 0 dBFS. */
+@keyframes orbClipPulse {
+  0%, 100% { transform: scale(1);    filter: brightness(1); }
+  50%      { transform: scale(1.18); filter: brightness(1.4); }
+}
+/* Settings sub-page slide-in (#30.26). Used when a Settings section
+   opens to its full-screen view. Slides in slightly from the right
+   plus a fade — same vocabulary as iOS native sub-page navigation. */
+@keyframes settings-slide-in { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+/* Toast fade-up (#v1.1.0.37). Translate is composed with the
+   transform: translateX(-50%) on the toast itself, so the keyframe
+   has to use translate(-50%, ...) to preserve the centring. */
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.fade-in { animation: fadeIn 0.2s ease; }
