@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "node test/position-anchor.test.js && node test/ios-pwa.test.js && node test/client-styles.test.js && node test/release-consistency.test.js && node test/tier-config.test.js && node test/container-id.test.js && node test/sonos-topology.test.js && node test/sonos-didl.test.js"
+    "test": "node test/position-anchor.test.js && node test/ios-pwa.test.js && node test/client-styles.test.js && node test/release-consistency.test.js && node test/tier-config.test.js && node test/container-id.test.js && node test/sonos-topology.test.js && node test/sonos-didl.test.js && node test/updater-container.test.js"
   },
   "dependencies": {
     "better-sqlite3": "^9.4.3",

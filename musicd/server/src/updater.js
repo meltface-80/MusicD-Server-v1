@@ -12,10 +12,12 @@
  * Apply pipeline (runs inside an ephemeral alpine container we spawn via
  * the docker socket — the running musicd can't outlive its own docker
  * stop):
- *   1. Tag current image as musicd:rollback
+ *   1. Tag current image as <image>:rollback
  *   2. Extract tar to a working dir on the host
- *   3. docker build a new "musicd:latest" image
- *   4. docker stop / rm the running musicd container
+ *   3. docker build a new <image> image
+ *   4. docker stop / rm the running container
+ *      (<image> and the container name are read off THIS container at
+ *       generation time — see resolveSelfIdentity)
  *   5. docker run the new container with preserved launch flags
  *   6. If build fails, retag rollback → latest and restart from rollback
  *   7. Move consumed tar to /mnt/dietpi_userdata/musicd_updates
@@ -104,6 +106,10 @@ const UPDATES_DIR   = '/mnt/musicd_updates';
 // actually has rather than the one it is missing.
 let _hostMountCache = null;
 let _hostMountCacheSource = null;
+// The running container's own name and image, learned from the same
+// inspect that resolves the mounts. Both are needed by the updater
+// script, which must stop, remove and re-create THIS container.
+let _selfIdentity = null;
 // v1.1.7.0 — our own container id, straight from the kernel.
 //
 // /proc/self/mountinfo lists the files Docker bind-mounts in from
@@ -128,19 +134,29 @@ function _selfContainerId() {
 function resolveHostMountPath(containerPath) {
   if (_hostMountCache === null) {
     const { execSync } = require('child_process');
+    // One inspect, three answers. The mounts are what this function was
+    // written for; the container's own name and image are what the
+    // updater script needs, and asking for them here means the whole
+    // identity comes from a single lookup that has already proved it
+    // found the right container.
     const tryInspect = (id, label) => {
       try {
         const out = execSync(
-          `docker inspect --format='{{json .Mounts}}' ${id}`,
+          `docker inspect --format='{\"mounts\":{{json .Mounts}},` +
+            `\"name\":{{json .Name}},\"image\":{{json .Config.Image}}}' ${id}`,
           { encoding: 'utf8', timeout: 5000, stdio: ['ignore', 'pipe', 'ignore'] }
         );
-        const mounts = JSON.parse(out);
+        const info = JSON.parse(out);
+        const mounts = info && info.mounts;
         if (!Array.isArray(mounts) || mounts.length === 0) return null;
         const map = {};
         for (const m of mounts) {
           if (m && m.Destination && m.Source) map[m.Destination] = m.Source;
         }
-        return { map, label };
+        // Docker reports the name with a leading slash.
+        const name = typeof info.name === 'string' ? info.name.replace(/^\//, '') : null;
+        const image = typeof info.image === 'string' ? info.image : null;
+        return { map, name, image, label };
       } catch {
         return null;
       }
@@ -204,10 +220,13 @@ function resolveHostMountPath(containerPath) {
     if (result) {
       _hostMountCache = result.map;
       _hostMountCacheSource = result.label;
+      _selfIdentity = { name: result.name, image: result.image, resolved: true };
       console.log(`[updater] host mount paths resolved via ${result.label}: ${Object.keys(result.map).length} mounts`);
+      console.log(`[updater] this container is ${result.name || '(unnamed)'} from image ${result.image || '(unknown)'}`);
     } else {
       _hostMountCache = {};
       _hostMountCacheSource = 'failed';
+      _selfIdentity = { name: null, image: null, resolved: false };
       console.warn('[updater] could not resolve host mount paths via any method');
     }
   }
@@ -220,6 +239,57 @@ function _hostMountResolutionInfo() {
     source: _hostMountCacheSource,
     knownDestinations: Object.keys(_hostMountCache || {}),
   };
+}
+
+// The name and image of the container we are running in.
+//
+// v1.1.10.0. The updater script has to stop, remove and re-create THIS
+// container. It hardcoded `musicd` for the name and `musicd:latest` for
+// the image, because install.sh always passes --name musicd. Anyone who
+// followed the README instead has a container called musicd-server built
+// as musicd-server, and then every `docker inspect musicd` in the
+// generated script returned nothing: no mounts, no env vars, no network
+// mode, no devices and no group-adds preserved. `docker stop musicd` and
+// `docker rm musicd` matched nothing either, so the old container kept
+// running while a second one was started beside it — under --network
+// host, fighting it for the port, with none of the user's data.
+//
+// That is exactly the reported failure: a log saying "preserving mounts:
+// /var/run/docker.sock" (the one mount the script contributes itself) and
+// an update that reports success while the server stays on its old
+// version.
+//
+// resolveHostMountPath already identifies this container without guessing
+// (see _selfContainerId); this reads the name and image off the same
+// lookup, so the script operates on whatever the container is actually
+// called. The defaults below keep a stock install.sh install working if
+// the lookup fails, and the generated script verifies the container
+// exists before it touches anything — so a wrong fallback stops with a
+// message instead of orphaning the user's data.
+function resolveSelfIdentity() {
+  if (_selfIdentity === null) {
+    // Populates _selfIdentity as a side effect. The argument is
+    // immaterial: any path drives the same one-time resolution.
+    resolveHostMountPath('/data');
+  }
+  const id = _selfIdentity || {};
+  // Config.Image is normally what the user typed at `docker run`, but a
+  // container started from a bare id reports a digest. Building and
+  // tagging that would be meaningless, so fall back to a name we can use.
+  const name = id.name || 'musicd';
+  const looksLikeDigest = (s) => /^sha256:/.test(s) || /^[0-9a-f]{64}$/.test(s);
+  const image = (id.image && !looksLikeDigest(id.image)) ? id.image : `${name}:latest`;
+  return { name, image, resolved: Boolean(id.resolved && id.name) };
+}
+
+// `musicd-server:latest` -> `musicd-server:rollback`; `musicd` ->
+// `musicd:rollback`; `ghcr.io/me/musicd:1.2` -> `ghcr.io/me/musicd:rollback`.
+// The tag is the part after the LAST colon, and only when that part
+// carries no slash — otherwise the colon belongs to a registry port.
+function rollbackTagFor(image) {
+  const cut = image.lastIndexOf(':');
+  const repo = (cut > 0 && !image.slice(cut + 1).includes('/')) ? image.slice(0, cut) : image;
+  return `${repo}:rollback`;
 }
 
 // Launch flags used to start the new musicd container after build. Keep this
@@ -261,10 +331,16 @@ function _hostMountResolutionInfo() {
 // would appear to vanish. Now we preserve whatever the user already
 // has, so it survives across updates regardless of how the original
 // container was set up.
-const LAUNCH_ARGS = [
-  '--name', 'musicd',
-  '-v', '/var/run/docker.sock:/var/run/docker.sock',
-];
+// The name is filled in per install by resolveSelfIdentity() — see the
+// note there. Everything else about the container (mounts, env, devices,
+// groups, restart policy, network mode) is read back off the running
+// container by the generated script.
+function launchArgsFor(containerName) {
+  return [
+    '--name', containerName,
+    '-v', '/var/run/docker.sock:/var/run/docker.sock',
+  ];
+}
 
 /**
  * Scan downloads dir for tars; return the highest-version one that's newer
@@ -378,7 +454,7 @@ function findAvailableUpdate(channel = null) {
  * via the socket. Logs go to /host/var/lib/musicd/updates/last.log so we can
  * show errors after the fact.
  */
-function buildUpdaterScript(tarFilename, tarHostPath, hostUpdatesPath) {
+function buildUpdaterScript(tarFilename, tarHostPath, hostUpdatesPath, identity) {
   // Note: $SOMEVAR / ${SOMEVAR} inside this template literal are JS interpolations.
   // Bash variables in the generated script are escaped with \$.
   // tarHostPath is the path the alpine container sees (typically begins with
@@ -386,7 +462,14 @@ function buildUpdaterScript(tarFilename, tarHostPath, hostUpdatesPath) {
   // hostUpdatesPath is the host-side path that /mnt/musicd_updates is mounted
   // from (e.g. /var/lib/musicd/updates or /mnt/dietpi_userdata/musicd_updates).
   // The alpine container reads /host${hostUpdatesPath}/...
-  const launchArgsBash = LAUNCH_ARGS.map(a => `"${a}"`).join(' ');
+  // Which container and image to operate on. Injectable so the test suite
+  // can drive this without a Docker daemon; production passes nothing and
+  // gets the running container's real identity.
+  const self = identity || resolveSelfIdentity();
+  const containerName = self.name;
+  const image = self.image;
+  const rollbackImage = rollbackTagFor(image);
+  const launchArgsBash = launchArgsFor(containerName).map(a => `"${a}"`).join(' ');
 
   return `#!/bin/sh
 # We mkdir the log dir BEFORE redirecting, so the redirect itself can never
@@ -398,6 +481,28 @@ set -e
 echo ""
 echo "[updater] === starting at \$(date) ==="
 
+# The container and image this install actually uses. Resolved by the
+# server from its own container id, NOT assumed — see resolveSelfIdentity
+# in updater.js. Hardcoding "musicd" here meant every install that used a
+# different --name (the README's is musicd-server) preserved nothing and
+# left the old container running beside the new one.
+CONTAINER="${containerName}"
+IMAGE="${image}"
+ROLLBACK_IMAGE="${rollbackImage}"
+echo "[updater] container=\$CONTAINER image=\$IMAGE"
+
+# Refuse to continue against a container that isn't there. Everything
+# below this line either reads config off \$CONTAINER or destroys and
+# re-creates it; running it against a name that matches nothing is how a
+# user ends up with two containers and an empty data directory.
+if ! docker inspect "\$CONTAINER" >/dev/null 2>&1; then
+  echo "[updater] ABORT: no container named '\$CONTAINER' is known to docker."
+  echo "[updater] Nothing has been changed. The running server is untouched."
+  echo "[updater] Containers currently present:"
+  docker ps -a --format '  {{.Names}} ({{.Image}}, {{.Status}})' 2>/dev/null || true
+  exit 1
+fi
+
 # Preserve container config across update (#v1.1.0.47).
 #
 # Pre-v47 this section preserved only --device, --group-add and the
@@ -408,12 +513,12 @@ echo "[updater] === starting at \$(date) ==="
 #
 # Now we preserve ALL existing -v mounts, -e env vars, --network mode,
 # --restart policy, --device entries and --group-add entries. The
-# updater script's only hardcoded contribution is --name musicd and
-# the docker.sock mount needed for self-update.
+# updater script's only additions are --name (the container's own,
+# resolved above) and the docker.sock mount needed for self-update.
 ALL_FLAGS=""
 
 # Mounts: all bind mounts, with their original :ro/:rw flag preserved.
-MOUNT_LINES=\$(docker inspect musicd --format '{{range .Mounts}}{{if eq .Type "bind"}}{{.Source}}|{{.Destination}}|{{.Mode}}{{println}}{{end}}{{end}}' 2>/dev/null || echo "")
+MOUNT_LINES=\$(docker inspect "\$CONTAINER" --format '{{range .Mounts}}{{if eq .Type "bind"}}{{.Source}}|{{.Destination}}|{{.Mode}}{{println}}{{end}}{{end}}' 2>/dev/null || echo "")
 if [ -n "\$MOUNT_LINES" ]; then
   echo "[updater] preserving mounts:"
   echo "\$MOUNT_LINES" | while IFS='|' read -r src dst mode; do
@@ -438,7 +543,7 @@ fi
 
 # Env vars: skip the kernel/system-injected ones (PATH, HOSTNAME, etc.)
 # but keep app-relevant ones the user or installer set.
-ENV_LINES=\$(docker inspect musicd --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null || echo "")
+ENV_LINES=\$(docker inspect "\$CONTAINER" --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null || echo "")
 if [ -n "\$ENV_LINES" ]; then
   while IFS= read -r kv; do
     [ -z "\$kv" ] && continue
@@ -459,19 +564,19 @@ fi
 
 # Network mode: usually "host" for musicd, but preserve whatever the
 # user has.
-NET_MODE=\$(docker inspect musicd --format '{{.HostConfig.NetworkMode}}' 2>/dev/null || echo "")
+NET_MODE=\$(docker inspect "\$CONTAINER" --format '{{.HostConfig.NetworkMode}}' 2>/dev/null || echo "")
 if [ -n "\$NET_MODE" ] && [ "\$NET_MODE" != "default" ]; then
   ALL_FLAGS="\$ALL_FLAGS --network \$NET_MODE"
 fi
 
 # Restart policy.
-RESTART_POL=\$(docker inspect musicd --format '{{.HostConfig.RestartPolicy.Name}}' 2>/dev/null || echo "")
+RESTART_POL=\$(docker inspect "\$CONTAINER" --format '{{.HostConfig.RestartPolicy.Name}}' 2>/dev/null || echo "")
 if [ -n "\$RESTART_POL" ] && [ "\$RESTART_POL" != "no" ]; then
   ALL_FLAGS="\$ALL_FLAGS --restart \$RESTART_POL"
 fi
 
 # Devices (USB DACs, /dev/snd).
-DEVICE_PATHS=\$(docker inspect musicd --format '{{range .HostConfig.Devices}}{{.PathOnHost}}{{":"}}{{.PathInContainer}}{{" "}}{{end}}' 2>/dev/null || echo "")
+DEVICE_PATHS=\$(docker inspect "\$CONTAINER" --format '{{range .HostConfig.Devices}}{{.PathOnHost}}{{":"}}{{.PathInContainer}}{{" "}}{{end}}' 2>/dev/null || echo "")
 if [ -n "\$DEVICE_PATHS" ]; then
   for d in \$DEVICE_PATHS; do
     ALL_FLAGS="\$ALL_FLAGS --device \$d"
@@ -479,7 +584,7 @@ if [ -n "\$DEVICE_PATHS" ]; then
 fi
 
 # Group adds (audio group access).
-GROUP_ADDS=\$(docker inspect musicd --format '{{range .HostConfig.GroupAdd}}{{.}}{{" "}}{{end}}' 2>/dev/null || echo "")
+GROUP_ADDS=\$(docker inspect "\$CONTAINER" --format '{{range .HostConfig.GroupAdd}}{{.}}{{" "}}{{end}}' 2>/dev/null || echo "")
 if [ -n "\$GROUP_ADDS" ]; then
   for g in \$GROUP_ADDS; do
     ALL_FLAGS="\$ALL_FLAGS --group-add \$g"
@@ -497,30 +602,30 @@ echo "[updater] extracting \$TAR..."
 tar -xf "\$TAR"
 cd musicd
 
-echo "[updater] tagging current image as musicd:rollback..."
-docker tag musicd:latest musicd:rollback || true
+echo "[updater] tagging current image as \$ROLLBACK_IMAGE..."
+docker tag "\$IMAGE" "\$ROLLBACK_IMAGE" || true
 
 echo "[updater] building new image..."
-if ! docker build -t musicd:latest .; then
+if ! docker build -t "\$IMAGE" .; then
   echo "[updater] BUILD FAILED — rolling back"
-  docker tag musicd:rollback musicd:latest || true
-  docker stop musicd 2>/dev/null || true
-  docker rm musicd 2>/dev/null || true
-  docker run -d ${launchArgsBash} \$ALL_FLAGS musicd:latest
+  docker tag "\$ROLLBACK_IMAGE" "\$IMAGE" || true
+  docker stop "\$CONTAINER" 2>/dev/null || true
+  docker rm "\$CONTAINER" 2>/dev/null || true
+  docker run -d ${launchArgsBash} \$ALL_FLAGS "\$IMAGE"
   echo "[updater] rolled back to previous version"
   exit 1
 fi
 
 echo "[updater] stopping old container..."
-docker stop musicd 2>/dev/null || true
-docker rm musicd 2>/dev/null || true
+docker stop "\$CONTAINER" 2>/dev/null || true
+docker rm "\$CONTAINER" 2>/dev/null || true
 
 echo "[updater] starting new container..."
-if ! docker run -d ${launchArgsBash} \$ALL_FLAGS musicd:latest; then
+if ! docker run -d ${launchArgsBash} \$ALL_FLAGS "\$IMAGE"; then
   echo "[updater] START FAILED — rolling back"
-  docker tag musicd:rollback musicd:latest || true
-  docker rm musicd 2>/dev/null || true
-  docker run -d ${launchArgsBash} \$ALL_FLAGS musicd:latest
+  docker tag "\$ROLLBACK_IMAGE" "\$IMAGE" || true
+  docker rm "\$CONTAINER" 2>/dev/null || true
+  docker run -d ${launchArgsBash} \$ALL_FLAGS "\$IMAGE"
   echo "[updater] rolled back to previous version"
   exit 1
 fi
@@ -1045,4 +1150,11 @@ function clearPendingTars(opts) {
   return result;
 }
 
-module.exports = { findAvailableUpdate, runUpdate, getLastUpdateLog, preflightCheck, ensureUpdaterImage, clearPendingTars };
+module.exports = {
+  findAvailableUpdate, runUpdate, getLastUpdateLog, preflightCheck,
+  ensureUpdaterImage, clearPendingTars,
+  // Exported for the test suite: buildUpdaterScript takes an injected
+  // identity so the generated script can be asserted on without a
+  // Docker daemon. Nothing in the server calls these.
+  buildUpdaterScript, resolveSelfIdentity, rollbackTagFor,
+};
