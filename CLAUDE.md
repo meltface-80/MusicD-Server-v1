@@ -85,6 +85,35 @@ codes validate against. Drop it and `POST /api/update/tier/code` answers
 503 and every code stops working. Stable is the baseline tier, so a fresh
 install needs no code.
 
+## Dependencies
+
+Three advisories are knowingly left open, because every available fix is
+worse than the finding. Re-check on a release only if the fix changes:
+
+- **`ip` (high, via `node-ssdp`)** — npm's fix is `node-ssdp@1.0.0`, a
+  *downgrade* from 4.0.1 that breaks SSDP discovery. The advisory is
+  about `isPublic()` mis-categorisation; node-ssdp uses it for LAN
+  discovery, which is not an attacker-reachable path here.
+- **`file-type` (moderate, via `music-metadata`)** — the fix is
+  music-metadata 7 → 11, which is ESM-only. The server is CommonJS and
+  imports it as `require('music-metadata')`, so that is a rewrite, not
+  a bump.
+- **`esbuild` (moderate, via `vite`)** — the fix is vite 5 → 8. The
+  advisory only affects the **dev server**; production is a static
+  build, so it does not apply to anything shipped.
+
+The client bundle is split by `manualChunks` in `vite.config.js` — a
+caching boundary, not route-level code splitting. Entries there must be
+modules that are genuinely imported, or the build errors on an empty
+chunk.
+
+**Inline styles: never add a property blind.** These files carry large
+`const s = { ... }` style objects, and a duplicate key is a *warning*,
+not an error — esbuild prints it and the build succeeds with the later
+value silently winning. A scripted insert of `paddingBottom` landed on
+top of an existing one and quietly disabled the fix it was making.
+Check whether the key is already there.
+
 ## Branding
 
 The duck-head mark (shared with MusicD-Remote) is the app icon and
