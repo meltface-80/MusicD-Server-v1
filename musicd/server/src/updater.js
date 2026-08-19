@@ -282,6 +282,30 @@ function resolveSelfIdentity() {
   return { name, image, resolved: Boolean(id.resolved && id.name) };
 }
 
+// The sidecar's own container name.
+//
+// v1.1.13.0. This was the fixed string `musicd-updater`, and every update
+// began by force-removing it. That is fine for one install and actively
+// dangerous with two: a host running both `musicd` and `musicd-server` (which
+// is what an install that took one of the broken pre-v1.1.10.0 updates ends up
+// with) has two servers, both polling the same manifest, both holding the
+// Docker socket, and both entitled to start an update.
+//
+// Whichever moves second force-removes the other's IN-FLIGHT sidecar. If that
+// lands after the victim's script has run `docker stop` and `docker rm` on its
+// container but before the `docker run` that recreates it, the machine is left
+// with no container at all and nothing in the log to say why.
+//
+// Naming the sidecar after the container it is updating makes the two
+// independent. Docker names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*, so anything
+// else is replaced.
+const LEGACY_UPDATER_CONTAINER = 'musicd-updater';
+
+function updaterContainerName(targetContainer) {
+  const safe = String(targetContainer || '').replace(/[^a-zA-Z0-9_.-]/g, '-');
+  return safe ? `${LEGACY_UPDATER_CONTAINER}-${safe}` : LEGACY_UPDATER_CONTAINER;
+}
+
 // `musicd-server:latest` -> `musicd-server:rollback`; `musicd` ->
 // `musicd:rollback`; `ghcr.io/me/musicd:1.2` -> `ghcr.io/me/musicd:rollback`.
 // The tag is the part after the LAST colon, and only when that part
@@ -876,26 +900,38 @@ async function runUpdateDocker(tarFilename, opts = {}) {
   //      auto-deleted on exit -- which meant ANY pre-script failure (like
   //      "sh: cannot open ...") was lost forever, with nothing in
   //      last.log and no docker logs to retrieve. Without --rm, the
-  //      exited container sticks around and `docker logs musicd-updater`
+  //      exited container sticks around and `docker logs <sidecar>`
   //      retrieves whatever stdout/stderr the alpine container emitted
   //      before opening the script's own log redirect. We clean it up
   //      proactively at the START of the next spawn (step 3).
   //
-  //   3. Before spawning, we `docker rm -f musicd-updater` to clear out
-  //      any stale container from a previous run. Without --rm, repeated
-  //      updates would fail with "name already in use" otherwise. The
-  //      `-f` handles the case where the previous run is somehow still
-  //      executing (it won't be in normal flow, but defensive).
+  //   3. Before spawning, we remove any stale sidecar from a previous run.
+  //      Without --rm, repeated updates would fail with "name already in
+  //      use" otherwise.
+  //
+  // v1.1.13.0 — the sidecar is named per install (see updaterContainerName).
+  // Ours we remove with -f, because a leftover is either exited or a run of
+  // ours that has hung. The legacy shared name is removed WITHOUT -f, so a
+  // sidecar that some other musicd on this host has running right now is left
+  // strictly alone; `docker rm` simply fails on a running container, which is
+  // the behaviour we want.
 
-  try {
-    require('child_process').execSync('docker rm -f musicd-updater 2>/dev/null', { stdio: 'ignore' });
-  } catch {
-    // No stale container to clean up; that's fine.
+  const updaterName = updaterContainerName(resolveSelfIdentity().name);
+  const rmQuiet = (cmd) => {
+    try {
+      require('child_process').execSync(cmd, { stdio: 'ignore' });
+    } catch {
+      // Nothing to clean up, or it is running and not ours. Either is fine.
+    }
+  };
+  rmQuiet(`docker rm -f ${updaterName} 2>/dev/null`);
+  if (updaterName !== LEGACY_UPDATER_CONTAINER) {
+    rmQuiet(`docker rm ${LEGACY_UPDATER_CONTAINER} 2>/dev/null`);
   }
 
   const args = [
     'run', '-d',
-    '--name', 'musicd-updater',
+    '--name', updaterName,
     '-v', '/var/run/docker.sock:/var/run/docker.sock',
     '-v', '/:/host',
     'docker:cli',
@@ -926,7 +962,7 @@ async function runUpdateDocker(tarFilename, opts = {}) {
     } else {
       fs.appendFileSync(logPath,
         `[musicd] updater container started (id: ${spawnOutput.trim()})\n` +
-        `[musicd] (if this update appears stuck, run: docker logs musicd-updater)\n`);
+        `[musicd] (if this update appears stuck, run: docker logs ${updaterName})\n`);
     }
   });
   child.unref();
@@ -1184,4 +1220,5 @@ module.exports = {
   // identity so the generated script can be asserted on without a
   // Docker daemon. Nothing in the server calls these.
   buildUpdaterScript, resolveSelfIdentity, rollbackTagFor,
+  updaterContainerName, LEGACY_UPDATER_CONTAINER,
 };

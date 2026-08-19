@@ -25,7 +25,9 @@ const path = require('node:path');
 
 const SRC_PATH = path.join(__dirname, '..', 'src', 'updater.js');
 const SRC = fs.readFileSync(SRC_PATH, 'utf8');
-const { buildUpdaterScript, rollbackTagFor } = require('../src/updater');
+const {
+  buildUpdaterScript, rollbackTagFor, updaterContainerName, LEGACY_UPDATER_CONTAINER,
+} = require('../src/updater');
 
 // A name nothing in the source could match by accident, so a script that
 // still carries a hardcoded identity fails rather than coincidentally
@@ -306,4 +308,61 @@ test('the preserved flags are what a real shell builds', async (t) => {
   });
 
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('two installs on one host cannot destroy each other\'s update', async (t) => {
+  // A host that took one of the broken pre-v1.1.10.0 updates ends up running
+  // BOTH `musicd` and `musicd-server`: two servers, both polling the same
+  // manifest, both holding the Docker socket, both entitled to start an
+  // update. The sidecar used to be the fixed name `musicd-updater` and every
+  // update began by force-removing it, so whichever moved second ripped away
+  // the other's IN-FLIGHT sidecar. Land that between the victim's
+  // `docker rm <container>` and its `docker run` and the machine is left with
+  // no container at all, and nothing in the log to say why.
+
+  await t.test('each install gets its own sidecar name', () => {
+    assert.notEqual(updaterContainerName('musicd'), updaterContainerName('musicd-server'));
+  });
+
+  await t.test('the name is derived from the container being updated', () => {
+    assert.equal(updaterContainerName('musicd-server'), 'musicd-updater-musicd-server');
+    assert.equal(updaterContainerName('musicd'), 'musicd-updater-musicd');
+  });
+
+  await t.test('the result is always a legal Docker name', () => {
+    // [a-zA-Z0-9][a-zA-Z0-9_.-]* — an illegal name fails the spawn, and the
+    // container name comes from `docker inspect`, not from us.
+    for (const raw of ['ok', 'has space', 'sl/ash', 'uni¢ode', 'semi;colon',
+                       '', null, undefined, 'trailing-', '.dot']) {
+      const name = updaterContainerName(raw);
+      assert.match(name, /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/, `${String(raw)} -> ${name}`);
+    }
+  });
+
+  await t.test('an unnamed container still gets the legacy name, not a bare suffix', () => {
+    assert.equal(updaterContainerName(''), LEGACY_UPDATER_CONTAINER);
+    assert.equal(updaterContainerName(null), LEGACY_UPDATER_CONTAINER);
+  });
+
+  await t.test('the legacy shared name is cleaned up, but never forcibly', () => {
+    // Removing the old shared container is worth doing — it is debris on every
+    // install that ever updated. Forcing it is not: if another musicd on this
+    // host is mid-update under the old name, -f is precisely the bug. Plain
+    // `docker rm` fails on a running container, which is the behaviour wanted.
+    const src = SRC.replace(/\/\*[\s\S]*?\*\//g, '')
+                   .split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
+    assert.match(src, /rmQuiet\(`docker rm \$\{LEGACY_UPDATER_CONTAINER\}/,
+      'the legacy sidecar is not cleaned up at all');
+    assert.ok(!/docker rm -f \$\{LEGACY_UPDATER_CONTAINER\}/.test(src),
+      'the legacy sidecar is force-removed — that is the bug being fixed');
+    assert.ok(!/docker rm -f musicd-updater(?![-`$])/.test(src),
+      'a hardcoded force-remove of the shared name is back');
+  });
+
+  await t.test('the stuck-update hint names the container that exists', () => {
+    // "run: docker logs musicd-updater" is useless advice if the sidecar is
+    // called something else.
+    assert.match(SRC, /docker logs \$\{updaterName\}/,
+      'the log still tells the user to inspect a fixed container name');
+  });
 });
