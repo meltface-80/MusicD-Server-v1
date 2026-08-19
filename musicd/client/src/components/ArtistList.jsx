@@ -50,7 +50,7 @@ function ArtistCard({ artist, onClick }) {
     <button style={s.card} onClick={onClick}>
       <div style={s.avatar}>
         {hasLogo
-          ? <img src={logoSrc} alt={artist.name} style={s.logo} onError={() => setImgErr(true)} />
+          ? <img src={logoSrc} alt={artist.name} style={s.logo} onError={() => setImgErr(true)} draggable={false} />
           : <span style={s.initials}>{initials}</span>
         }
       </div>

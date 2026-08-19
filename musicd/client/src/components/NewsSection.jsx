@@ -184,6 +184,7 @@ function ReleaseCard({ release }) {
             style={s.releaseImg}
             onError={() => setImgErr(true)}
             loading="lazy"
+            draggable={false}
           />
         ) : (
           <div style={s.releaseImgFallback}>
@@ -232,6 +233,7 @@ function ArticleCard({ item }) {
             style={s.cardImg}
             onError={() => setImgErr(true)}
             loading="lazy"
+            draggable={false}
           />
         ) : (
           <div style={s.cardImgFallback}>

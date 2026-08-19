@@ -27,59 +27,54 @@
     "Dropping this block makes POST /api/update/tier/code answer 503 and the four codes",
     "stop working, so it must be carried across on every release."
   ],
-
   "manifestVersion": 1,
   "schema_version": 1,
-
-  "version": "1.1.9.0",
-  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-9-0.tar",
-  "tarSha256": "87eef07c2e544144c066818501727d5fb959dd0c8664ceb6077eadaaf57e4110",
-  "releasedAt": "2026-08-18T22:37:13Z",
-  "releaseNotes": "Sonos stereo pairs resolve to their group coordinator, redesigned share card with a Now Playing share button, discrete volume buttons, and Stable as the baseline tier.",
-
-  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-9-0.tar",
-  "tarball_sha256": "87eef07c2e544144c066818501727d5fb959dd0c8664ceb6077eadaaf57e4110",
-  "released_at": "2026-08-18T22:37:13Z",
+  "version": "1.1.10.0",
+  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-10-0.tar",
+  "tarSha256": "aa56a6adce12f938b28a78e6023d0411cb992e310d1fd2bc27056a8df30f3a26",
+  "releasedAt": "2026-08-19T18:50:00Z",
+  "releaseNotes": "In-app updates install on any install: the updater no longer assumes the container is named musicd. Pausing a track for a while no longer skips to the next one on resume. The library remembers its scroll position, and holding album art no longer opens the OS image menu.",
+  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-10-0.tar",
+  "tarball_sha256": "aa56a6adce12f938b28a78e6023d0411cb992e310d1fd2bc27056a8df30f3a26",
+  "released_at": "2026-08-19T18:50:00Z",
   "release_notes_url": "https://github.com/meltface-80/MusicD-Server-v1/blob/main/musicd/CHANGELOG.md",
-
   "channels": {
     "stable": {
-      "version": "1.1.9.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-9-0.tar",
-      "tarSha256": null,
-      "releasedAt": "2026-08-18T22:37:13Z",
-      "releaseNotes": "Sonos stereo pairs resolve to their group coordinator, redesigned share card with a Now Playing share button, discrete volume buttons, and Stable as the baseline tier."
+      "version": "1.1.10.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-10-0.tar",
+      "tarSha256": "aa56a6adce12f938b28a78e6023d0411cb992e310d1fd2bc27056a8df30f3a26",
+      "releasedAt": "2026-08-19T18:50:00Z",
+      "releaseNotes": "In-app updates install on any install: the updater no longer assumes the container is named musicd. Pausing a track for a while no longer skips to the next one on resume. The library remembers its scroll position, and holding album art no longer opens the OS image menu."
     },
     "earlyAccess": {
-      "version": "1.1.9.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-9-0.tar",
-      "tarSha256": null,
-      "releasedAt": "2026-08-18T22:37:13Z",
-      "releaseNotes": "Same build as Stable — no early-access release is ahead of it right now."
+      "version": "1.1.10.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-10-0.tar",
+      "tarSha256": "aa56a6adce12f938b28a78e6023d0411cb992e310d1fd2bc27056a8df30f3a26",
+      "releasedAt": "2026-08-19T18:50:00Z",
+      "releaseNotes": "In-app updates install on any install: the updater no longer assumes the container is named musicd. Pausing a track for a while no longer skips to the next one on resume. The library remembers its scroll position, and holding album art no longer opens the OS image menu."
     },
     "beta": {
-      "version": "1.1.9.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-9-0.tar",
-      "tarSha256": null,
-      "releasedAt": "2026-08-18T22:37:13Z",
-      "releaseNotes": "Same build as Stable — no beta release is ahead of it right now."
+      "version": "1.1.10.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-10-0.tar",
+      "tarSha256": "aa56a6adce12f938b28a78e6023d0411cb992e310d1fd2bc27056a8df30f3a26",
+      "releasedAt": "2026-08-19T18:50:00Z",
+      "releaseNotes": "In-app updates install on any install: the updater no longer assumes the container is named musicd. Pausing a track for a while no longer skips to the next one on resume. The library remembers its scroll position, and holding album art no longer opens the OS image menu."
     },
     "alpha": {
-      "version": "1.1.9.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-9-0.tar",
-      "tarSha256": null,
-      "releasedAt": "2026-08-18T22:37:13Z",
-      "releaseNotes": "Same build as Stable — no in-house release is ahead of it right now."
+      "version": "1.1.10.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-10-0.tar",
+      "tarSha256": "aa56a6adce12f938b28a78e6023d0411cb992e310d1fd2bc27056a8df30f3a26",
+      "releasedAt": "2026-08-19T18:50:00Z",
+      "releaseNotes": "In-app updates install on any install: the updater no longer assumes the container is named musicd. Pausing a track for a while no longer skips to the next one on resume. The library remembers its scroll position, and holding album art no longer opens the OS image menu."
     },
     "legacy": {
-      "version": "1.1.9.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-9-0.tar",
-      "tarSha256": null,
-      "releasedAt": "2026-08-18T22:37:13Z",
-      "releaseNotes": "Same build as Stable — this repo hosts a single release tar."
+      "version": "1.1.10.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-10-0.tar",
+      "tarSha256": "aa56a6adce12f938b28a78e6023d0411cb992e310d1fd2bc27056a8df30f3a26",
+      "releasedAt": "2026-08-19T18:50:00Z",
+      "releaseNotes": "In-app updates install on any install: the updater no longer assumes the container is named musicd. Pausing a track for a while no longer skips to the next one on resume. The library remembers its scroll position, and holding album art no longer opens the OS image menu."
     }
   },
-
   "channelMetadata": {
     "stable": {
       "label": "Stable",
@@ -107,27 +102,41 @@
       "stability": "legacy"
     }
   },
-
   "accessTiers": {
     "stable": {
       "label": "Stable",
-      "channels": ["stable"],
+      "channels": [
+        "stable"
+      ],
       "codeHash": "21dc812ca86ebfc22bc4e6c207647df44df40f3e0e0b9b6eac6cb4f048e049ee",
       "default": true
     },
     "earlyAccess": {
       "label": "Early Access",
-      "channels": ["stable", "earlyAccess"],
+      "channels": [
+        "stable",
+        "earlyAccess"
+      ],
       "codeHash": "1246ee01eeee3d00434fe271aadd2ad331a5c60490d6c8e2f9db53565bd2475c"
     },
     "beta": {
       "label": "Beta tester",
-      "channels": ["stable", "earlyAccess", "beta"],
+      "channels": [
+        "stable",
+        "earlyAccess",
+        "beta"
+      ],
       "codeHash": "81a8ea8f96687d4aeca1ba35c224da11c1b2d4eed8da2d2fca45395e036f00b2"
     },
     "alpha": {
       "label": "Internal / Developer",
-      "channels": ["stable", "earlyAccess", "beta", "alpha", "legacy"],
+      "channels": [
+        "stable",
+        "earlyAccess",
+        "beta",
+        "alpha",
+        "legacy"
+      ],
       "codeHash": "b93e8d8682aadd09179ce0f18ec3feca7c86c52b845c48d9fd3b3cc0856ce7b8"
     }
   }

@@ -2,11 +2,37 @@ import React, { useEffect, useState } from 'react'
 import { api } from '../api'
 import { ArrowLeft } from 'lucide-react'
 
+// Module-level view cache — same idea as AlbumGrid's page cache.
+//
+// Tapping an album inside a genre's album list unmounts this whole screen
+// (App.jsx swaps in AlbumDetail), and `selectedGenre` went with it: the way
+// back landed on the genre browser rather than on the list the album was
+// picked from. That also made the scroll position App.jsx remembers wrong
+// rather than merely lost — the offset was taken inside the album list and
+// would have been restored onto the genre browser.
+//
+// In memory only, like the other client caches: a page load starts clean.
+const _genreViewCache = { genre: null, albums: [], savedAt: 0 };
+const GENRE_VIEW_CACHE_TTL_MS = 30 * 60 * 1000;
+
+function readGenreViewCache() {
+  if (!_genreViewCache.genre) return null;
+  if (Date.now() - _genreViewCache.savedAt > GENRE_VIEW_CACHE_TTL_MS) {
+    _genreViewCache.genre = null;
+    _genreViewCache.albums = [];
+    return null;
+  }
+  return _genreViewCache;
+}
+
 export default function GenreScreen({ onAlbumSelect, initialGenre = null, onInitialConsumed = () => {} }) {
   const [genres, setGenres] = useState([])
   const [loading, setLoading] = useState(true)
-  const [selectedGenre, setSelectedGenre] = useState(null)
-  const [genreAlbums, setGenreAlbums] = useState([])
+  // Read once, at mount. An initialGenre from the AlbumDetail genre pill is
+  // an explicit instruction and outranks whatever was last open here.
+  const [restoredView] = useState(() => (initialGenre ? null : readGenreViewCache()))
+  const [selectedGenre, setSelectedGenre] = useState(restoredView ? restoredView.genre : null)
+  const [genreAlbums, setGenreAlbums] = useState(restoredView ? restoredView.albums : [])
   const [loadingAlbums, setLoadingAlbums] = useState(false)
 
   useEffect(() => {
@@ -14,6 +40,36 @@ export default function GenreScreen({ onAlbumSelect, initialGenre = null, onInit
       .then(setGenres)
       .finally(() => setLoading(false))
   }, [])
+
+  // Restored from the cache: refresh that genre's albums in the background
+  // so coming back never shows a stale slice of the library. The restored
+  // list stays on screen at full height meanwhile, which is what lets
+  // App.jsx put the scroll position back. Mount-only on purpose —
+  // restoredView is fixed for the life of this mount.
+  useEffect(() => {
+    if (!restoredView) return
+    api.get(`/library/albums?genre=${encodeURIComponent(restoredView.genre.name)}&limit=500`)
+      .then(setGenreAlbums)
+      .catch(() => {
+        // Silence is safe here: a failed refresh is no reason to empty the
+        // list the user has just come back to. The restored copy stands.
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Mirror the open genre view into the cache, and clear it when the user
+  // steps back out to the genre browser — there is then nothing to return
+  // to, and a stale entry would hijack the next mount.
+  useEffect(() => {
+    if (selectedGenre) {
+      _genreViewCache.genre = selectedGenre
+      _genreViewCache.albums = genreAlbums
+      _genreViewCache.savedAt = Date.now()
+    } else {
+      _genreViewCache.genre = null
+      _genreViewCache.albums = []
+    }
+  }, [selectedGenre, genreAlbums])
 
   // Auto-select on mount when an initialGenre was provided
   // (#v1.1.0.30 -- user tapped a genre pill on AlbumDetail).
@@ -41,8 +97,9 @@ export default function GenreScreen({ onAlbumSelect, initialGenre = null, onInit
       .finally(() => setLoadingAlbums(false))
   }
 
-  if (loading) return <div style={s.loadWrap}><div style={s.spinner} /></div>
-
+  // Checked before `loading`: the genre catalogue is not needed to draw one
+  // genre's albums, and returning a spinner here would give the screen no
+  // height for App.jsx's scroll restore to land on.
   if (selectedGenre) {
     return (
       <div style={s.page}>
@@ -63,6 +120,8 @@ export default function GenreScreen({ onAlbumSelect, initialGenre = null, onInit
       </div>
     )
   }
+
+  if (loading) return <div style={s.loadWrap}><div style={s.spinner} /></div>
 
   return (
     <div style={s.page}>
@@ -88,7 +147,7 @@ function AlbumCard({ album, onClick }) {
     <button style={s.albumCard} onClick={onClick}>
       <div style={s.albumArt}>
         {album.cover_art && !imgErr
-          ? <img src={album.cover_art} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={() => setImgErr(true)} />
+          ? <img src={album.cover_art} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={() => setImgErr(true)} draggable={false} />
           : <span style={{ fontSize: 20, color: 'var(--text-muted)' }}>♫</span>}
       </div>
       <div style={s.albumTitle}>{album.title}</div>

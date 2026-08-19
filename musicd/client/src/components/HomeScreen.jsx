@@ -352,7 +352,7 @@ function RecentTile({ album, tab, onClick }) {
     <button ref={tileRef} style={s.tile2} onClick={onClick}>
       <div style={s.tile2Art}>
         {src && !imgErr
-          ? <img src={src} alt="" style={s.tile2Img} onError={() => setImgErr(true)} />
+          ? <img src={src} alt="" style={s.tile2Img} onError={() => setImgErr(true)} draggable={false} />
           : <div style={s.tile2Empty}>♫</div>}
       </div>
       <div style={s.tile2Sub}>{subline}</div>

@@ -193,7 +193,7 @@ function AlbumCard({ album, onOpen, showArtist }) {
     <button ref={cardRef} style={s.card} onClick={() => onOpen(album.id)}>
       <div style={s.artBox}>
         {imgSrc && !imgErr
-          ? <img src={imgSrc} alt="" style={s.art} onError={() => setImgErr(true)} />
+          ? <img src={imgSrc} alt="" style={s.art} onError={() => setImgErr(true)} draggable={false} />
           : <div style={s.artEmpty}>♫</div>
         }
       </div>

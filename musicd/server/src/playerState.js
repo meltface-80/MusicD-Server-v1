@@ -1653,10 +1653,30 @@ async function pause(rendererId) {
       const savedTrackId = zone.currentTrack.id;
       await playTrackOnZone(zone, savedTrackId);
       if (savedPosition > 1) {
-        await Promise.all(zone.rendererIds.map(rid =>
-          renderers.seek(rid, savedPosition).catch(() => {})
+        // The Seek is the whole point of this branch -- it is what turns a
+        // fresh play into a resume. It can be refused: playTrackOnZone has
+        // only just issued SetAVTransportURI + Play, and a renderer still
+        // loading that URI answers Seek with a transition-not-available
+        // fault. The longer the pause, the colder that load is, so this is
+        // likeliest on exactly the resume the user cares most about.
+        //
+        // A refused Seek used to be swallowed whole and the saved position
+        // asserted anyway, which told the client the playhead was at the
+        // bookmark while the renderer played the track from 0:00. Say so in
+        // the log instead, and only claim the bookmark if a renderer
+        // actually took it -- if none did, the next poll a second later
+        // reports the truth and the bar lands on it rather than jumping.
+        const sought = await Promise.all(zone.rendererIds.map(rid =>
+          renderers.seek(rid, savedPosition)
+            .then(() => true)
+            .catch(e => {
+              console.warn(`[resume] zone=${zone.id?.slice(0, 12)} seek ${rid?.slice(0, 12)} to ${savedPosition}s failed: ${e?.message || e} — renderer will play from the start of the track`);
+              return false;
+            })
         ));
-        updateZone(zone, { position: savedPosition, positionAt: Date.now() });
+        if (sought.some(Boolean)) {
+          updateZone(zone, { position: savedPosition, positionAt: Date.now() });
+        }
       }
     } else {
       // Real resume on non-Sonos renderers.

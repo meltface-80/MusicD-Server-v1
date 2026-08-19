@@ -12,6 +12,142 @@ Categories used per release:
 
 ---
 
+## v1.1.10.0 — 2026-08-19 — UPDATES THAT ACTUALLY INSTALL, AND FOUR UI/PLAYBACK FIXES
+
+### Fixed
+
+- **In-app updates never installed on a README-style install.** This is
+  the "downloads, says it succeeded, still on the old version" report,
+  and the reason was not the mount — it was the name.
+
+  The generated update script had `musicd` hardcoded in nine places,
+  because `install.sh` always passes `--name musicd`. The README's
+  `docker run` — and the one on the Pages site — creates `--name
+  musicd-server` from an image built as `musicd-server`. On those
+  installs every line missed: six `docker inspect musicd` calls returned
+  nothing, so no mounts, environment variables, network mode, devices or
+  group-adds were carried over; `docker stop musicd` and `docker rm
+  musicd` matched nothing, so the old container kept running; and
+  `docker run --name musicd … musicd:latest` started a *second* container
+  beside it under `--network host`, with no `/data` and no `/music`.
+
+  The single preserved mount in the log — `/var/run/docker.sock` — was
+  the one the script contributes itself.
+
+  The server already resolved its own container id from
+  `/proc/self/mountinfo` without guessing (v1.1.7.0). That resolution now
+  also yields the container's real name and image, and the script is
+  generated with both. It additionally refuses to run at all if that
+  container is not present, rather than proceeding to build an image and
+  orphan the user's data. Registry ports are handled (`reg.local:5000/x`
+  tags a rollback as `reg.local:5000/x:rollback`, not `reg.local:rollback`).
+
+  **This release cannot deliver itself** — the broken updater is the one
+  that would install it. Take v1.1.10.0 manually once; see the README
+  section "Upgrading from v1.1.9.0 or earlier". Every update after it is
+  in-app again.
+
+- **Playback went wrong after a track had been paused for a while.**
+  `audio/alsa.js` counted paused time as played time. The USB-DAC path
+  cannot ask `aplay` where it is, so it estimated the playhead from wall
+  clock; `pause()` SIGSTOPs the `ffmpeg | aplay` pair — the audio stops
+  dead — but nothing stopped the clock and `resume()` never gave the time
+  back. The error was exactly the length of the pause.
+
+  `Math.min(duration, elapsed)` then clamps it, so a pause longer than the
+  track's remainder pinned the reported position at exactly `duration`.
+  That disarmed the v1.1.0.89 `playedToEnd` guard — `position >= duration
+  - 5` reads true — so the guard that stops a renderer which hung up early
+  from advancing the queue no longer held, and the next `STOPPED` tick
+  skipped to the next track. **Press play after a long pause and you got
+  the next track.** It also walked the progress bar to the end while
+  paused, and made `maybePreQueueNext` fire the instant play was pressed.
+
+  `pause()` now stamps `pausedAt`, `resume()` advances `startedAt` by the
+  paused duration, and `getPositionInfo()` measures to `pausedAt ||
+  Date.now()`.
+
+- **The Sonos resume asserted a bookmark it may not have set.** The
+  `Seek` that turns a fresh play into a resume had a silent
+  `.catch(() => {})` and the saved position was broadcast regardless. A
+  renderer still loading a cold URI refuses that Seek — likeliest on
+  exactly the long-pause resume — so the bar claimed 1:27 while the
+  speaker played from 0:00 until the next poll dragged it back. The
+  refusal is now logged with the renderer's own reason, and the position
+  is claimed only if a seek was actually taken. No retry added: that
+  changes real playback timing and cannot be validated without hardware.
+
+- **The library screen forgot its scroll position.** Two faults, and the
+  second is why it never worked at all rather than merely working badly.
+
+  `AlbumGrid` is infinite-scrolling and holds its pages in component
+  state, so opening an album unmounted it and the way back rebuilt the
+  list from page 1 — a couple of hundred albums where there had been
+  thousands. The container was far shorter than the saved offset and the
+  assignment clamped. And a clamp dispatches a scroll event exactly like a
+  finger does, so the container's own `onScroll` handler wrote the clamped
+  value straight back over the saved position: the failed restore
+  *destroyed* the memory instead of merely missing it.
+
+  A module-level page cache (the shape `_focusOptionsCache` already uses)
+  lets a remount render the same list at the same height in its first
+  commit, then refreshes the whole restored range in one request so the
+  data updates without the list shrinking under the restored offset. The
+  restore moved to `useLayoutEffect` and re-applies each frame until it
+  sticks, with a deadline, stopping the moment the user scrolls. The
+  cached list carries a key describing the view it was fetched under, so a
+  sort or filter change in flight can never label an old list with a new
+  view. The cache is dropped on a completed scan, past its TTL, and for a
+  focus-filtered list.
+
+  Settings sub-pages now get their own screen key — a sub-page replaces
+  the section list in the same container, so one shared key restored the
+  list to a sub-page's offset on the way out.
+
+### UI
+
+- **Touch-and-hold on album art no longer raises the OS image sheet.**
+  Holding a cover brought up Safari's Copy / Share / Add to Photos menu
+  and lifted the art into a drag preview. `-webkit-touch-callout` and
+  `-webkit-user-drag` are suppressed for every image in `index.css`
+  (React has no dependable camelCase style property for the latter, so a
+  stylesheet rule beats repeating it at a dozen components), with
+  `draggable={false}` on the image elements as well. Buttons get the
+  callout suppression too — a tile is a button wrapping the image, and a
+  hold on the title line raised the same sheet — but text selection is
+  left alone everywhere except images.
+
+  `.allow-callout` opts back out, and the share-card previews use it:
+  holding that image to save it to Photos is a real thing to want.
+
+- **Removed the long-press popup menu on album thumbnails.** State, JSX,
+  handler, props, the 600 ms timer and the four dead style keys are all
+  gone, to be rebuilt from the basics. The bare `onContextMenu`
+  `preventDefault` is kept on purpose: with no app menu behind it, it
+  suppresses the browser's own Save image / Copy image menu on desktop and
+  on some Android browsers.
+
+  Note: "Fetch artwork" lived in that menu and the grid was its only entry
+  point, so `POST /api/library/artwork-album` is currently unreachable
+  from the UI. The route itself is untouched.
+
+### Tests
+
+- Five new files — `library-scroll`, `artwork-longpress`, `sonos-resume`,
+  `alsa-pause-position`, `updater-container` — bringing the suite to 13
+  files and 169 assertions. Every one was proven to fail against a
+  reintroduction of the bug it covers, per the rule in `CLAUDE.md`.
+
+### Unverified on hardware
+
+- The iOS callout suppression, and the SIGSTOP/SIGCONT behaviour of a real
+  DAC after minutes idle. This environment is headless Chromium with no
+  browser chrome, no safe areas and no sound card.
+- No `<head>`, root-style or safe-area changes in this release, so the
+  home-screen shortcut does **not** need deleting and re-adding.
+
+---
+
 ## v1.1.9.0 — 2026-08-19 — THE PROGRESS BAR, PROPERLY, PLUS A TEST SUITE
 
 ### Fixed

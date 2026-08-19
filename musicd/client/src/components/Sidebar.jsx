@@ -124,7 +124,7 @@ export default function Sidebar({ onClose }) {
     <aside style={s.sidebar}>
       <div style={s.header}>
         <button style={s.logoBtn} onClick={handleHome} aria-label="Home">
-          <img src={mdIcon} alt="MusicD" style={s.logoMark} />
+          <img src={mdIcon} alt="MusicD" style={s.logoMark} draggable={false} />
           <span style={s.logoText}>
             <span style={s.logoMusic}>Music</span><span style={s.logoD}>D</span>
           </span>

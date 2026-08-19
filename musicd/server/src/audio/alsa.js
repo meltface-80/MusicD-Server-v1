@@ -276,6 +276,7 @@ function _stopPlayer(player) {
   player.state = 'stopped';
   player.position = 0;
   player.startedAt = 0;
+  player.pausedAt = 0;
 }
 
 /**
@@ -382,6 +383,8 @@ async function play(rendererId, track) {
     duration: track.duration || 0,
     position: 0,
     startedAt: Date.now(),
+    // ms epoch of the current pause, 0 when playing. See pause().
+    pausedAt: 0,
     sampleRate: aplayRate,
     sampleFormat: aplayFormat,
     isDsdNative,
@@ -475,6 +478,12 @@ async function playProtocol(id, streamUrl, track) {
 async function pause(id) {
   const player = _players.get(id);
   if (!player) return;
+  // Freeze the playhead before anything else. getPositionInfo() estimates
+  // the position from wall clock, so without a pause mark every second
+  // spent paused is counted as a second played -- see the note there for
+  // what that costs. Only set on the first pause: a second pause() on an
+  // already-paused player must not move the mark forward.
+  if (!player.pausedAt) player.pausedAt = Date.now();
   // SIGSTOP pauses the process tree. SIGCONT resumes.
   try { if (player.ffmpeg && !player.ffmpeg.killed) player.ffmpeg.kill('SIGSTOP'); } catch {}
   try { if (player.aplay && !player.aplay.killed) player.aplay.kill('SIGSTOP'); } catch {}
@@ -486,6 +495,16 @@ async function resume(id) {
   if (!player) return;
   try { if (player.ffmpeg && !player.ffmpeg.killed) player.ffmpeg.kill('SIGCONT'); } catch {}
   try { if (player.aplay && !player.aplay.killed) player.aplay.kill('SIGCONT'); } catch {}
+  // Push the start reference forward by however long the pipeline was
+  // stopped. The audio picks up exactly where SIGSTOP left it, so the
+  // wall-clock estimate has to be moved by the same amount or it stays
+  // ahead of the DAC for the rest of the track -- by the full length of
+  // the pause, which is why a long pause was so much worse than a short
+  // one.
+  if (player.pausedAt) {
+    player.startedAt += Date.now() - player.pausedAt;
+    player.pausedAt = 0;
+  }
   player.state = 'playing';
 }
 
@@ -508,7 +527,25 @@ async function getPositionInfo(id) {
   // We don't get position back from aplay, so we estimate from
   // wall clock. Good enough for UI; the existing player module
   // already does the same thing for some renderers.
-  const elapsed = (Date.now() - player.startedAt) / 1000;
+  //
+  // While paused the pipeline is SIGSTOPped and no audio is leaving the
+  // DAC, so the estimate has to stop with it: measure to `pausedAt`
+  // rather than to now. Without that the estimate ran on through the
+  // pause, and playerState's polling loop -- which keeps polling a
+  // paused non-Sonos zone -- fed it straight into three places that
+  // believe it:
+  //   - the broadcast position, so the progress bar walked to the end
+  //     of the track while the user sat paused;
+  //   - maybePreQueueNext, which pre-queued the next track the instant
+  //     the user pressed play;
+  //   - the v1.1.0.89 playedToEnd guard, which stops a renderer that
+  //     hung up early from advancing the queue. Once the estimate had
+  //     run past duration - 5 that guard reads as "played to the end",
+  //     so the next STOPPED tick skipped to the next track instead of
+  //     holding. A pause long enough to run the estimate out is exactly
+  //     what turned resume into a skip.
+  const ref = player.pausedAt || Date.now();
+  const elapsed = (ref - player.startedAt) / 1000;
   return { position: Math.min(player.duration, elapsed), duration: player.duration };
 }
 

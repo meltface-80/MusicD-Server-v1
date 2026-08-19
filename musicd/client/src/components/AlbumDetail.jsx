@@ -429,7 +429,7 @@ export default function AlbumDetail({ albumId, onArtistClick, onGenreClick, onBa
         <div style={s.hero}>
           <div style={s.artWrap}>
             {album.cover_art && !imgErr
-              ? <img src={album.cover_art} alt={album.title} style={s.art} onError={() => setImgErr(true)} />
+              ? <img src={album.cover_art} alt={album.title} style={s.art} onError={() => setImgErr(true)} draggable={false} />
               : <div style={s.artFallback}>♫</div>
             }
           </div>
@@ -623,7 +623,10 @@ export default function AlbumDetail({ albumId, onArtistClick, onGenreClick, onBa
                 <span style={s.shareTitle}>Share Card</span>
                 <button style={s.shareClose} onClick={handleShareClose}><X size={16} /></button>
               </div>
-              <img src={shareCardUrl.url} alt="Share card" style={s.sharePreview} />
+              {/* allow-callout: holding this image to add it to Photos is
+                  a real thing to want, and the callout is the only way to
+                  it. See the artwork rules in index.css. */}
+              <img src={shareCardUrl.url} alt="Share card" style={s.sharePreview} className="allow-callout" />
               <button style={s.shareBtn} onClick={handleShareSend}>
                 <Share2 size={15} />
                 {navigator.canShare ? 'Share…' : 'Download'}
@@ -902,7 +905,7 @@ function AlbumRelatedSections({ albumId, artistName, onAlbumSelect }) {
               >
                 <div style={relStyles.tileArtBox}>
                   {a.cover_art
-                    ? <img src={a.cover_art} alt="" style={relStyles.tileArt} loading="lazy" />
+                    ? <img src={a.cover_art} alt="" style={relStyles.tileArt} loading="lazy" draggable={false} />
                     : <div style={relStyles.tileArtEmpty}>♫</div>
                   }
                 </div>

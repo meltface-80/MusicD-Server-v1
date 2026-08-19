@@ -28,6 +28,70 @@ const PAGE_SIZE = 200
 const _focusOptionsCache = { value: null, fetchedAt: 0 };
 const FOCUS_OPTIONS_CLIENT_TTL_MS = 60 * 60 * 1000;
 
+// Module-level album-page cache — the same idea as _focusOptionsCache
+// above, for the loaded album list itself.
+//
+// This grid is infinite-scrolling: page 1 comes from the mount effect and
+// every page after it from the sentinel's IntersectionObserver, all held in
+// component state. Opening an album UNMOUNTS the grid (App.jsx swaps in
+// AlbumDetail), so on the way back the list restarts at page 1 — a couple
+// of hundred albums where there had been a couple of thousand. The scroll
+// container is then far shorter than the offset App.jsx is trying to put
+// back, the assignment clamps to the bottom, and the position is lost.
+//
+// So the cache holds the whole loaded range plus the view state that
+// produced it, letting a remount render the same list at the same height in
+// its very first commit.
+//
+// Two things keep it from going stale:
+//   - a mount that hydrates from it immediately re-fetches the WHOLE
+//     restored range in one request (limit = restored length) instead of
+//     replacing N pages with page 1, so the data is refreshed without the
+//     list shrinking under the restored scroll position;
+//   - a completed library scan drops the entry outright.
+// An entry older than the TTL is discarded rather than hydrated, and a
+// focus-filtered list is never written at all (see the mirror effect).
+//
+// In memory only, like the focus options: a fresh page load re-fetches.
+const _albumPagesCache = new Map();
+const ALBUM_PAGES_CACHE_TTL_MS = 30 * 60 * 1000;
+
+function readAlbumPagesCache(key) {
+  const hit = _albumPagesCache.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.savedAt > ALBUM_PAGES_CACHE_TTL_MS) {
+    _albumPagesCache.delete(key);
+    return null;
+  }
+  // An empty list has no height to restore and hydrating it would only
+  // suppress the spinner on a genuinely empty library.
+  if (!hit.albums.length) return null;
+  return hit;
+}
+
+// A stable description of WHICH list a given set of albums is: every input
+// the server's answer depends on, in a fixed order.
+//
+// The mirror effect below needs this because it cannot trust `sort` and
+// `albums` to describe the same thing. Changing the sort re-renders with the
+// new `sort` while `albums` still holds the previous order, and the load
+// effect and the mirror effect both read THAT render — so the load effect
+// scheduling setReloading(true) cannot stop the mirror running in the very
+// same commit. The entry would then claim the old list was sorted the new
+// way, and the next mount would restore it under that label.
+//
+// So the loaded list carries the key of the view it actually came from, and
+// the mirror writes only while that key still matches what is on screen.
+function albumsViewKey({ sort, showOnlyFavorites, savedOnly, tagFilter, focusQuery }) {
+  return JSON.stringify([
+    sort,
+    !!showOnlyFavorites,
+    !!savedOnly,
+    [...tagFilter].sort((a, b) => a - b),
+    focusQuery || '',
+  ]);
+}
+
 // v1.1.0.70 — `savedOnly` mirrors the v1.1.0.27-era favoritesOnly flag.
 // When true (set by App.jsx when rendering this grid as the dedicated
 // Saved-for-later screen) we add ?saved=1 to the album-list query and
@@ -46,19 +110,37 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
   const pendingFocusToLoad = useStore(s => s.pendingFocusToLoad)
   const setPendingFocusToLoad = useStore(s => s.setPendingFocusToLoad)
   const selectAlbum = onAlbumSelect || setSelectedAlbum
-  const [albums, setAlbums] = useState([])
+  // Which of the three grids this is. Albums, Favourites and Saved-for-later
+  // are separate lists browsed to separate depths, so each keeps its own
+  // cache entry.
+  const cacheKey = savedOnly ? 'saved'
+    : favoritesOnly ? 'favorites'
+    : (headingOverride || 'albums')
+  // Read once, at mount. Later renders must not re-read: the entry is
+  // rewritten as the user loads more pages, and re-reading would fight it.
+  const [restoredView] = useState(() => readAlbumPagesCache(cacheKey))
+  const [albums, setAlbums] = useState(() => restoredView ? restoredView.albums : [])
   const [totalAlbums, setTotalAlbums] = useState(0)
   const [totalTracks, setTotalTracks] = useState(0)
-  const [loading, setLoading] = useState(true)
+  // A spinner has no height. Hydrating straight into the restored list is
+  // what lets the container be tall enough for the scroll restore to land.
+  const [loading, setLoading] = useState(!restoredView)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [sort, setSort] = useState('title')
-  const [offset, setOffset] = useState(0)
-  const [hasMore, setHasMore] = useState(true)
-  const [contextMenu, setContextMenu] = useState(null)
+  // True while a first-page or refresh fetch is in flight. `loading` only
+  // covers the very first load (v1.1.1.0 keeps the grid on screen for every
+  // later one), and the cache mirror has to skip these moments: `sort` and
+  // `offset` have already moved to their new values while `albums` still
+  // holds the previous list, so a snapshot taken here would describe a view
+  // the server has not answered for.
+  const [reloading, setReloading] = useState(false)
+  const [sort, setSort] = useState(restoredView ? restoredView.sort : 'title')
+  const [offset, setOffset] = useState(restoredView ? restoredView.offset : 0)
+  const [hasMore, setHasMore] = useState(restoredView ? restoredView.hasMore : true)
   // Local heart-filter chip (#19). Combined with the favoritesOnly *prop*
   // (set when this grid is rendered as the dedicated Favourites screen) via
   // OR — either route makes us show only favourites.
-  const [filterFavorites, setFilterFavorites] = useState(false)
+  const [filterFavorites, setFilterFavorites] = useState(
+    restoredView ? restoredView.filterFavorites : false)
   const [randomBusy, setRandomBusy] = useState(false)
   // Busy flag shared by Play All / Queue All on the Favourites screen so we
   // can disable both while the bulk track fetch is in flight.
@@ -81,7 +163,8 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
   // the set entirely. State is held as a Set instance and replaced
   // wholesale on each toggle so React's identity-based change
   // detection fires.
-  const [tagFilter, setTagFilter] = useState(() => new Set())
+  const [tagFilter, setTagFilter] = useState(
+    () => new Set(restoredView ? restoredView.tagIds : []))
   const sentinelRef = useRef(null)
 
   // v1.1.0.80 — Focus state. Only used when this AlbumGrid is the
@@ -252,7 +335,18 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
 
   const showOnlyFavorites = favoritesOnly || filterFavorites
 
-  const fetchPage = useCallback(async (s, off, append) => {
+  // The view the albums currently in state were actually fetched under.
+  // Stamped by fetchPage when a response lands, compared by the mirror
+  // effect. Seeded from the restored entry so a rehydrated mount — which
+  // restores the sort, the favourites chip and the tag picks with it — can
+  // refresh the entry without waiting for its first re-fetch.
+  // Declared above fetchPage deliberately: const is not hoisted.
+  const loadedViewKey = useRef(restoredView ? restoredView.viewKey || null : null)
+
+  // `limit` defaults to one page. The cache-rehydrate path passes the whole
+  // restored length so a remount refreshes everything it restored in one
+  // request rather than collapsing back to page 1.
+  const fetchPage = useCallback(async (s, off, append, limit = PAGE_SIZE) => {
     const favParam = showOnlyFavorites ? '&favorites=1' : ''
     // v1.1.0.70 — composable savedOnly param. The prop is only set when
     // App.jsx renders this grid as the Saved-for-later screen; the
@@ -272,10 +366,15 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
     // no picks). Suppressed on Favourites/Saved For Later because
     // the funnel UI isn't shown there.
     const focusParam = focusEnabled ? focus.queryString : ''
-    const data = await api.get(`/library/albums?sort=${s}&limit=${PAGE_SIZE}&offset=${off}${favParam}${savedParam}${tagParam}${focusParam}`)
+    const data = await api.get(`/library/albums?sort=${s}&limit=${limit}&offset=${off}${favParam}${savedParam}${tagParam}${focusParam}`)
     if (append) setAlbums(prev => [...prev, ...data])
     else setAlbums(data)
-    setHasMore(data.length === PAGE_SIZE)
+    setHasMore(data.length === limit)
+    // These albums are the answer to THIS view. Recorded in the same commit
+    // as setAlbums, so the mirror effect that runs off `albums` sees it.
+    loadedViewKey.current = albumsViewKey({
+      sort: s, showOnlyFavorites, savedOnly, tagFilter, focusQuery: focusParam,
+    })
     return data.length
   }, [showOnlyFavorites, savedOnly, tagFilter, focusEnabled, focus.queryString])
 
@@ -284,22 +383,39 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
   // filter change, etc.) keep the existing grid on screen and just
   // replace the data when it arrives. This avoids the jolt of the
   // grid disappearing for ~50-300ms on every interaction.
-  const hasLoadedOnce = useRef(false)
+  const hasLoadedOnce = useRef(!!restoredView)
+
+  // Consumed by the FIRST run of the load effect below and then cleared, so
+  // every later run (sort change, filter change) is an ordinary page-1
+  // fetch. See the cache block at the top of the file.
+  const rehydrateLimit = useRef(restoredView ? restoredView.albums.length : 0)
 
   // Load first page + stats
   useEffect(() => {
+    const rehydrate = rehydrateLimit.current
+    rehydrateLimit.current = 0
     if (!hasLoadedOnce.current) setLoading(true)
-    setOffset(0)
-    setHasMore(true)
+    setReloading(true)
+    if (!rehydrate) {
+      setOffset(0)
+      setHasMore(true)
+    }
     Promise.all([
-      fetchPage(sort, 0, false),
+      fetchPage(sort, 0, false, rehydrate || PAGE_SIZE),
       api.get('/library/stats'),
     ]).then(([count, stats]) => {
       setOffset(count)
+      if (rehydrate) {
+        // fetchPage set hasMore from `count === limit`, which is not the
+        // question here — the restored range came back whole, so whether
+        // there is more beyond it is exactly what it was before. A short
+        // result means albums were removed while we were away.
+        setHasMore(count === rehydrate ? restoredView.hasMore : false)
+      }
       setTotalAlbums(stats.total_albums || 0)
       setTotalTracks(stats.total_tracks || 0)
       hasLoadedOnce.current = true
-    }).finally(() => setLoading(false))
+    }).finally(() => { setLoading(false); setReloading(false) })
   }, [sort, showOnlyFavorites, savedOnly, tagFilter, fetchPage])
 
   // v1.1.0.71 — load the tag catalog for the chip strip. Only on the
@@ -339,6 +455,11 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
     const wasScanning = prev === 'scanning' || prev === 'rebuilding_stats'
     if (!wasScanning) return
     if (cur === prev) return
+    // The library just changed underneath us: anything cached describes the
+    // old one. Drop it now — the mirror effect below rewrites the entry once
+    // the refreshed list lands.
+    _albumPagesCache.delete(cacheKey)
+    setReloading(true)
     setOffset(0)
     setHasMore(true)
     Promise.all([
@@ -348,8 +469,44 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
       setOffset(count)
       setTotalAlbums(stats.total_albums || 0)
       setTotalTracks(stats.total_tracks || 0)
+    }).finally(() => setReloading(false))
+  }, [libraryStatus?.phase, sort, fetchPage, cacheKey])
+
+  // Mirror the loaded range into the module cache so the next mount can put
+  // the same list back at the same height. See the cache block at the top.
+  const currentViewKey = useMemo(() => albumsViewKey({
+    sort, showOnlyFavorites, savedOnly, tagFilter,
+    focusQuery: focusEnabled ? focus.queryString : '',
+  }), [sort, showOnlyFavorites, savedOnly, tagFilter, focusEnabled, focus.queryString])
+
+  useEffect(() => {
+    if (loading || reloading) return
+    // `albums` is still the answer to a different view — a sort or filter
+    // has moved and the fetch for it has not landed. Writing now would
+    // label this list with a view it was never fetched under.
+    if (loadedViewKey.current !== currentViewKey) return
+    if (focusEnabled && focus.queryString) {
+      // Focus picks live in component state and do NOT survive the remount,
+      // so a focus-filtered list must never be restored into a grid whose
+      // focus bar has come back empty: the user would be looking at a
+      // filtered list with nothing on screen explaining the filter. A stale
+      // grid is worse than a lost scroll position — drop the entry.
+      _albumPagesCache.delete(cacheKey)
+      return
+    }
+    _albumPagesCache.set(cacheKey, {
+      albums,
+      offset,
+      hasMore,
+      sort,
+      filterFavorites,
+      tagIds: [...tagFilter],
+      viewKey: currentViewKey,
+      savedAt: Date.now(),
     })
-  }, [libraryStatus?.phase, sort, fetchPage])
+  }, [cacheKey, loading, reloading, albums, offset, hasMore, sort,
+      filterFavorites, tagFilter, focusEnabled, focus.queryString,
+      currentViewKey])
 
   // Infinite scroll
   useEffect(() => {
@@ -411,17 +568,6 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
     finally { setBulkBusy(false) }
   }
 
-  const handleRescanAlbum = async (album) => {
-    setContextMenu(null)
-    try {
-      await api.post('/library/artwork-album', {
-        albumId: album.id,
-        artist: album.album_artist,
-        title: album.title,
-      })
-    } catch {}
-  }
-
   // v1.1.0.70 — heading reflects the active filter prop. Saved
   // takes precedence over Favourites if both were ever set
   // simultaneously (currently impossible — App.jsx routes them as
@@ -431,18 +577,6 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
 
   return (
     <div style={s.page}>
-      {contextMenu && (
-        <div style={s.ctxOverlay} onClick={() => setContextMenu(null)}>
-          <div style={{ ...s.ctxMenu, top: Math.min(contextMenu.y, window.innerHeight - 130), left: Math.min(contextMenu.x, window.innerWidth - 200) }}
-            onClick={e => e.stopPropagation()}>
-            <div style={s.ctxTitle}>{contextMenu.album.title}</div>
-            <button style={s.ctxItem} onClick={() => handleRescanAlbum(contextMenu.album)}>🎨 Fetch artwork</button>
-            <button style={s.ctxItem} onClick={() => { setSelectedAlbum(contextMenu.album.id); setContextMenu(null) }}>▶ Open album</button>
-            <button style={{ ...s.ctxItem, color: 'var(--text-tertiary)' }} onClick={() => setContextMenu(null)}>Cancel</button>
-          </div>
-        </div>
-      )}
-
       <div style={s.header}>
         <div style={s.titleRow}>
           <h1 style={s.heading}>{heading}</h1>
@@ -849,11 +983,6 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
                     }).catch(() => {})
                   }, 100)
                 }}
-                onLongPress={(e) => setContextMenu({
-                  album,
-                  x: e.touches?.[0]?.clientX ?? e.clientX,
-                  y: e.touches?.[0]?.clientY ?? e.clientY,
-                })}
               />
             ))}
           </div>
@@ -930,11 +1059,10 @@ function FirstScanProgress({ status }) {
   )
 }
 
-function AlbumCard({ album, onClick, onLongPress }) {
+function AlbumCard({ album, onClick }) {
   const [imgSrc, setImgSrc] = useState(null)
   const [imgErr, setImgErr] = useState(false)
   const cardRef = useRef(null)
-  const timerRef = useRef(null)
 
   // Lazy load image when card scrolls into view
   useEffect(() => {
@@ -949,24 +1077,22 @@ function AlbumCard({ album, onClick, onLongPress }) {
     return () => observer.disconnect()
   }, [album.cover_art])
 
-  const handleTouchStart = (e) => {
-    timerRef.current = setTimeout(() => onLongPress(e), 600)
-  }
-  const cancelLongPress = () => clearTimeout(timerRef.current)
-
   return (
     <button
       ref={cardRef}
       style={s.card}
       onClick={onClick}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={cancelLongPress}
-      onTouchMove={cancelLongPress}
-      onContextMenu={onLongPress}
+      // Kept after the long-press menu was removed, and deliberately: a
+      // right-click (desktop) or long-press (some Android browsers) on a
+      // tile opens the browser's own image menu — "Save image", "Copy
+      // image" — which is exactly what the iOS callout suppression in
+      // index.css exists to prevent. There is no app menu behind it any
+      // more; this only stops the browser one.
+      onContextMenu={e => e.preventDefault()}
     >
       <div style={s.artBox}>
         {imgSrc && !imgErr
-          ? <img src={imgSrc} alt="" style={s.art} onError={() => setImgErr(true)} loading="lazy" />
+          ? <img src={imgSrc} alt="" style={s.art} onError={() => setImgErr(true)} loading="lazy" draggable={false} />
           : <div style={s.artEmpty}>♫</div>
         }
       </div>
@@ -1108,10 +1234,6 @@ const s = {
   // grid. The cardYear style is kept defined for any leftover
   // callers but no longer rendered by AlbumCard.
   cardYear: { fontSize: 9, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', marginTop: 1 },
-  ctxOverlay: { position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(0,0,0,0.4)' },
-  ctxMenu: { position: 'fixed', background: 'var(--bg-elevated)', border: '1px solid var(--border-bright)', borderRadius: 12, minWidth: 180, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' },
-  ctxTitle: { padding: '10px 14px 6px', fontSize: 11, color: 'var(--text-tertiary)', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  ctxItem: { display: 'block', width: '100%', textAlign: 'left', padding: '11px 14px', fontSize: 13, color: 'var(--text-primary)', background: 'none', border: 'none', cursor: 'pointer' },
   emptyMsg: { padding: '40px 24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.5 },
 
   // v1.1.0.71 — tag chip strip styles. Sits below the sort/heart pill

@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useStore } from './store'
 import { api } from './api'
+import { restoreScrollTop } from './scrollRestore'
 import { Menu, ChevronLeft, Search } from 'lucide-react'
 import Sidebar from './components/Sidebar'
 import AlbumGrid from './components/AlbumGrid'
@@ -19,6 +20,17 @@ import SettingsScreen from './components/SettingsScreen'
 import HomeScreen from './components/HomeScreen'
 import UnmatchedScreen from './components/UnmatchedScreen'
 import FocusLibraryScreen from './components/FocusLibraryScreen'
+
+// Screen identity for the scroll memory below. Declared at module scope so
+// it exists before every use inside the component.
+//
+// Settings sub-pages count as their own screen: a sub-page REPLACES the
+// section list inside the same scroll container, so sharing one key would
+// have the list restore to a sub-page's offset on the way back out.
+function screenKeyFor(sidebarSection, settingsSubSection) {
+  if (sidebarSection === 'settings') return `settings:${settingsSubSection || ''}`
+  return sidebarSection || 'home'
+}
 
 export default function App() {
   const {
@@ -46,10 +58,15 @@ export default function App() {
   // means new sections work automatically — adding e.g. 'playlists' to
   // the sidebar doesn't need to also be listed here.
   const scrollPositions = useRef(new Map())
+  // The restore currently in flight, if any. onScrollCapture consults it so
+  // that a clamped programmatic scroll is never mistaken for the user
+  // moving the list — mistaking one for the other is what used to erase the
+  // saved position before it could be restored. See ./scrollRestore.js.
+  const scrollRestore = useRef(null)
 
   const currentScreenKey = (() => {
     if (selectedAlbumId || artistFilter || searchQuery) return null
-    return sidebarSection || 'home'
+    return screenKeyFor(sidebarSection, settingsSubSection)
   })()
 
   const handleSetSelectedAlbum = (id) => {
@@ -75,12 +92,22 @@ export default function App() {
   const handleSetGenreFilter = (genreName) => {
     if (!genreName) return
     setPendingGenre(genreName)
+    // GenreScreen auto-selects this genre on mount, so we land on a genre's
+    // album list — not on the genre browser the remembered offset belongs
+    // to. Forget it rather than restore it onto different content.
+    scrollPositions.current.delete(screenKeyFor('genres', null))
     handleSidebarSection('genres')
   }
 
   // Centralised section change so HomeScreen tiles and Sidebar entries hit
   // the same path. Clears any nested state (selected album, artist filter,
   // search) before switching.
+  //
+  // Section changes deliberately KEEP the remembered scroll position. Every
+  // other route into a section (the sidebar's own handler, FocusLibrary)
+  // calls the store's setter directly rather than coming through here, so a
+  // reset here would make a Home tile behave differently from the identical
+  // sidebar entry. One rule for all of them: a section is where you left it.
   const handleSidebarSection = (section) => {
     setSidebarSection(section)
     setSearchQuery('')
@@ -106,21 +133,55 @@ export default function App() {
     }
   }, [])
 
-  useEffect(() => {
-    if (currentScreenKey && scrollRef.current) {
-      const t = setTimeout(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTop = scrollPositions.current.get(currentScreenKey) || 0
-        }
-      }, 50)
-      return () => clearTimeout(t)
+  // Restore the remembered offset whenever the visible screen changes.
+  //
+  // useLayoutEffect, not useEffect: the container clamps its own scrollTop
+  // the instant the new screen's (initially much shorter) content is
+  // committed, and that clamp dispatches a scroll event. A passive effect
+  // can be scheduled after that event, which would leave onScrollCapture
+  // unguarded long enough to write the clamped 0 over the saved position —
+  // the memory was being destroyed before the restore even started.
+  //
+  // The restore itself re-applies until it sticks; a single assignment
+  // lands on whatever height happens to exist 50ms in, which on the library
+  // screen is a spinner. See ./scrollRestore.js.
+  useLayoutEffect(() => {
+    scrollRestore.current = null
+    const el = scrollRef.current
+    if (!currentScreenKey || !el) return
+    const target = scrollPositions.current.get(currentScreenKey) || 0
+    if (target <= 0) {
+      // Nothing remembered for this screen: start at the top rather than
+      // inheriting the offset the previous screen was left at.
+      el.scrollTop = 0
+      return
+    }
+    const handle = restoreScrollTop(el, target)
+    scrollRestore.current = handle
+    return () => {
+      handle.cancel()
+      if (scrollRestore.current === handle) scrollRestore.current = null
     }
   }, [currentScreenKey])
 
+  // A real scroll gesture always wins: stop re-applying straight away
+  // rather than waiting for the next frame to notice the element moved.
+  const cancelScrollRestore = () => {
+    if (scrollRestore.current) scrollRestore.current.cancel()
+  }
+
   const onScrollCapture = (e) => {
-    if (currentScreenKey) {
-      scrollPositions.current.set(currentScreenKey, e.target.scrollTop)
+    if (!currentScreenKey) return
+    const top = e.target.scrollTop
+    const r = scrollRestore.current
+    if (r && !r.settled && top !== r.target) {
+      // A restore is in flight and this is not it landing. The event is
+      // either our own assignment clamping short, or the browser clamping
+      // the outgoing screen's offset as the new screen mounts. Recording it
+      // would overwrite the very position being restored.
+      return
     }
+    scrollPositions.current.set(currentScreenKey, top)
   }
 
   // ---- Back navigation (#28.5) ----
@@ -246,7 +307,13 @@ export default function App() {
         />
         <LibraryStatusBanner />
         <DemoBanner />
-        <div ref={scrollRef} style={s.content} onScroll={onScrollCapture}>
+        <div
+          ref={scrollRef}
+          style={s.content}
+          onScroll={onScrollCapture}
+          onWheelCapture={cancelScrollRestore}
+          onTouchMoveCapture={cancelScrollRestore}
+        >
           {mainContent()}
         </div>
       </main>
