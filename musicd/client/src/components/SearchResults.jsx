@@ -89,7 +89,7 @@ export default function SearchResults({ onArtistClick }) {
               <button key={album.id} style={s.albumCard} onClick={() => handleAlbumOpen(album)}>
                 <div style={s.albumArt}>
                   {album.cover_art
-                    ? <img src={album.cover_art} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    ? <img src={album.cover_art} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} draggable={false} />
                     : <span style={{ fontSize: 20, color: 'var(--text-muted)' }}>♫</span>
                   }
                 </div>

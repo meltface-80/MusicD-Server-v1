@@ -231,6 +231,47 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 a { color: inherit; text-decoration: none; }
 input { font-family: inherit; }
 
+/* iOS long-press on artwork
+   ─────────────────────────
+   Touch-and-hold on an album cover raised Safari's own image callout — the
+   Copy / Share / Add to Photos sheet — and lifted the art into a drag
+   preview. Nothing in this app sits behind that gesture, so it reads as the
+   app misbehaving rather than as a browser feature.
+
+   -webkit-touch-callout is the property that suppresses the sheet.
+   -webkit-user-drag stops the lift; React has no dependable camelCase style
+   property for it, which is why this is a stylesheet rule and not an inline
+   style. The user-select pair stops the selection shading that comes with
+   the hold. Every img in this app is cover art, an artist logo, an icon or
+   a share card, so one global rule beats repeating the set at each of the
+   dozen-plus components that draw artwork.
+
+   Buttons get the callout suppression as well: an album tile is a button
+   wrapping the img, and a hold landing on the title line under the cover
+   raised the same sheet. Text selection is deliberately NOT switched off
+   for buttons — only images are made unselectable — so every surface with
+   text worth copying still behaves as it did.
+
+   .allow-callout opts back out. The share-card previews use it: holding
+   that image to add it to Photos is a real thing to want, and the callout
+   is the only route to it. */
+img {
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+button {
+  -webkit-touch-callout: none;
+}
+.allow-callout,
+.allow-callout img {
+  -webkit-touch-callout: default;
+  -webkit-user-drag: auto;
+  -webkit-user-select: auto;
+  user-select: auto;
+}
+
 /* v1.1.0.65 — JPLAY-style artist grid breakpoints. Mirrors the
  * album-grid count progression (2/3/4/5) but the columns are slightly
  * less dense at every breakpoint because circular avatars need more

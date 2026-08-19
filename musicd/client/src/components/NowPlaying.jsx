@@ -118,6 +118,7 @@ export default function NowPlaying({ onArtistClick, onAlbumClick, onGenreClick }
               alt=""
               style={s.coverImg}
               onError={(e) => { e.target.style.display = 'none' }}
+              draggable={false}
             />
           ) : (
             <div style={s.coverEmpty}>♫</div>

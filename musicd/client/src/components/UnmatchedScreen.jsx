@@ -74,7 +74,7 @@ export default function UnmatchedScreen() {
         {data.albums.map(a => (
           <button key={a.id} style={s.row} onClick={() => setSelected(a)}>
             {a.cover_art
-              ? <img src={a.cover_art} alt="" style={s.cover} />
+              ? <img src={a.cover_art} alt="" style={s.cover} draggable={false} />
               : <div style={s.coverPlaceholder} />}
             <div style={s.rowText}>
               <div style={s.rowTitle}>{a.title}</div>

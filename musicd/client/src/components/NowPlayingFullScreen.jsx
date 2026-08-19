@@ -326,7 +326,10 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
                 <X size={16} />
               </button>
             </div>
-            <img src={shareCard.url} alt="Share card" style={s.sharePreview} />
+            {/* allow-callout: holding this image to add it to Photos is a
+                real thing to want, and the callout is the only way to it.
+                See the artwork rules in index.css. */}
+            <img src={shareCard.url} alt="Share card" style={s.sharePreview} className="allow-callout" />
             <button style={s.shareBtn} onClick={handleShareSend}>
               <Share2 size={15} />
               {navigator.canShare ? 'Share…' : 'Download'}
@@ -453,7 +456,7 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
             {/* Album art */}
             <div style={s.artWrap}>
               {currentTrack && !imgErr
-                ? <img src={`/api/library/tracks/${currentTrack.id}/cover`} style={s.art} onError={() => setImgErr(true)} />
+                ? <img src={`/api/library/tracks/${currentTrack.id}/cover`} style={s.art} onError={() => setImgErr(true)} draggable={false} />
                 : <div style={s.artEmpty}><span style={{ fontSize: 72, opacity: 0.1 }}>♫</span></div>
               }
 
@@ -941,7 +944,7 @@ function QueueView({ queue, queueIndex, onSelectTrack }) {
               ) : (
                 <span style={s.queueRowArt}>
                   {track.id
-                    ? <img src={`/api/library/tracks/${track.id}/cover`} style={s.queueRowArtImg} alt="" onError={e => { e.currentTarget.style.display = 'none' }} />
+                    ? <img src={`/api/library/tracks/${track.id}/cover`} style={s.queueRowArtImg} alt="" onError={e => { e.currentTarget.style.display = 'none' }} draggable={false} />
                     : null}
                 </span>
               )}
@@ -1247,6 +1250,7 @@ function TrackOverflowMenu({ track, onClose, onCloseScreen, onArtistClick, onAlb
                 style={s.overflowArtImg}
                 alt=""
                 onError={e => { e.currentTarget.style.display = 'none' }}
+                draggable={false}
               />
             )}
           </span>
