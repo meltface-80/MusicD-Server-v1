@@ -1050,7 +1050,7 @@ function QueueView({ queue, queueIndex, onSelectTrack }) {
                 setReachedTap(null)
                 // reorderQueue already shifts queueIndex when a track moves
                 // across it, so the current track keeps playing untouched.
-                reorderQueue(i, playNextTarget(queueIndex))
+                reorderQueue(i, playNextTarget(queueIndex, i))
               }}
             >Play next</button>
             <button
@@ -1082,11 +1082,18 @@ function QueueView({ queue, queueIndex, onSelectTrack }) {
             if (selectable) toggleSelected(i)
             return
           }
-          // A track the queue has already reached is ambiguous to tap: the
+          // Tapping any track other than the one playing is ambiguous: the
           // user may want it now, or lined up after the current one. Ask.
-          // Upcoming tracks keep jumping straight there, which is
-          // unambiguous and the behaviour that already existed.
-          if (isPast) { setReachedTap(i); return }
+          //
+          // v1.1.16.0 — this used to ask only for tracks BEHIND the playhead,
+          // on the reading that a track not yet reached is unambiguous. It is
+          // not: "play next" is at least as useful looking forward, where it
+          // means "after this one" rather than "in twenty minutes' time".
+          //
+          // The currently-playing row is the one genuine exception — it is
+          // already playing, and "play next" would mean nothing — so it keeps
+          // its restart-on-tap behaviour.
+          if (!isCurrent) { setReachedTap(i); return }
           playQueue(queue, i)
         }
 

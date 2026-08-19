@@ -35,13 +35,22 @@ export function foldSkippedRuns(queue, queueIndex, skippedSet, isSelecting = fal
   return out
 }
 
-// Where a track behind the playhead has to land for "Play next" to put it
-// directly after the current track.
+// Where a track has to land for "Play next" to put it directly after the
+// current one. The answer depends on which side of the playhead it starts.
 //
-// reorderQueue splices the track out and back in, so the current track slides
-// down one on the way past. Inserting AT queueIndex therefore lands the moved
-// track immediately after it, not before — the off-by-one that would otherwise
-// interrupt playback with the track the user asked to hear next.
-export function playNextTarget(queueIndex) {
-  return queueIndex
+// reorderQueue splices the track out and then back in, so the removal shifts
+// everything after it down by one — but only what was after it.
+//
+//   from < queueIndex : the current track slides down to queueIndex - 1 as the
+//                       moved track is pulled out from behind it, so inserting
+//                       AT queueIndex lands immediately after it.
+//   from > queueIndex : the removal happened after the current track, which
+//                       therefore has not moved, so the slot immediately after
+//                       it is queueIndex + 1.
+//
+// Using one answer for both is an off-by-one in whichever case it is wrong
+// for: too low and the moved track displaces the one playing, too high and it
+// lands a place further down than the user asked for.
+export function playNextTarget(queueIndex, from) {
+  return from < queueIndex ? queueIndex : queueIndex + 1
 }

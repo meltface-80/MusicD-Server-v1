@@ -12,6 +12,58 @@ Categories used per release:
 
 ---
 
+## v1.1.16.0 — 2026-08-19 — PLAY NOW / PLAY NEXT ON UPCOMING TRACKS TOO
+
+### Fixed
+
+- **Tapping a track that had not played yet just started it**, with no choice
+  offered. v1.1.14.0 shipped the Play now / Play next sheet only for tracks
+  *behind* the playhead, on the reading that a track not yet reached is
+  unambiguous to tap. It is not — "play next" is at least as useful looking
+  forward, where it means "after this one" rather than "in twenty minutes'
+  time".
+
+  The sheet now opens for every track except the one playing, which keeps its
+  restart-on-tap: it is already playing, and "play next" would mean nothing.
+
+- **"Play next" needed a different destination depending on which side of the
+  playhead the track started.** `reorderQueue` splices the track out and back
+  in, so the removal shifts what came after it down by one — but only what came
+  after it:
+
+  - from **behind** the playhead, the current track slides down to
+    `queueIndex - 1` as the moved track is pulled out from behind it, so the
+    slot immediately after it is `queueIndex`;
+  - from **ahead**, the removal happened after the current track, which has not
+    moved, so that slot is `queueIndex + 1`.
+
+  One answer for both is an off-by-one in whichever case it is wrong for: too
+  low and the moved track displaces the one playing, too high and it lands a
+  place further down than asked. `playNextTarget` now takes the source index
+  as well.
+
+### Tests
+
+- The "Play next" test now models the server's queueIndex adjustment as well as
+  its splice, and runs exhaustively over every source position either side of
+  every playhead position, asserting both that the playing track did not move
+  and that the chosen track landed directly after it.
+
+- One assertion was added after a mutation slipped through: dropping the source
+  index at the call site left `from` undefined, made `undefined < queueIndex`
+  false, and sent every move down the ahead-of-the-playhead path — silently
+  wrong for exactly the tracks the feature first shipped for. Testing the
+  function alone could not catch that, so the call site is now checked too.
+
+  Suite is 16 files and 315 assertions. Five mutations run, each red then
+  green.
+
+### Unverified on hardware
+
+- Visual only. No `<head>`, root-style or safe-area changes.
+
+---
+
 ## v1.1.15.0 — 2026-08-19 — ARTWORK, BRANDING, AND ONE BUTTON THAT HAD NOTHING LEFT TO DO
 
 ### Fixed

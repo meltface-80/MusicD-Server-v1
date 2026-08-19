@@ -29,50 +29,50 @@
   ],
   "manifestVersion": 1,
   "schema_version": 1,
-  "version": "1.1.15.0",
-  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-15-0.tar",
-  "tarSha256": "9b421116a645be05ea68a3f50ad8b1529df827e014b5c6dcdd079a74ea69fc9b",
-  "releasedAt": "2026-08-19T23:20:00Z",
-  "releaseNotes": "Album art fills a square frame with no grey bands, and the share button reads the artwork under it and switches between a light and a dark treatment. The MusicD mark is gone from the side menu and Settings header, and 'Clear stuck update files' is removed — the problem it existed for was fixed twice over and the check now sweeps stale tars automatically.",
-  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-15-0.tar",
-  "tarball_sha256": "9b421116a645be05ea68a3f50ad8b1529df827e014b5c6dcdd079a74ea69fc9b",
-  "released_at": "2026-08-19T23:20:00Z",
+  "version": "1.1.16.0",
+  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-16-0.tar",
+  "tarSha256": "bf98abec6fc55ba1d2f78c95345b082b1221b036c405bf55711a5772a7be13b4",
+  "releasedAt": "2026-08-19T23:55:00Z",
+  "releaseNotes": "Tapping a track that had not played yet just started it instead of offering Play now / Play next. The sheet now opens for every track except the one playing, and Play next uses the right destination from either side of the playhead.",
+  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-16-0.tar",
+  "tarball_sha256": "bf98abec6fc55ba1d2f78c95345b082b1221b036c405bf55711a5772a7be13b4",
+  "released_at": "2026-08-19T23:55:00Z",
   "release_notes_url": "https://github.com/meltface-80/MusicD-Server-v1/blob/main/musicd/CHANGELOG.md",
   "channels": {
     "stable": {
-      "version": "1.1.15.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-15-0.tar",
-      "tarSha256": "9b421116a645be05ea68a3f50ad8b1529df827e014b5c6dcdd079a74ea69fc9b",
-      "releasedAt": "2026-08-19T23:20:00Z",
-      "releaseNotes": "Album art fills a square frame with no grey bands, and the share button reads the artwork under it and switches between a light and a dark treatment. The MusicD mark is gone from the side menu and Settings header, and 'Clear stuck update files' is removed — the problem it existed for was fixed twice over and the check now sweeps stale tars automatically."
+      "version": "1.1.16.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-16-0.tar",
+      "tarSha256": "bf98abec6fc55ba1d2f78c95345b082b1221b036c405bf55711a5772a7be13b4",
+      "releasedAt": "2026-08-19T23:55:00Z",
+      "releaseNotes": "Tapping a track that had not played yet just started it instead of offering Play now / Play next. The sheet now opens for every track except the one playing, and Play next uses the right destination from either side of the playhead."
     },
     "earlyAccess": {
-      "version": "1.1.15.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-15-0.tar",
-      "tarSha256": "9b421116a645be05ea68a3f50ad8b1529df827e014b5c6dcdd079a74ea69fc9b",
-      "releasedAt": "2026-08-19T23:20:00Z",
-      "releaseNotes": "Album art fills a square frame with no grey bands, and the share button reads the artwork under it and switches between a light and a dark treatment. The MusicD mark is gone from the side menu and Settings header, and 'Clear stuck update files' is removed — the problem it existed for was fixed twice over and the check now sweeps stale tars automatically."
+      "version": "1.1.16.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-16-0.tar",
+      "tarSha256": "bf98abec6fc55ba1d2f78c95345b082b1221b036c405bf55711a5772a7be13b4",
+      "releasedAt": "2026-08-19T23:55:00Z",
+      "releaseNotes": "Tapping a track that had not played yet just started it instead of offering Play now / Play next. The sheet now opens for every track except the one playing, and Play next uses the right destination from either side of the playhead."
     },
     "beta": {
-      "version": "1.1.15.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-15-0.tar",
-      "tarSha256": "9b421116a645be05ea68a3f50ad8b1529df827e014b5c6dcdd079a74ea69fc9b",
-      "releasedAt": "2026-08-19T23:20:00Z",
-      "releaseNotes": "Album art fills a square frame with no grey bands, and the share button reads the artwork under it and switches between a light and a dark treatment. The MusicD mark is gone from the side menu and Settings header, and 'Clear stuck update files' is removed — the problem it existed for was fixed twice over and the check now sweeps stale tars automatically."
+      "version": "1.1.16.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-16-0.tar",
+      "tarSha256": "bf98abec6fc55ba1d2f78c95345b082b1221b036c405bf55711a5772a7be13b4",
+      "releasedAt": "2026-08-19T23:55:00Z",
+      "releaseNotes": "Tapping a track that had not played yet just started it instead of offering Play now / Play next. The sheet now opens for every track except the one playing, and Play next uses the right destination from either side of the playhead."
     },
     "alpha": {
-      "version": "1.1.15.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-15-0.tar",
-      "tarSha256": "9b421116a645be05ea68a3f50ad8b1529df827e014b5c6dcdd079a74ea69fc9b",
-      "releasedAt": "2026-08-19T23:20:00Z",
-      "releaseNotes": "Album art fills a square frame with no grey bands, and the share button reads the artwork under it and switches between a light and a dark treatment. The MusicD mark is gone from the side menu and Settings header, and 'Clear stuck update files' is removed — the problem it existed for was fixed twice over and the check now sweeps stale tars automatically."
+      "version": "1.1.16.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-16-0.tar",
+      "tarSha256": "bf98abec6fc55ba1d2f78c95345b082b1221b036c405bf55711a5772a7be13b4",
+      "releasedAt": "2026-08-19T23:55:00Z",
+      "releaseNotes": "Tapping a track that had not played yet just started it instead of offering Play now / Play next. The sheet now opens for every track except the one playing, and Play next uses the right destination from either side of the playhead."
     },
     "legacy": {
-      "version": "1.1.15.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-15-0.tar",
-      "tarSha256": "9b421116a645be05ea68a3f50ad8b1529df827e014b5c6dcdd079a74ea69fc9b",
-      "releasedAt": "2026-08-19T23:20:00Z",
-      "releaseNotes": "Album art fills a square frame with no grey bands, and the share button reads the artwork under it and switches between a light and a dark treatment. The MusicD mark is gone from the side menu and Settings header, and 'Clear stuck update files' is removed — the problem it existed for was fixed twice over and the check now sweeps stale tars automatically."
+      "version": "1.1.16.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-16-0.tar",
+      "tarSha256": "bf98abec6fc55ba1d2f78c95345b082b1221b036c405bf55711a5772a7be13b4",
+      "releasedAt": "2026-08-19T23:55:00Z",
+      "releaseNotes": "Tapping a track that had not played yet just started it instead of offering Play now / Play next. The sheet now opens for every track except the one playing, and Play next uses the right destination from either side of the playhead."
     }
   },
   "channelMetadata": {

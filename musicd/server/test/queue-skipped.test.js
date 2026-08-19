@@ -108,35 +108,74 @@ test('the fold groups exactly the skipped tracks behind the playhead', async (t)
   });
 });
 
-test('"Play next" lands the track after the current one, not before', async () => {
-  // reorderQueue splices the track out and back in, so the current track
-  // slides down one as the moved track passes it. Inserting AT queueIndex is
-  // therefore correct and queueIndex + 1 would be one too far. Getting this
-  // wrong either interrupts the current track or drops the chosen one a place
-  // further down than asked.
+test('"Play next" lands the track after the current one, from either side', async (t) => {
+  // reorderQueue splices the track out and back in, so the removal shifts what
+  // came after it down by one — but only what came after it. A track pulled
+  // from BEHIND the playhead drags the current track down with it; one pulled
+  // from ahead does not. One destination cannot be right for both, and getting
+  // it wrong either displaces the track that is playing or drops the chosen
+  // one a place further down than asked.
   const { playNextTarget } = await import(
     pathToFileURL(path.join(CLIENT_SRC, 'queueFold.js')).href);
 
-  // Model the server's splice so the assertion is about behaviour, not a
-  // remembered number.
+  // Model the server's own splice, so this asserts behaviour rather than a
+  // remembered number. Mirrors playerState.reorderQueue.
   const move = (queue, from, to) => {
     const next = queue.slice();
     const [m] = next.splice(from, 1);
     next.splice(to, 0, m);
     return next;
   };
-  for (const [queue, from, queueIndex] of [
-    [['a', 'b', 'c', 'd', 'e'], 0, 3],
-    [['a', 'b', 'c', 'd', 'e'], 2, 3],
-    [['a', 'b', 'c', 'd', 'e'], 1, 4],
-    [['a', 'b'], 0, 1],
-  ]) {
-    const current = queue[queueIndex];
-    const after = move(queue, from, playNextTarget(queueIndex));
-    const currentAt = after.indexOf(current);
-    assert.equal(after[currentAt + 1], queue[from],
-      `moving ${queue[from]} with the playhead on ${current} gave ${after.join(',')}`);
-  }
+  // ...and its queueIndex adjustment, so "the current track" is tracked the
+  // way the server tracks it rather than by looking the id up afterwards.
+  const newIndex = (queueIndex, from, to) => {
+    if (from === queueIndex) return to;
+    if (from < queueIndex && to >= queueIndex) return queueIndex - 1;
+    if (from > queueIndex && to <= queueIndex) return queueIndex + 1;
+    return queueIndex;
+  };
+
+  const check = (queue, from, queueIndex) => {
+    const to = playNextTarget(queueIndex, from);
+    assert.ok(to >= 0 && to < queue.length,
+      `destination ${to} is outside the queue (len ${queue.length})`);
+    const after = move(queue, from, to);
+    const idx = newIndex(queueIndex, from, to);
+    assert.equal(after[idx], queue[queueIndex],
+      `the playing track moved: ${queue.join(',')} -> ${after.join(',')}`);
+    assert.equal(after[idx + 1], queue[from],
+      `from=${from} queueIndex=${queueIndex} gave ${after.join(',')}`);
+  };
+
+  await t.test('a track behind the playhead', () => {
+    for (const [from, qi] of [[0, 3], [2, 3], [1, 4], [0, 1]]) {
+      check(['a', 'b', 'c', 'd', 'e'].slice(0, Math.max(from, qi) + 2), from, qi);
+    }
+  });
+
+  await t.test('a track ahead of the playhead', () => {
+    // The case the first version of this got wrong: it reused the behind-the-
+    // playhead answer, which inserts AT queueIndex and displaces the track
+    // that is playing.
+    for (const [from, qi] of [[4, 1], [2, 1], [3, 0], [5, 2]]) {
+      check(['a', 'b', 'c', 'd', 'e', 'f'], from, qi);
+    }
+  });
+
+  await t.test('the track already next is left where it is', () => {
+    // from === to, which reorderQueue short-circuits.
+    assert.equal(playNextTarget(2, 3), 3);
+  });
+
+  await t.test('exhaustively, for every position either side', () => {
+    const queue = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
+    for (let qi = 0; qi < queue.length; qi++) {
+      for (let from = 0; from < queue.length; from++) {
+        if (from === qi) continue;          // the playing track is not moved
+        check(queue, from, qi);
+      }
+    }
+  });
 });
 
 test('the client reads skipped state on every path that carries it', async (t) => {
@@ -253,14 +292,32 @@ test('the queue screen pins the playing track and covers what scrolls past', asy
       'rows are visible against the top bar as they scroll past it');
   });
 
-  await t.test('tapping a reached track asks instead of jumping', () => {
-    assert.match(view, /if \(isPast\) \{ setReachedTap\(i\); return \}/,
-      'a tap on an already-played track still jumps the queue without asking');
+  await t.test('tapping any track but the playing one asks first', () => {
+    // v1.1.16.0. This first shipped asking only for tracks BEHIND the
+    // playhead, on the reading that a track not yet reached is unambiguous to
+    // tap. It is not — "play next" is at least as useful looking forward,
+    // where it means "after this one" rather than "in twenty minutes" — and an
+    // upcoming track just started playing instead of offering the choice.
+    assert.match(view, /if \(!isCurrent\) \{ setReachedTap\(i\); return \}/,
+      'tapping a track still jumps the queue without offering Play next');
+    assert.ok(!/if \(isPast\) \{ setReachedTap/.test(view),
+      'the sheet is still limited to tracks behind the playhead');
   });
 
-  await t.test('tapping an upcoming track still just plays it', () => {
-    // Unambiguous, and the behaviour that already existed.
-    assert.match(view, /if \(isPast\) \{ setReachedTap\(i\); return \}\s*\n\s*playQueue\(queue, i\)/,
-      'the upcoming-track tap no longer plays directly');
+  await t.test('the sheet passes both indices to playNextTarget', () => {
+    // The destination depends on which side of the playhead the track started,
+    // so the source index is not optional. Dropping it makes `from` undefined,
+    // `undefined < queueIndex` false, and every move take the ahead-of-the-
+    // playhead answer — silently wrong for exactly the tracks the feature
+    // originally shipped for. Testing the function alone does not catch this.
+    assert.match(view, /reorderQueue\(i, playNextTarget\(queueIndex, i\)\)/,
+      'the Play next handler is not telling playNextTarget where the track came from');
+  });
+
+  await t.test('the playing track keeps its restart-on-tap', () => {
+    // The one genuine exception: it is already playing, and "play next" would
+    // mean nothing.
+    assert.match(view, /if \(!isCurrent\) \{ setReachedTap\(i\); return \}\s*\n\s*playQueue\(queue, i\)/,
+      'the currently-playing row no longer falls through to playQueue');
   });
 });
