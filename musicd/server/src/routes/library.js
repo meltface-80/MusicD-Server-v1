@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../db');
 const scanner = require('../scanner');
 const tierMiddleware = require('../tierMiddleware');
+const librarySort = require('../librarySort');
 
 const cache = new Map();
 const CACHE_TTL = 30000;
@@ -56,10 +57,15 @@ router.get('/favorites', (req, res) => {
 // GET /api/library/albums
 router.get('/albums', tierMiddleware.clampLimit('library_size_limit'), (req, res) => {
   const database = db.get();
-  const { sort = 'title', dir = 'ASC', format, artist, genre, favorites, saved, tag_id, tag_ids } = req.query;
-  const safeSorts = { title: 'title', year: 'year', artist: 'album_artist' };
-  const sortCol = safeSorts[sort] || 'title';
-  const sortDir = dir === 'DESC' ? 'DESC' : 'ASC';
+  const { sort, dir, seed, format, artist, genre, favorites, saved, tag_id, tag_ids } = req.query;
+  // v1.1.11.0 — the sort suite moved to src/librarySort.js so the client's
+  // sheet and this route cannot drift apart. It validates the three
+  // parameters and hands back an ORDER BY body; nothing from req.query
+  // reaches the SQL. 'title' still resolves, so an older client keeps working.
+  const sortId = librarySort.normaliseSort(sort);
+  const sortDirection = librarySort.normaliseDir(sortId, dir);
+  const sortSeed = librarySort.normaliseSeed(seed);
+  const orderBy = librarySort.orderByFor(sortId, sortDirection, sortSeed);
   const favOnly = favorites === '1' || favorites === 'true';
   // v1.1.0.70 — composable Saved-for-later filter, mirrors favOnly.
   // Both flags can be combined; the resulting clause is the AND of
@@ -313,7 +319,7 @@ router.get('/albums', tierMiddleware.clampLimit('library_size_limit'), (req, res
 
   // Use JSON-stringified key to prevent collisions (#14)
   const cacheKey = 'albums:' + JSON.stringify({
-    sortCol, sortDir, lim, off, format, artist, genre, favOnly, savedOnly, tagIds,
+    sortId, sortDirection, sortSeed, lim, off, format, artist, genre, favOnly, savedOnly, tagIds,
     focusFormatIn, focusFormatEx, focusGenreIn, focusGenreEx,
     focusDecadeIn, focusDecadeEx, focusArtistIn, focusArtistEx,
     focusLastPlayed, focusLastPlayedEx, focusAddedOn, focusAddedOnEx,
@@ -351,7 +357,7 @@ router.get('/albums', tierMiddleware.clampLimit('library_size_limit'), (req, res
                CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art
         FROM albums
         WHERE (album_artist = ? OR artist = ?) AND excluded = 0 ${filterClause} ${focusClause}
-        ORDER BY ${sortCol} COLLATE NOCASE ${sortDir}
+        ORDER BY ${orderBy}
         LIMIT ? OFFSET ?
       `).all(artist, artist, ...focusParams, lim, off);
     } else if (genre) {
@@ -404,7 +410,7 @@ router.get('/albums', tierMiddleware.clampLimit('library_size_limit'), (req, res
                CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art
         FROM albums
         WHERE ${whereClause}
-        ORDER BY ${sortCol} COLLATE NOCASE ${sortDir}
+        ORDER BY ${orderBy}
         LIMIT ? OFFSET ?
       `).all(...params, ...focusParams, lim, off);
     } else if (format) {
@@ -414,7 +420,7 @@ router.get('/albums', tierMiddleware.clampLimit('library_size_limit'), (req, res
                CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art
         FROM albums
         WHERE primary_format = ? AND excluded = 0 ${filterClause} ${focusClause}
-        ORDER BY ${sortCol} COLLATE NOCASE ${sortDir}
+        ORDER BY ${orderBy}
         LIMIT ? OFFSET ?
       `).all(format, ...focusParams, lim, off);
     } else {
@@ -431,7 +437,7 @@ router.get('/albums', tierMiddleware.clampLimit('library_size_limit'), (req, res
                CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art
         FROM albums
         WHERE excluded = 0 ${filterClause} ${focusClause}
-        ORDER BY ${sortCol} COLLATE NOCASE ${sortDir}
+        ORDER BY ${orderBy}
         LIMIT ? OFFSET ?
       `).all(...focusParams, lim, off);
     }

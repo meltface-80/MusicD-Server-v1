@@ -12,6 +12,98 @@ Categories used per release:
 
 ---
 
+## v1.1.11.0 — 2026-08-19 — THE FULL SORT SUITE ON THE ALBUM WALL
+
+### New
+
+- **Seven ways to sort the album library, each with a direction.** The three
+  Title / Artist / Year pills are now one chip that opens a sheet:
+
+  | Sort | Opens at | Reversed |
+  |---|---|---|
+  | Album name | A → Z | Z → A |
+  | Artist | A → Z | Z → A |
+  | Release year | Newest first | Oldest first |
+  | Recently added | Newest first | Oldest first |
+  | Most played | Most played first | Least played first |
+  | Last played | Most recent first | Longest ago first |
+  | Random | — | re-pick to reshuffle |
+
+  Modelled on MusicD-Remote's library wall, including the two rules that are
+  easy to lose. Alphabetical sorts open A→Z while quantitative ones open with
+  the biggest or newest first, because that is what "sort by year" means — so
+  the default direction is per sort, not global. And **re-picking the sort you
+  are already on reverses it**: the arrow on the active row is the whole
+  direction affordance, there is no second control. Random is the one row with
+  nothing to reverse, so re-picking it reshuffles.
+
+  The chip is on the Favourites screen too. Each grid — Albums, Favourites,
+  Saved for later — keeps its own sort, so putting Favourites in Most played
+  order does not re-sort the main wall.
+
+- **The sort survives the app being closed.** It is written to `localStorage`
+  the moment it changes, not on unmount — iOS discards a backgrounded PWA and
+  an unmount handler is exactly what does not run when it does. Relaunching
+  from the home-screen shortcut comes back to the sort you left.
+
+  The stored blob is validated field by field on read rather than trusted:
+  JSON can parse cleanly and still be the wrong shape, and an unvalidated
+  sort would reach the query string and come back as an empty grid with no
+  way out short of clearing site data.
+
+### Fixed
+
+- **Albums with no year or no added date now sort last in BOTH directions.**
+  Previously there was no such thing to get wrong — but with Release year
+  reversible, treating "no year" as year zero would float every undated album
+  to the top the moment you asked for oldest-first. On a library the scanner
+  could not read many dates for, that is most of the first screen.
+
+- **Paging is now totally ordered.** Every sort ends with title then id as a
+  tiebreaker. Without one, `LIMIT/OFFSET` over rows sharing a sort key — every
+  album released in the same year, every album never played — lets SQLite
+  return them in any order it likes per page, so consecutive pages overlap:
+  the grid shows duplicates and silently drops albums. This was latent on the
+  old Year sort too.
+
+### Changed
+
+- `GET /api/library/albums` takes `sort`, `dir` and `seed`. `sort` accepts the
+  seven ids above; `title` still resolves to `album` so an older client keeps
+  working. `dir` is `asc`/`desc`, case-insensitive, and an absent or
+  unrecognised value now means **that sort's own default** rather than a
+  blanket ascending — so `?sort=year` with no direction returns newest first
+  where it used to return oldest first.
+
+- The random sort is a seeded shuffle rather than `ORDER BY RANDOM()`. The
+  order has to be a pure function of (album, seed) or paging through it
+  re-rolls the shuffle and serves the same album twice while missing others.
+  Reshuffling is a new seed, not a new query. `db.init()` registers the hash
+  on the connection.
+
+### Tests
+
+- `library-sort.test.js` — 65 assertions, run against a real in-memory SQLite
+  rather than asserting on the shape of the SQL. It builds a library with
+  every awkward case in it (no year, year 0, no album artist, a lower-case
+  title, two albums sharing a year, one never played) and checks each sort
+  pages cleanly with no duplicates or gaps.
+
+  It also pins the client's option list against the server's field by field.
+  The list exists on both sides of the wire, and a sort added to the sheet
+  that the server does not know falls back to Album name — the chip would read
+  "Most played" while the wall stayed alphabetical, with nothing logged at
+  either end.
+
+  Suite is now 14 files and 235 assertions.
+
+### Unverified on hardware
+
+- The sheet's layout on a phone. No `<head>`, root-style or safe-area changes,
+  so the home-screen shortcut does not need deleting and re-adding.
+
+---
+
 ## v1.1.10.0 — 2026-08-19 — UPDATES THAT ACTUALLY INSTALL, AND FOUR UI/PLAYBACK FIXES
 
 ### Fixed

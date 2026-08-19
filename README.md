@@ -6,14 +6,14 @@ A self-hosted music server with a Roon-inspired web UI, DLNA/UPnP output,
 parametric EQ DSP, AutoEQ headphone presets, FIR convolution, multi-zone
 renderer support, and a per-stream signal path visualiser.
 
-**Current release:** v1.1.10.0 — see [`musicd/CHANGELOG.md`](musicd/CHANGELOG.md).
+**Current release:** v1.1.11.0 — see [`musicd/CHANGELOG.md`](musicd/CHANGELOG.md).
 
 ## Repository layout
 
 | Path | What it is |
 |------|------------|
-| `musicd/` | MusicD Server (Node.js) and web client (React/Vite), v1.1.10.0 |
-| `musicd-v1-1-10-0.tar` | Published release tarball — what the in-app updater downloads |
+| `musicd/` | MusicD Server (Node.js) and web client (React/Vite), v1.1.11.0 |
+| `musicd-v1-1-11-0.tar` | Published release tarball — what the in-app updater downloads |
 | `manifest.json` | Update manifest polled by the server's updater |
 | `docs/` | GitHub Pages site (feature overview + install) |
 
@@ -101,11 +101,11 @@ generated update script matched nothing, so:
 
 The update reported success and the server stayed on its old version.
 
-v1.1.10.0 reads the container's real name and image off its own container
-id and refuses to run at all if that container cannot be found — but the
-broken updater is the one doing the updating, so it cannot deliver its own
-fix. Take this release manually once, and in-app updates work from then
-on regardless of what you named things:
+v1.1.10.0 fixed it: the server reads its container's real name and image
+off its own container id, and refuses to run at all if that container
+cannot be found. But the broken updater is the one doing the updating, so
+it cannot deliver its own fix. Take the current release manually once, and
+in-app updates work from then on regardless of what you named things:
 
 ```sh
 cd ~/MusicD-Server-v1 && git pull
@@ -114,8 +114,8 @@ docker stop musicd-server
 docker rm musicd-server
 ```
 
-Then re-run the `docker run` command from the top of this section, exactly
-as you originally ran it. Your library, database and settings live in
+Then re-run the `docker run` command from the [Docker](#docker) section
+above, exactly as you originally ran it. Your library, database and settings live in
 `/var/lib/musicd-server-v1` on the host and are untouched by this.
 
 Check afterwards that you have one container, not two:
@@ -135,7 +135,7 @@ not taken yet. Those builds have the old Dropbox URL compiled in as
 their default and will keep polling it, reporting no update available.
 
 Point the running server at this manifest once, take the update, and it
-is over — v1.1.10.0 has the same URL as its own default, so nothing is
+is over — v1.1.11.0 has the same URL as its own default, so nothing is
 left to maintain. There is no UI for this, so use the environment
 variable:
 
@@ -147,7 +147,7 @@ docker run -d --name musicd-server \
 
 Restart, then **Settings → Check for updates**. The older manifest
 parser understands this file — the top-level `version` and `tarUrl`
-pair is carried for exactly that reason — so it will offer v1.1.10.0 and
+pair is carried for exactly that reason — so it will offer v1.1.11.0 and
 install it normally. The variable can be dropped afterwards.
 
 Cutting a release:

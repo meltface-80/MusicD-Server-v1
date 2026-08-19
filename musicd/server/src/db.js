@@ -1,5 +1,6 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const librarySort = require('./librarySort');
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../data/musicd.db');
 let db;
@@ -12,6 +13,14 @@ function init() {
   db.pragma('temp_store = MEMORY');
   db.pragma('mmap_size = 268435456');
   db.pragma('foreign_keys = ON');
+
+  // The album grid's Random sort orders by a seeded hash so the shuffle holds
+  // still while the grid pages through it. SQLite has no hash builtin, so the
+  // function is registered on the connection here. Without it the random sort
+  // fails with "no such function: musicd_shuffle" rather than degrading, which
+  // is the right way round — a silently unshuffled wall would look like a bug
+  // in the sort itself.
+  librarySort.registerSqlFunctions(db);
 
   // Drop legacy tables (clean removal of features cut from earlier versions)
   try { db.exec('DROP TABLE IF EXISTS peq_profiles'); } catch (e) {}
