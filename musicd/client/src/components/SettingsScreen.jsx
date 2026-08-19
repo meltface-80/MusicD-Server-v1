@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react'
 import { useStore } from '../store'
 import { api } from '../api'
 import { Volume2, Play, Square, Download, RefreshCw, ChevronRight, ChevronLeft, User, Sliders, Headphones, Folder, Save, Image as ImageIcon, Radio, LogOut, Cable, Key, Tag, Power, Cpu } from 'lucide-react'
-import mdIcon from '../assets/md-icon.png'
 import DspTab from './DspTab'
 import AutoEqTab from './AutoEqTab'
 import LibraryScopeSection from './LibraryScopeSection'
@@ -163,11 +162,6 @@ export default function SettingsScreen({ onBack }) {
   const [updateError, setUpdateError] = useState(null)
   const [updateLog, setUpdateLog] = useState(null)
   const [showLog, setShowLog] = useState(false)
-  // v1.1.0.73 — troubleshoot block state. clearingTars is the busy
-  // flag for the wipe-pending-tars action; clearTarsResult holds the
-  // server's summary so the user can see what was deleted.
-  const [clearingTars, setClearingTars] = useState(false)
-  const [clearTarsResult, setClearTarsResult] = useState(null)
   // Changelog modal visibility (#v1.1.0.25). Opens in-app, doesn't
   // navigate away from Settings.
   const [showChangelog, setShowChangelog] = useState(false)
@@ -423,27 +417,6 @@ export default function SettingsScreen({ onBack }) {
     }
   }
 
-  // v1.1.0.73 — recovery action for the stuck-tar problem. Wipes any
-  // musicd-vX-Y-Z-W.tar files from the local watch dir and remote
-  // pending dir, then forces a manifest re-check so the next /check
-  // shows whatever the manifest currently advertises rather than
-  // the stale local file. Library data is untouched.
-  const clearStuckTars = async () => {
-    if (!confirm('Delete any pending update files? This is safe — it only touches files in the update folders. The next manual or automatic check will re-fetch the latest version from the manifest.')) return
-    setClearingTars(true)
-    setClearTarsResult(null)
-    setUpdateError(null)
-    try {
-      const r = await api.post('/update/clear-pending')
-      setClearTarsResult(r)
-      setTimeout(loadAll, 300)
-    } catch (e) {
-      setUpdateError(e.message || 'Clear failed')
-    } finally {
-      setClearingTars(false)
-    }
-  }
-
   // saveManifestUrl removed in #v1.1.0.25 -- manifest URL is no
   // longer user-configurable (baked into the build, overridable via
   // MUSICD_MANIFEST_URL env variable).
@@ -611,7 +584,6 @@ export default function SettingsScreen({ onBack }) {
             </div>
           ) : (
             <div style={s.brandHeader}>
-              <img src={mdIcon} alt="MusicD" style={s.brandIcon} draggable={false} />
               <h1 style={s.heading}>Settings</h1>
               <div style={s.brandSpacer} />
               {restartFlow.phase === 'restarting'
@@ -1389,54 +1361,32 @@ export default function SettingsScreen({ onBack }) {
           </div>
         )}
 
-        {/* v1.1.0.73 — Troubleshoot block. Two recovery actions for
-            the sticky-update problem (a tester insisted on v69 even
-            though the manifest had moved to v72). Force re-check
-            bypasses the manifest cache; Clear stuck update files
-            wipes any tars sitting in the local watch dir / pending
-            dir so a stale local tar can't pin findAvailableUpdate()
-            on an old version. */}
-        <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-          <div style={s.subSectionTitle}>Troubleshoot updates</div>
-          <div style={s.helpRow}>
-            <HelpTooltip>
-            If the update banner is showing an older version than what's actually being released, force a fresh manifest check. If the banner won't change after a check, clear any stuck tars from the local downloads folder — a stale tar there pins the updater on its version regardless of what the manifest says.
-            </HelpTooltip>
-          </div>
+        {/* v1.1.15.0 — "Clear stuck update files" removed.
+            It existed for one failure: a stale tar in the local watch dir
+            pinning findAvailableUpdate() on an old version. That was fixed
+            twice over in the meantime and neither fix left it anything to do.
+            v1.1.0.73 changed the rule to "highest version wins regardless of
+            source", so a stale LOWER version can no longer pin anything; and
+            v1.1.2.8 made the update check itself call
+            clearPendingTars({ staleOnly: true }), so those files are now swept
+            automatically on every check.
+
+            What remained was a button whose only behaviour the automatic sweep
+            does not already have is deleting tars at or NEWER than the running
+            version — i.e. throwing away a download the user deliberately
+            started. That is a footgun, not a recovery tool.
+
+            Force re-check stays, and moves out of "Troubleshoot" because it is
+            not troubleshooting: the manifest is polled on a schedule, and this
+            is how you pick up a release the moment it is published rather than
+            waiting for the next poll. */}
+        <div style={{ marginTop: 14 }}>
           <div style={s.actionRow}>
             <button style={s.actionBtn} onClick={checkForUpdate} disabled={updateChecking}>
               <RefreshCw size={11} style={updateChecking ? { animation: 'spin 1s linear infinite' } : {}} />
-              {updateChecking ? ' Checking…' : ' Force re-check'}
-            </button>
-            <button style={s.actionBtn} onClick={clearStuckTars} disabled={clearingTars}>
-              {clearingTars ? 'Clearing…' : 'Clear stuck update files'}
+              {updateChecking ? ' Checking…' : ' Check now'}
             </button>
           </div>
-          {clearTarsResult && (
-            <div style={{
-              marginTop: 8, padding: '8px 10px',
-              fontSize: 12, lineHeight: 1.5,
-              background: clearTarsResult.errors?.length ? 'rgba(255,59,92,0.08)' : 'rgba(91,127,255,0.08)',
-              border: `1px solid ${clearTarsResult.errors?.length ? 'rgba(255,59,92,0.30)' : 'rgba(91,127,255,0.24)'}`,
-              borderRadius: 6,
-              color: 'var(--text-secondary)',
-            }}>
-              {clearTarsResult.deleted?.length === 0 && (!clearTarsResult.errors || clearTarsResult.errors.length === 0)
-                ? 'No stuck update files found. The pending dirs were already empty.'
-                : (
-                  <>
-                    {clearTarsResult.deleted?.length > 0 && (
-                      <div>Deleted {clearTarsResult.deleted.length} file{clearTarsResult.deleted.length === 1 ? '' : 's'}.</div>
-                    )}
-                    {clearTarsResult.errors?.length > 0 && (
-                      <div style={{ color: '#ff8888', marginTop: 4 }}>
-                        {clearTarsResult.errors.length} file{clearTarsResult.errors.length === 1 ? '' : 's'} could not be deleted (check permissions).
-                      </div>
-                    )}
-                  </>
-                )}
-            </div>
-          )}
         </div>
 
         <div style={s.helpRow}>
@@ -2931,7 +2881,6 @@ const s = {
   //   safe to delete in a future cleanup.
   heading: { fontSize: 22, fontWeight: 700, letterSpacing: '-0.4px', margin: 0, color: 'var(--text-primary)' },
   brandHeader: { display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 },
-  brandIcon: { width: 56, height: 56, borderRadius: 12, display: 'block' },
   brandSpacer: { flex: 1 },
   // v1.1.3.3 — restart button. Equal-sized to the brand icon (56×56)
   // so they read as a balanced pair on the same horizontal line. The

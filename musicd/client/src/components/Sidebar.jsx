@@ -3,7 +3,6 @@ import { useStore } from '../store'
 import { api } from '../api'
 import { Disc3, Mic2, ListMusic, Wifi, X, Tag, Settings, Heart, AlertCircle, Bookmark, SlidersHorizontal } from 'lucide-react'
 import RendererIcon from './RendererIcon'
-import mdIcon from '../assets/md-icon.png'
 
 export default function Sidebar({ onClose }) {
   const {
@@ -124,7 +123,6 @@ export default function Sidebar({ onClose }) {
     <aside style={s.sidebar}>
       <div style={s.header}>
         <button style={s.logoBtn} onClick={handleHome} aria-label="Home">
-          <img src={mdIcon} alt="MusicD" style={s.logoMark} draggable={false} />
           <span style={s.logoText}>
             <span style={s.logoMusic}>Music</span><span style={s.logoD}>D</span>
           </span>
@@ -197,7 +195,6 @@ const s = {
   sidebar: { height: '100%', background: 'var(--jp-bg)', borderRight: '1px solid var(--jp-border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   header: { paddingTop: 'calc(18px + var(--safe-top))', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 16px', borderBottom: '1px solid var(--jp-border)', flexShrink: 0 },
   logoBtn: { display: 'flex', alignItems: 'center', gap: 10, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' },
-  logoMark: { width: 30, height: 30, borderRadius: 6, display: 'block', objectFit: 'contain' },
   logoText: { fontSize: 16, fontWeight: 600, letterSpacing: '-0.3px', display: 'inline-flex', color: 'var(--jp-text)' },
   logoMusic: { color: 'var(--jp-text)', fontWeight: 500 },
   logoD: { color: 'var(--jp-text)', fontWeight: 700 },

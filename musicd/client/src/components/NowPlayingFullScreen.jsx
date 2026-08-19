@@ -4,6 +4,7 @@ import { api } from '../api'
 import { ChevronLeft, Play, Pause, SkipBack, SkipForward, ChevronUp, ChevronDown, Trash2, Speaker, Check, Music, ListMusic, Sliders, Cast, Settings, X, Plus, Minus, Volume2, Share2, MoreHorizontal, Heart, Disc, User, Tag, Bookmark, Star, Sparkles, SkipForward as SkipIcon, ChevronRight } from 'lucide-react'
 import RendererModal from './RendererModal'
 import { foldSkippedRuns, playNextTarget } from '../queueFold'
+import { cornerRect, isLightSample } from '../artLuminance'
 // v56: pull these in at module load instead of via dynamic require()
 // inside the component bodies. Vite doesn't provide require() in the
 // browser bundle, so the v55 in-function requires threw at runtime
@@ -52,6 +53,45 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
   } = useStore()
 
   const [imgErr, setImgErr] = useState(false)
+  // Whether the bottom-right of the cover — the corner the share button sits
+  // on — is light. Drives which palette the button takes. Defaults false so a
+  // cover that cannot be sampled keeps the established dark chip.
+  const [artCornerLight, setArtCornerLight] = useState(false)
+  const artImgRef = useRef(null)
+
+  // Sample the corner once the cover has decoded.
+  //
+  // The image is served from this origin (/api/library/tracks/:id/cover), so
+  // the canvas is not tainted and getImageData is allowed. Wrapped anyway: a
+  // browser that refuses for any reason must leave the button looking as it
+  // always did rather than break the screen.
+  const measureArtCorner = () => {
+    const img = artImgRef.current
+    if (!img || !img.naturalWidth || !img.naturalHeight) return
+    try {
+      const { x, y, w, h } = cornerRect(img.naturalWidth, img.naturalHeight)
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })
+      if (!ctx) return
+      ctx.drawImage(img, x, y, w, h, 0, 0, w, h)
+      setArtCornerLight(isLightSample(ctx.getImageData(0, 0, w, h).data))
+    } catch (e) {
+      // Tainted canvas, or a decode that has not really finished. Keep the
+      // default palette; a mis-tinted button is not worth a thrown render.
+      setArtCornerLight(false)
+    }
+  }
+
+  // A cached cover can be complete before React attaches onLoad, in which case
+  // that event never fires and the corner is never sampled. Re-run whenever
+  // the track changes and cover this case explicitly.
+  useEffect(() => {
+    setArtCornerLight(false)
+    const img = artImgRef.current
+    if (img && img.complete) measureArtCorner()
+  }, [currentTrack?.id])
   const [showVolume, setShowVolume] = useState(false)
   const [showRendererLocal, setShowRendererLocal] = useState(false)
   // v54: DSP overlay + device-settings overlay both open over NowPlaying
@@ -454,10 +494,21 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
           }} />
         ) : (
           <>
-            {/* Album art */}
+            {/* Album art. The wrapper only centres; the square box is what
+                the art fills and what the share button is positioned against.
+                Keeping them separate is what removes the grey bands — see
+                s.artWrap. */}
             <div style={s.artWrap}>
+            <div style={s.artBox}>
               {currentTrack && !imgErr
-                ? <img src={`/api/library/tracks/${currentTrack.id}/cover`} style={s.art} onError={() => setImgErr(true)} draggable={false} />
+                ? <img
+                    ref={artImgRef}
+                    src={`/api/library/tracks/${currentTrack.id}/cover`}
+                    style={s.art}
+                    onLoad={measureArtCorner}
+                    onError={() => setImgErr(true)}
+                    draggable={false}
+                  />
                 : <div style={s.artEmpty}><span style={{ fontSize: 72, opacity: 0.1 }}>♫</span></div>
               }
 
@@ -467,7 +518,11 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
                   moving this block and changing that one style. Disabled
                   while the server renders the PNG so it can't double-fire. */}
               <button
-                style={{ ...s.shareOnArt, opacity: currentTrack && !shareLoading ? 1 : 0.35 }}
+                style={{
+                  ...s.shareOnArt,
+                  ...(artCornerLight ? s.shareOnArtDark : s.shareOnArtLight),
+                  opacity: currentTrack && !shareLoading ? 1 : 0.35,
+                }}
                 onClick={handleShare}
                 disabled={!currentTrack || shareLoading}
                 title="Share this track"
@@ -475,6 +530,7 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
               >
                 <Share2 size={17} />
               </button>
+            </div>
             </div>
 
             {/* Track info */}
@@ -1837,6 +1893,21 @@ const s = {
     backdropFilter: 'blur(6px)',
     WebkitBackdropFilter: 'blur(6px)',
   },
+  // v1.1.15.0 — the button samples the corner it actually sits on and takes
+  // the opposite palette, so it stands out on a bright yellow sleeve as well
+  // as on a black one. One translucent-dark chip vanished into dark art and a
+  // light one vanished into light art; no single colour works against
+  // arbitrary album covers.
+  shareOnArtDark: {
+    color: '#fff',
+    background: 'rgba(0,0,0,0.62)',
+    borderColor: 'rgba(255,255,255,0.28)',
+  },
+  shareOnArtLight: {
+    color: '#000',
+    background: 'rgba(255,255,255,0.72)',
+    borderColor: 'rgba(0,0,0,0.22)',
+  },
 
   // v1.1.3.8 — share-card sheet. Same bottom-sheet geometry as the
   // ⋯ overflow box so the two read as siblings. Sits above every
@@ -2387,16 +2458,36 @@ const s = {
   // dropshadow. The art sits flat on the black canvas just like
   // album tiles in the library grid. Background fallback is pure
   // black so a missing cover doesn't pop out as a charcoal hole.
+  // v1.1.15.0 — the grey bands above and below the cover.
+  //
+  // This element used to be BOTH the flexible box absorbing whatever vertical
+  // space the screen had left AND the surface the art was drawn on, with a
+  // --jp-bg-surface background and objectFit:'contain'. On a tall phone it is
+  // far taller than it is wide, so a square cover fitted to the width and left
+  // that surface showing above and below it. Those were the bands.
+  //
+  // The wrapper now only centres and carries no background of its own, so
+  // there is no surface left for a band to appear on.
   artWrap: {
     flex: '1 1 0', minHeight: 0,
-    borderRadius: 4, overflow: 'hidden',
-    background: 'var(--jp-bg-surface)',
-    marginBottom: 22, flexShrink: 1,
-    alignSelf: 'center', width: '100%',
-    // v1.1.3.8 — positioning context for the share button pinned inside.
-    position: 'relative',
+    marginBottom: 22,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    width: '100%',
   },
-  art: { width: '100%', height: '100%', objectFit: 'contain', display: 'block', background: 'var(--jp-bg-surface)' },
+  // The square the art fills, and the positioning context for the share button
+  // (v1.1.3.8) — which has to be this element and not the wrapper, or the
+  // button floats below the artwork in the leftover space.
+  artBox: {
+    position: 'relative',
+    width: '100%', aspectRatio: '1 / 1',
+    maxWidth: '100%', maxHeight: '100%',
+    borderRadius: 4, overflow: 'hidden',
+  },
+  // 'cover', not 'contain': every cover fills its square whatever shape the
+  // file is, so the art is always the same size and an odd-shaped cover is
+  // cropped rather than framed in bands. Nearly every cover is already square,
+  // so in practice this crops nothing.
+  art: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
   artEmpty: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' },
 
   // Title + artist + album cluster. Title 22/600 (was 20/700) to

@@ -12,6 +12,96 @@ Categories used per release:
 
 ---
 
+## v1.1.15.0 — 2026-08-19 — ARTWORK, BRANDING, AND ONE BUTTON THAT HAD NOTHING LEFT TO DO
+
+### Fixed
+
+- **Grey bands above and below the album art.** One element was doing two
+  jobs: the flexible box that absorbs whatever vertical space the screen has
+  left, *and* the surface the art was drawn on — `--jp-bg-surface` background,
+  `objectFit: 'contain'`. On a tall phone that box is far taller than it is
+  wide, so a square cover fitted to the width and left the surface showing
+  above and below it. Those were the bands.
+
+  The wrapper now only centres and paints nothing, and a separate square box
+  is what the art fills. `objectFit` is `cover`, so every cover is the same
+  size and an odd-shaped one is cropped rather than framed — nearly all covers
+  are already square, so in practice nothing is cropped.
+
+  The share button is positioned against the square box rather than the
+  wrapper; anchored to the wrapper it would float in the empty space below the
+  cover.
+
+### UI
+
+- **The share button now stands out on any artwork.** It sampled nothing and
+  wore one translucent-dark chip, which disappeared on a bright sleeve. It now
+  reads the bottom-right corner of the cover — the corner it actually sits on,
+  not a whole-image average — and takes the opposite palette: dark on light
+  art, light on dark art.
+
+  The brightness is WCAG relative luminance over linearised sRGB, not the
+  `0.299R + 0.587G + 0.114B` shorthand. That shorthand operates on
+  gamma-encoded values and reads a saturated yellow as darker than it looks,
+  which is exactly the sleeve in the report.
+
+  Threshold 0.5, which sits well above mid-grey (#808080 is about 0.216), so
+  the established dark chip holds until the art is genuinely bright.
+
+- **The MusicD mark is gone from the side menu and the Settings header.** The
+  wordmark stays in the menu. `src/assets/md-icon.png` now has no importers; it
+  is left in the tree rather than deleted, since it is the same duck-head mark
+  as the app icons in `public/`.
+
+### Removed
+
+- **"Clear stuck update files".** It existed for one failure — a stale tar in
+  the local watch dir pinning `findAvailableUpdate()` on an old version — and
+  that was fixed twice over in the meantime:
+
+  - **v1.1.0.73** changed the rule to "highest version wins regardless of
+    source", so a stale *lower* version can no longer pin anything;
+  - **v1.1.2.8** made the update check itself call
+    `clearPendingTars({ staleOnly: true })`, so those files are now swept
+    automatically on every check.
+
+  What was left was a button whose only behaviour the automatic sweep does not
+  already have is deleting tars at or *newer* than the running version — that
+  is, throwing away a download the user deliberately started. A footgun, not a
+  recovery tool.
+
+  `POST /api/update/clear-pending` and the wipe-all mode of
+  `clearPendingTars()` are untouched on the server; only the UI is gone.
+
+### Changed
+
+- **"Force re-check" is now just "Check now"**, and no longer sits under a
+  "Troubleshoot updates" heading. It is not troubleshooting: the manifest is
+  polled on a schedule, and this is how you pick up a release the moment it is
+  published rather than waiting for the next poll.
+
+### Tests
+
+- `now-playing-art.test.js` — 31 assertions. The luminance maths is a pure
+  module (`client/src/artLuminance.js`) so the palette decision is tested
+  directly rather than eyeballed on a phone: the actual Hard-Fi yellow, dark
+  sleeves, mid-grey, near-white, mixed corners, transparent pixels, and
+  degenerate cover sizes.
+
+  One assertion guards the removal rather than the code: it fails if the
+  automatic stale-tar sweep is ever taken out, because that is the thing whose
+  existence makes removing the button safe.
+
+  Suite is 16 files and 310 assertions. Seven mutations run, each red then
+  green.
+
+### Unverified on hardware
+
+- All of it is visual. No `<head>`, root-style or safe-area changes, so the
+  home-screen shortcut does not need deleting and re-adding.
+
+---
+
 ## v1.1.14.0 — 2026-08-19 — THE QUEUE SCREEN
 
 ### New
