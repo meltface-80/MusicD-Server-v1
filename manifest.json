@@ -29,50 +29,50 @@
   ],
   "manifestVersion": 1,
   "schema_version": 1,
-  "version": "1.1.11.0",
-  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-11-0.tar",
-  "tarSha256": "4ae1cca848fff90f1069eac733bba48221a2efc0dc04dd2076ded74cb0a368d8",
-  "releasedAt": "2026-08-19T20:05:00Z",
-  "releaseNotes": "A full sort suite on the album wall: album name, artist, release year, recently added, most played, last played and random, each reversible by picking it again. The choice persists across app restarts. Albums with no year sort last in both directions, and paging a long list can no longer repeat or skip albums.",
-  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-11-0.tar",
-  "tarball_sha256": "4ae1cca848fff90f1069eac733bba48221a2efc0dc04dd2076ded74cb0a368d8",
-  "released_at": "2026-08-19T20:05:00Z",
+  "version": "1.1.12.0",
+  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-12-0.tar",
+  "tarSha256": "ce3645c7f864903dd6a6713892cbafd63a0fc4c794c151d8d7cf9fcdbc381e5f",
+  "releasedAt": "2026-08-19T20:45:00Z",
+  "releaseNotes": "Updater housekeeping found in a successful update's log: the Docker socket was being passed to docker run twice, and the log reported only the mounts it preserved rather than the env vars, network mode, devices and group-adds as well.",
+  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-12-0.tar",
+  "tarball_sha256": "ce3645c7f864903dd6a6713892cbafd63a0fc4c794c151d8d7cf9fcdbc381e5f",
+  "released_at": "2026-08-19T20:45:00Z",
   "release_notes_url": "https://github.com/meltface-80/MusicD-Server-v1/blob/main/musicd/CHANGELOG.md",
   "channels": {
     "stable": {
-      "version": "1.1.11.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-11-0.tar",
-      "tarSha256": "4ae1cca848fff90f1069eac733bba48221a2efc0dc04dd2076ded74cb0a368d8",
-      "releasedAt": "2026-08-19T20:05:00Z",
-      "releaseNotes": "A full sort suite on the album wall: album name, artist, release year, recently added, most played, last played and random, each reversible by picking it again. The choice persists across app restarts. Albums with no year sort last in both directions, and paging a long list can no longer repeat or skip albums."
+      "version": "1.1.12.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-12-0.tar",
+      "tarSha256": "ce3645c7f864903dd6a6713892cbafd63a0fc4c794c151d8d7cf9fcdbc381e5f",
+      "releasedAt": "2026-08-19T20:45:00Z",
+      "releaseNotes": "Updater housekeeping found in a successful update's log: the Docker socket was being passed to docker run twice, and the log reported only the mounts it preserved rather than the env vars, network mode, devices and group-adds as well."
     },
     "earlyAccess": {
-      "version": "1.1.11.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-11-0.tar",
-      "tarSha256": "4ae1cca848fff90f1069eac733bba48221a2efc0dc04dd2076ded74cb0a368d8",
-      "releasedAt": "2026-08-19T20:05:00Z",
-      "releaseNotes": "A full sort suite on the album wall: album name, artist, release year, recently added, most played, last played and random, each reversible by picking it again. The choice persists across app restarts. Albums with no year sort last in both directions, and paging a long list can no longer repeat or skip albums."
+      "version": "1.1.12.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-12-0.tar",
+      "tarSha256": "ce3645c7f864903dd6a6713892cbafd63a0fc4c794c151d8d7cf9fcdbc381e5f",
+      "releasedAt": "2026-08-19T20:45:00Z",
+      "releaseNotes": "Updater housekeeping found in a successful update's log: the Docker socket was being passed to docker run twice, and the log reported only the mounts it preserved rather than the env vars, network mode, devices and group-adds as well."
     },
     "beta": {
-      "version": "1.1.11.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-11-0.tar",
-      "tarSha256": "4ae1cca848fff90f1069eac733bba48221a2efc0dc04dd2076ded74cb0a368d8",
-      "releasedAt": "2026-08-19T20:05:00Z",
-      "releaseNotes": "A full sort suite on the album wall: album name, artist, release year, recently added, most played, last played and random, each reversible by picking it again. The choice persists across app restarts. Albums with no year sort last in both directions, and paging a long list can no longer repeat or skip albums."
+      "version": "1.1.12.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-12-0.tar",
+      "tarSha256": "ce3645c7f864903dd6a6713892cbafd63a0fc4c794c151d8d7cf9fcdbc381e5f",
+      "releasedAt": "2026-08-19T20:45:00Z",
+      "releaseNotes": "Updater housekeeping found in a successful update's log: the Docker socket was being passed to docker run twice, and the log reported only the mounts it preserved rather than the env vars, network mode, devices and group-adds as well."
     },
     "alpha": {
-      "version": "1.1.11.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-11-0.tar",
-      "tarSha256": "4ae1cca848fff90f1069eac733bba48221a2efc0dc04dd2076ded74cb0a368d8",
-      "releasedAt": "2026-08-19T20:05:00Z",
-      "releaseNotes": "A full sort suite on the album wall: album name, artist, release year, recently added, most played, last played and random, each reversible by picking it again. The choice persists across app restarts. Albums with no year sort last in both directions, and paging a long list can no longer repeat or skip albums."
+      "version": "1.1.12.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-12-0.tar",
+      "tarSha256": "ce3645c7f864903dd6a6713892cbafd63a0fc4c794c151d8d7cf9fcdbc381e5f",
+      "releasedAt": "2026-08-19T20:45:00Z",
+      "releaseNotes": "Updater housekeeping found in a successful update's log: the Docker socket was being passed to docker run twice, and the log reported only the mounts it preserved rather than the env vars, network mode, devices and group-adds as well."
     },
     "legacy": {
-      "version": "1.1.11.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-11-0.tar",
-      "tarSha256": "4ae1cca848fff90f1069eac733bba48221a2efc0dc04dd2076ded74cb0a368d8",
-      "releasedAt": "2026-08-19T20:05:00Z",
-      "releaseNotes": "A full sort suite on the album wall: album name, artist, release year, recently added, most played, last played and random, each reversible by picking it again. The choice persists across app restarts. Albums with no year sort last in both directions, and paging a long list can no longer repeat or skip albums."
+      "version": "1.1.12.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-12-0.tar",
+      "tarSha256": "ce3645c7f864903dd6a6713892cbafd63a0fc4c794c151d8d7cf9fcdbc381e5f",
+      "releasedAt": "2026-08-19T20:45:00Z",
+      "releaseNotes": "Updater housekeeping found in a successful update's log: the Docker socket was being passed to docker run twice, and the log reported only the mounts it preserved rather than the env vars, network mode, devices and group-adds as well."
     }
   },
   "channelMetadata": {

@@ -331,15 +331,22 @@ function rollbackTagFor(image) {
 // would appear to vanish. Now we preserve whatever the user already
 // has, so it survives across updates regardless of how the original
 // container was set up.
-// The name is filled in per install by resolveSelfIdentity() — see the
-// note there. Everything else about the container (mounts, env, devices,
-// groups, restart policy, network mode) is read back off the running
-// container by the generated script.
+// The name is filled in per install by resolveSelfIdentity() — see the note
+// there. Everything else about the container (mounts, env, devices, groups,
+// restart policy, network mode) is read back off the running container by the
+// generated script, INCLUDING the docker socket.
+//
+// v1.1.12.0: the socket used to be listed here as well. It is always among the
+// preserved mounts already — musicd cannot have spawned the updater without it
+// — so every update ran `docker run` with the same -v twice. The Docker this
+// was observed on tolerates that, but a version that rejects a repeated mount
+// destination would fail the run and then fail the byte-identical rollback
+// run, leaving the user with no container at all. The script now appends it
+// only if the preserved mounts somehow lack it.
+const DOCKER_SOCK_MOUNT = '/var/run/docker.sock:/var/run/docker.sock';
+
 function launchArgsFor(containerName) {
-  return [
-    '--name', containerName,
-    '-v', '/var/run/docker.sock:/var/run/docker.sock',
-  ];
+  return ['--name', containerName];
 }
 
 /**
@@ -516,6 +523,7 @@ fi
 # updater script's only additions are --name (the container's own,
 # resolved above) and the docker.sock mount needed for self-update.
 ALL_FLAGS=""
+KEPT_ENV=""
 
 # Mounts: all bind mounts, with their original :ro/:rw flag preserved.
 MOUNT_LINES=\$(docker inspect "\$CONTAINER" --format '{{range .Mounts}}{{if eq .Type "bind"}}{{.Source}}|{{.Destination}}|{{.Mode}}{{println}}{{end}}{{end}}' 2>/dev/null || echo "")
@@ -555,29 +563,35 @@ if [ -n "\$ENV_LINES" ]; then
         key=\${kv%%=*}
         val=\${kv#*=}
         ALL_FLAGS="\$ALL_FLAGS -e \$key=\$val"
+        KEPT_ENV="\$KEPT_ENV \$key"
         ;;
     esac
   done <<ENV_EOF
 \$ENV_LINES
 ENV_EOF
 fi
+[ -n "\$KEPT_ENV" ] && echo "[updater] preserving env:\$KEPT_ENV"
+
 
 # Network mode: usually "host" for musicd, but preserve whatever the
 # user has.
 NET_MODE=\$(docker inspect "\$CONTAINER" --format '{{.HostConfig.NetworkMode}}' 2>/dev/null || echo "")
 if [ -n "\$NET_MODE" ] && [ "\$NET_MODE" != "default" ]; then
   ALL_FLAGS="\$ALL_FLAGS --network \$NET_MODE"
+  echo "[updater] preserving network mode: \$NET_MODE"
 fi
 
 # Restart policy.
 RESTART_POL=\$(docker inspect "\$CONTAINER" --format '{{.HostConfig.RestartPolicy.Name}}' 2>/dev/null || echo "")
 if [ -n "\$RESTART_POL" ] && [ "\$RESTART_POL" != "no" ]; then
   ALL_FLAGS="\$ALL_FLAGS --restart \$RESTART_POL"
+  echo "[updater] preserving restart policy: \$RESTART_POL"
 fi
 
 # Devices (USB DACs, /dev/snd).
 DEVICE_PATHS=\$(docker inspect "\$CONTAINER" --format '{{range .HostConfig.Devices}}{{.PathOnHost}}{{":"}}{{.PathInContainer}}{{" "}}{{end}}' 2>/dev/null || echo "")
 if [ -n "\$DEVICE_PATHS" ]; then
+  echo "[updater] preserving devices: \$DEVICE_PATHS"
   for d in \$DEVICE_PATHS; do
     ALL_FLAGS="\$ALL_FLAGS --device \$d"
   done
@@ -586,10 +600,23 @@ fi
 # Group adds (audio group access).
 GROUP_ADDS=\$(docker inspect "\$CONTAINER" --format '{{range .HostConfig.GroupAdd}}{{.}}{{" "}}{{end}}' 2>/dev/null || echo "")
 if [ -n "\$GROUP_ADDS" ]; then
+  echo "[updater] preserving group-adds: \$GROUP_ADDS"
   for g in \$GROUP_ADDS; do
     ALL_FLAGS="\$ALL_FLAGS --group-add \$g"
   done
 fi
+
+# The socket is what lets the NEW container run its own future updates. It is
+# normally already in ALL_FLAGS as a preserved mount; adding it unconditionally
+# passed it to docker run twice. See DOCKER_SOCK_MOUNT in updater.js.
+case "\$ALL_FLAGS" in
+  *"${DOCKER_SOCK_MOUNT}"*)
+    ;;
+  *)
+    echo "[updater] docker socket was not mounted — adding it so the new container can self-update"
+    ALL_FLAGS="\$ALL_FLAGS -v ${DOCKER_SOCK_MOUNT}"
+    ;;
+esac
 
 echo "[updater] config preservation complete"
 

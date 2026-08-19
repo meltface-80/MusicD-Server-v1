@@ -12,6 +12,68 @@ Categories used per release:
 
 ---
 
+## v1.1.12.0 — 2026-08-19 — UPDATER HOUSEKEEPING, FOUND IN A SUCCESSFUL UPDATE'S LOG
+
+The v1.1.10.0 updater fix worked: the first clean in-app install on a
+README-style container (`musicd-server`, not `musicd`) preserved all five
+mounts, stopped and removed the right container, and started the new one.
+Two things in that log still needed fixing.
+
+### Fixed
+
+- **The Docker socket was passed to `docker run` twice.** It is always among
+  the mounts read back off the running container — musicd cannot have spawned
+  the updater without it — and `launchArgsFor()` added it again, so every
+  update ran `docker run … -v /var/run/docker.sock:/var/run/docker.sock …
+  -v /var/run/docker.sock:/var/run/docker.sock`.
+
+  The Docker this was observed on tolerates a repeated identical mount. One
+  that rejects a duplicate mount destination would fail the run — and then
+  fail the byte-identical rollback run immediately after, leaving the machine
+  with **no container at all**. The socket is now appended only if the
+  preserved mounts somehow lack it, and says so in the log when it does.
+
+### Changed
+
+- **The update log now reports everything it preserved, not just the mounts.**
+  It printed `preserving mounts:` and then went straight to `config
+  preservation complete`, so a log could not distinguish "carried over the
+  env vars, network mode, devices and group-adds" from "carried over
+  nothing". That silence is exactly how the wrong-container bug survived
+  several releases — the one line it did print looked plausible.
+
+  It now names the env vars, network mode, restart policy, devices and
+  group-adds as well, so `--device /dev/snd` and `--group-add 29` surviving
+  an update is visible in the log instead of needing `docker inspect`.
+
+### Tests
+
+- `updater-container.test.js` grew from 14 to 20 assertions and stopped being
+  purely textual. The config-preservation section of the generated script is
+  now **executed** by `/bin/sh` against a stub `docker` that answers the six
+  `inspect --format` calls, and the resulting flags are asserted: the socket
+  exactly once, `:ro` surviving on the music mount, `--device` and
+  `--group-add` present, docker-injected `PATH` left behind, and every
+  category reported in the log.
+
+  The first version of the socket check counted occurrences inside
+  `ALL_FLAGS` only and passed the bug it was written for — the duplicate came
+  from the launch args, which are concatenated at the `docker run` line forty
+  lines away. It now composes the whole command and counts that.
+
+  Suite is 14 files and 241 assertions.
+
+### Documentation
+
+- `CLAUDE.md`'s dependency note listed one vite-related advisory; there are
+  now four. All four are dev-server only and production is a static
+  `vite build`, so the reasoning is unchanged — but the note now records the
+  exact `npm audit` totals to expect (**4 in `server/`, 2 in `client/`**), so
+  a future build log can be checked against it at a glance instead of being
+  waved through.
+
+---
+
 ## v1.1.11.0 — 2026-08-19 — THE FULL SORT SUITE ON THE ALBUM WALL
 
 ### New
