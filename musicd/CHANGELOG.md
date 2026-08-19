@@ -16,14 +16,18 @@ Categories used per release:
 
 ### Changed
 
-- **The share card is marked with the MusicD waveform** instead of the
-  "MusicD" text it used to set in the bottom-right corner. It is the same
-  eight-bar glyph the sibling repo uses as its favicon, inlined as vector
-  rects rather than an embedded image — eight rectangles cost nothing,
-  scale cleanly, and keep the card a single self-contained SVG. The bars
-  are pinned by their *ink* rather than by the 64-unit box they are
-  authored in, so the corner margin is even. `WORDMARK_H` is the only
-  size knob.
+- **The share card carries the MusicD logo lockup** — the wordmark with
+  the waveform beneath it — in place of the plain "MusicD" text it used
+  to set in the bottom-right corner. It is drawn as vector (text plus
+  fifty rounded bars and the tails that run out either side) rather than
+  an embedded bitmap, so it stays crisp at any size and the card remains
+  a single self-contained SVG for sharp to rasterise. Authored in a
+  100x54 unit box and scaled to `LOCKUP_W`, which is the only size knob.
+
+  It is a vector reconstruction of the supplied artwork, not the original
+  file: the bar heights are hand-authored to match its rhythm rather than
+  traced from it. Committing the real logo to the repo would let it be
+  embedded exactly instead.
 
 - **The duck-head mark is now the app icon and favicon**, shared with
   MusicD-Remote so the server and the Roon extension carry one identity.

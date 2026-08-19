@@ -92,5 +92,8 @@ favicon: `musicd/client/public/` holds `icon-192`, `icon-512`,
 `icon-maskable-512` (inset for Android's crop — do not swap it for the
 full-bleed art), `apple-touch-icon`, `favicon-32` and `favicon.svg`.
 
-The eight-bar waveform glyph is the mark on the share card, inlined as
-vector rects in `shareCard.js`. `WORDMARK_H` is the only size knob.
+The share card is marked with the MusicD logo lockup — wordmark over
+waveform — built as vector in `shareCard.js` from `LOCKUP_*` and
+`WAVE_*`. `LOCKUP_W` is the only size knob. It is a reconstruction of the
+supplied artwork, so if the original file is ever committed, embed that
+instead of tuning the bar array.
