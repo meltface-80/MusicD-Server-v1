@@ -15,12 +15,32 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': 'http://localhost:32600',
-      '/ws': { target: 'ws://localhost:32600', ws: true }
+      // v1.1.8.0 — was 32600, which is not a port anything listens on. The
+      // server's default is 32700 (PORT in the Dockerfile, the docker run in
+      // the README, and index.js's fallback), so `npm run dev` could never
+      // reach the API.
+      '/api': 'http://localhost:32700',
+      '/ws': { target: 'ws://localhost:32700', ws: true }
     }
   },
   build: {
     outDir: 'dist',
-    emptyOutDir: true
+    emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        // v1.1.8.0 — split the vendor libraries out of the app bundle.
+        // Everything landed in one 606 kB chunk, which Rollup warned about
+        // and which costs a phone the whole bundle again on every release.
+        // React, the router, the store and the icon set change far less
+        // often than app code, so separating them lets a browser keep them
+        // cached across updates. Nothing is code-split by route here — this
+        // is purely a caching boundary, so no behaviour changes.
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          icons: ['lucide-react'],
+          store: ['zustand'],
+        },
+      },
+    },
   }
 })

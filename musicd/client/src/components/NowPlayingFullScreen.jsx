@@ -1708,13 +1708,15 @@ const s = {
     display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
     animation: 'fadeIn 0.18s ease',
   },
-  shareSheet: { paddingBottom: 'calc(32px + var(--safe-bot))',
+  shareSheet: {
     width: '100%', maxWidth: 480,
     background: '#1a1a24',
     border: '1px solid rgba(255,255,255,0.10)',
     borderRadius: '20px 20px 0 0',
     boxShadow: '0 -10px 40px rgba(0,0,0,0.5)',
-    paddingBottom: 32,
+    // The 32 this replaces is folded into the calc; declaring it twice let
+    // the later plain value win and silently dropped the inset.
+    paddingBottom: 'calc(32px + var(--safe-bot))',
   },
   shareHeader: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',

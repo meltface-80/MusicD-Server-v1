@@ -12,6 +12,63 @@ Categories used per release:
 
 ---
 
+## v1.1.8.0 — 2026-08-19 — BUILD WARNINGS
+
+### Fixed
+
+- **The share sheet's safe-area padding was silently doing nothing.**
+  `shareSheet` ended up with `paddingBottom` declared twice — the inset
+  calc first, a plain `32` after it — so the later value won and the
+  inset was dropped. esbuild reported it as a *warning* and the build
+  carried on, which is exactly how it survived a release. The duplicate
+  is gone and the inset applies.
+
+  A scan of every style object in the client confirms this was the only
+  one; the scanner agrees with esbuild on the file it flagged.
+
+- **`npm run dev` could never reach the API.** The Vite dev proxy
+  pointed `/api` and `/ws` at port 32600. Nothing listens there — the
+  server's default is 32700, in the Dockerfile, in the documented
+  `docker run`, and in `index.js`'s own fallback.
+
+### Changed
+
+- **`sharp` 0.33 → 0.35** clears a *high* advisory (inherited libvips
+  CVEs). Verified rather than assumed: the share card rendered on both
+  versions produces a byte-identical PNG, same sha256.
+- **`uuid` 9 → 11** clears a moderate advisory and the deprecation
+  warning npm prints on every build. Only `v4` is used, and the CJS
+  `const { v4 } = require('uuid')` form still works in 11 — checked
+  against the real package.
+- **`react-router-dom` removed.** It was declared but never imported —
+  no router, no routes, no hooks anywhere in the client. Deleting it
+  clears its moderate advisory outright, which is a better outcome than
+  the major upgrade npm proposed for a package the app does not use.
+- **The client bundle is split into vendor chunks.** Everything landed
+  in one 606 kB file, which Rollup warned about and which made a phone
+  re-download React on every release. React, the icon set and the store
+  are now separate chunks — a caching boundary only, not route-level
+  code splitting, so nothing about how the app loads changes.
+
+### Known
+
+Three advisories are left open deliberately, because npm's fix for each
+is worse than the finding. Recorded in `CLAUDE.md` so they are not
+re-litigated every release:
+
+- `ip` (high, via `node-ssdp`) — the offered fix is `node-ssdp@1.0.0`, a
+  *downgrade* from 4.0.1 that would break SSDP discovery entirely. The
+  advisory concerns `isPublic()` categorisation on a LAN-discovery path
+  that is not attacker-reachable here.
+- `file-type` (moderate, via `music-metadata`) — the fix is
+  music-metadata 7 → 11, which is ESM-only; the server is CommonJS and
+  imports it with `require`.
+- `esbuild` (moderate, via `vite`) — the fix is vite 5 → 8, and the
+  advisory only affects the **dev server**. Production is a static
+  build, so nothing shipped is exposed.
+
+---
+
 ## v1.1.7.0 — 2026-08-19 — THE UPDATER NOW KNOWS WHICH CONTAINER IT IS
 
 ### Fixed
