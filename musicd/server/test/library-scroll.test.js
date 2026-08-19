@@ -293,3 +293,82 @@ test('a genre album list survives the album detour too', async (t) => {
       'which leaves the screen with no height to restore onto');
   });
 });
+
+test('the cache never labels a list with a view it was not fetched under', async (t) => {
+  // Changing the sort re-renders with the new `sort` while `albums` still
+  // holds the previous order. The load effect and the mirror effect both
+  // read THAT render, so the load effect scheduling setReloading(true)
+  // cannot stop the mirror running in the same commit — a `reloading` guard
+  // alone is one commit too late. The entry would claim the old list was
+  // sorted the new way, and the next mount would restore it under that
+  // label and draw it in the wrong order until the re-fetch landed.
+  const grid = read('components', 'AlbumGrid.jsx');
+
+  await t.test('the loaded albums carry the view they came from', () => {
+    assert.match(grid, /function albumsViewKey\(/,
+      'no view descriptor — sort and albums cannot be checked against each other');
+    // Stamped where the response is committed, not in an effect: an effect
+    // would land a commit later, which is the whole bug.
+    const fetchBody = grid.slice(grid.indexOf('const fetchPage'),
+                                grid.indexOf('const hasLoadedOnce'));
+    assert.match(fetchBody, /loadedViewKey\.current = albumsViewKey\(/,
+      'fetchPage does not record which view its albums answer');
+    assert.ok(fetchBody.indexOf('setAlbums') < fetchBody.indexOf('loadedViewKey.current ='),
+      'the stamp must accompany the albums it describes');
+  });
+
+  await t.test('the mirror refuses to write while the two disagree', () => {
+    const mirror = grid.slice(grid.indexOf('_albumPagesCache.set(cacheKey'.slice(0, 20)) - 1200,
+                              grid.indexOf('savedAt: Date.now(),'));
+    assert.match(mirror, /if \(loadedViewKey\.current !== currentViewKey\) return/,
+      'the mirror still writes whatever sort happens to be current');
+  });
+
+  await t.test('the descriptor covers every input the server answer depends on', () => {
+    const fn = grid.slice(grid.indexOf('function albumsViewKey('),
+                          grid.indexOf('export default function AlbumGrid'));
+    assert.ok(fn.length > 0, 'could not isolate albumsViewKey');
+    for (const field of ['sort', 'showOnlyFavorites', 'savedOnly', 'tagFilter', 'focusQuery']) {
+      assert.ok(fn.includes(field), `${field} is not part of the view key`);
+    }
+  });
+
+  await t.test('the stored entry carries the key so a rehydrate can match', () => {
+    assert.match(grid, /viewKey: currentViewKey/, 'the entry does not record its view');
+    assert.match(grid, /useRef\(restoredView \? restoredView\.viewKey \|\| null : null\)/,
+      'a rehydrated mount cannot tell whether its restored list matches');
+  });
+
+  await t.test('the descriptor is order-stable for the same filter set', () => {
+    // Tag ids arrive from a Set, whose iteration order follows insertion.
+    // Two users picking the same two tags in opposite orders must produce
+    // the same key, or the mirror would refuse to write for one of them and
+    // that grid would quietly stop remembering its position.
+    //
+    // The component imports React and cannot be required here, so the helper
+    // is lifted and evaluated on its own — the real source, not a copy, the
+    // way container-id.test.js drives _selfContainerId.
+    const raw = fs.readFileSync(path.join(SRC, 'components', 'AlbumGrid.jsx'), 'utf8');
+    const fnSrc = raw.slice(raw.indexOf('function albumsViewKey('),
+                            raw.indexOf('export default function AlbumGrid'));
+    assert.ok(fnSrc.includes('JSON.stringify'), 'could not lift albumsViewKey');
+    const albumsViewKey = new Function(fnSrc + '; return albumsViewKey;')();
+
+    const base = { sort: 'title', showOnlyFavorites: false, savedOnly: false, focusQuery: '' };
+    const a = albumsViewKey({ ...base, tagFilter: new Set([7, 2]) });
+    const b = albumsViewKey({ ...base, tagFilter: new Set([2, 7]) });
+    assert.equal(a, b, 'the same filter set produces two different keys');
+
+    // Every field must actually move the key, or the guard lets a mismatched
+    // pairing through on that axis.
+    for (const [field, value] of Object.entries({
+      sort: 'added', showOnlyFavorites: true, savedOnly: true, focusQuery: '&genre=jazz',
+    })) {
+      assert.notEqual(
+        albumsViewKey({ ...base, tagFilter: new Set([2, 7]), [field]: value }), a,
+        `changing ${field} does not change the key`);
+    }
+    assert.notEqual(albumsViewKey({ ...base, tagFilter: new Set([2]) }), a,
+      'dropping a tag does not change the key');
+  });
+});

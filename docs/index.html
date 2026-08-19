@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MusicD Server v1 — self-hosted music server</title>
-<meta name="description" content="MusicD Server v1.1.9.0 — a self-hosted music server with a Roon-inspired web UI, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
+<meta name="description" content="MusicD Server v1.1.10.0 — a self-hosted music server with a Roon-inspired web UI, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
 <style>
   :root {
     --bg:        #1b1d1f;   /* charcoal */
@@ -263,7 +263,7 @@
   presets, FIR convolution and a per-stream signal path you can actually
   read.</p>
   <div class="badges">
-    <span class="badge">v1.1.9.0</span>
+    <span class="badge">v1.1.10.0</span>
     <span class="badge">Node 20 &middot; Express &middot; SQLite</span>
     <span class="badge">React SPA &middot; PWA</span>
     <span class="badge plain">Docker &middot; port 32700</span>
@@ -275,126 +275,92 @@
 
 <section id="whats-new" aria-labelledby="whats-new-h">
   <div class="wrap">
-    <h2 id="whats-new-h">What&rsquo;s new in 1.1.9.0</h2>
-    <p class="lead">Sonos bonded sets stop lying about how many speakers you
-    have, the share card gets rebuilt, and the trial gate is gone.</p>
+    <h2 id="whats-new-h">What&rsquo;s new in 1.1.10.0</h2>
+    <p class="lead">Updates finally install rather than quietly doing nothing,
+    a long pause no longer skips the track, and the library remembers where you
+    left it.</p>
     <div class="grid">
 
       <div class="card new">
         <span class="tagline">Fixed</span>
-        <h3><span class="em" aria-hidden="true">⬇️</span>In-app updates install, not just download</h3>
-        <p>An update would download and then stop with <code>Cannot resolve host
-        path for /mnt/musicd_updates</code>. Installing is done by a short-lived
-        sidecar container that reads the staged tarball from the <i>host</i>
-        side, so that directory has to be a real bind mount &mdash; and the
-        shortened <code>docker run</code> here had dropped it, leaving it inside
-        the container with no host path to resolve.</p>
-        <p>The command above now includes
-        <code>-v /var/lib/musicd-server-v1/updates:/mnt/musicd_updates</code>
-        and creates the directory before the <code>chown</code> so it belongs to
-        UID&nbsp;1000. A named volume will not work &mdash; it has no host path
-        either. The error now names the missing mount and the flag to add.</p>
+        <h3><span class="em" aria-hidden="true">&#11015;&#65039;</span>In-app updates install on any install</h3>
+        <p>An update would download, report success, and leave the server on its
+        old version. The cause was the container&rsquo;s <i>name</i>. The update
+        script had <code>musicd</code> hardcoded in nine places because
+        <code>install.sh</code> uses <code>--name musicd</code> &mdash; but the
+        <code>docker run</code> on this page creates <code>musicd-server</code>.</p>
+        <p>On those installs every line missed: six <code>docker inspect</code>
+        calls returned nothing, so no mounts, environment variables, network mode
+        or devices were carried over; <code>docker stop</code> and
+        <code>docker rm</code> matched nothing, so the old container kept
+        running; and a <i>second</i> container started beside it with no
+        <code>/data</code> and no <code>/music</code>. The one preserved mount in
+        the log, <code>/var/run/docker.sock</code>, was the one the script adds
+        itself.</p>
+        <p>The server now reads its own container name and image from its
+        container id, and refuses to run at all if that container cannot be
+        found rather than orphaning your data. <b>This release cannot deliver
+        itself</b> &mdash; take it manually once (see the README), and every
+        update after it is in-app again.</p>
       </div>
 
       <div class="card new">
         <span class="tagline">Fixed</span>
-        <h3><span class="em" aria-hidden="true">📱</span>Correct layout as an iPhone home-screen app</h3>
-        <p>Content sat below a reserved band instead of running under the status
-        bar, and the controls along the top were pushed out of reach. Two causes:
-        <code>apple-mobile-web-app-status-bar-style: black-translucent</code>
-        shifts the document up without growing the layout viewport, leaving a gap
-        the size of the <i>top</i> inset at the bottom; and the shell measured
-        itself in <code>100vh</code>, which disagrees with the physical display
-        under <code>viewport-fit=cover</code>.</p>
-        <p>The head now matches MusicD-Remote, the build confirmed correct on a
-        device, and every screen pads itself with
-        <code>env(safe-area-inset-*)</code> &mdash; seventeen surfaces across
-        twelve files &mdash; rather than the app shell reserving a band for all
-        of them.</p>
-        <p><b>iOS caches the window configuration when you add the shortcut</b>,
-        not per launch, so delete the home-screen shortcut and add it again after
-        updating &mdash; otherwise the old window persists whatever the server
-        sends.</p>
+        <h3><span class="em" aria-hidden="true">&#9208;&#65039;</span>Pausing for a while no longer skips the track</h3>
+        <p>The USB-DAC output cannot ask <code>aplay</code> where it is, so it
+        estimated the playhead from the wall clock. Pausing stops the audio dead
+        but nothing stopped that clock, and resuming never gave the time back
+        &mdash; so the error was exactly the length of the pause.</p>
+        <p>Because the estimate is clamped to the track length, a pause longer
+        than the remaining track pinned the reported position at the very end.
+        That disarmed the guard which stops a renderer that hung up early from
+        advancing the queue, so pressing play after a long pause gave you the
+        <i>next</i> track. It also walked the progress bar to the end while you
+        sat paused.</p>
       </div>
 
       <div class="card new">
         <span class="tagline">Fixed</span>
-        <h3><span class="em" aria-hidden="true">🔊</span>Sonos stereo pairs play as one speaker</h3>
-        <p>Every ZonePlayer answers SSDP for itself, so a bonded pair of Fives
-        registered as two renderers with the same name &mdash; and only one of
-        them worked. The other was the bonded satellite: it answers discovery
-        but rejects <code>SetAVTransportURI</code>, because in a bonded set only
-        the coordinator drives playback.</p>
-        <p>Discovery now queries <code>ZoneGroupTopology</code> and registers
-        coordinators only. Three firmware representations of a bonded set are
-        handled &mdash; an <code>Invisible="1"</code> member, a satellite named
-        only in the coordinator&rsquo;s <code>ChannelMapSet</code>, and
-        home-theatre sets using nested <code>&lt;Satellite&gt;</code> elements
-        with <code>HTSatChanMapSet</code>. The query fails <em>open</em>: if no
-        speaker answers, every speaker is registered exactly as before.</p>
+        <h3><span class="em" aria-hidden="true">&#128220;</span>The library remembers where you were</h3>
+        <p>Opening an album and coming back dropped you at the top. The grid
+        loads pages as you scroll and holds them in memory, so the trip through
+        an album rebuilt the list from page one &mdash; a few hundred albums
+        where there had been thousands &mdash; and the saved offset clamped to
+        the bottom of a much shorter list.</p>
+        <p>Worse, that clamp counts as a scroll, so the app recorded it over the
+        position it was about to restore: the failed attempt destroyed the
+        memory rather than merely missing it. The grid now comes back with the
+        pages it had, and the restore re-applies until it lands, stopping the
+        instant you scroll.</p>
       </div>
 
       <div class="card new">
-        <span class="tagline">Changed</span>
-        <h3><span class="em" aria-hidden="true">🏠</span>Sonos renderers named from the room</h3>
-        <p>Display names now come from the topology&rsquo;s <code>ZoneName</code>
-        as <code>Room - Model</code> &mdash; &ldquo;Living Room - Sonos
-        Five&rdquo; &mdash; instead of being derived from the verbose UPnP
-        friendly name. Rename a room in the Sonos app and it is picked up on the
-        next discovery sweep.</p>
-        <p>Rooms grouped in the Sonos app collapse to a single renderer, driven
-        by the group coordinator, matching how the Sonos app shows a group.
-        While grouped, the volume control targets the coordinator&rsquo;s room
-        rather than the whole group; ungrouping restores the separate renderer.</p>
+        <span class="tagline">UI</span>
+        <h3><span class="em" aria-hidden="true">&#128444;&#65039;</span>Holding album art no longer opens the OS menu</h3>
+        <p>Touch-and-hold on a cover raised Safari&rsquo;s Copy / Share / Add to
+        Photos sheet and lifted the artwork into a drag preview, with nothing in
+        the app behind the gesture. Suppressed across every image in the app.</p>
+        <p>The share-card preview deliberately opts back in &mdash; holding that
+        image to save it to Photos is a real thing to want.</p>
       </div>
 
       <div class="card new">
-        <span class="tagline">Changed</span>
-        <h3><span class="em" aria-hidden="true">🖼️</span>Redesigned share card</h3>
-        <p>The card is now 1200&nbsp;&times;&nbsp;600 with the album art
-        full-bleed across the entire left half and the release year, title and
-        artist centred in the right half &mdash; replacing the
-        1200&nbsp;&times;&nbsp;720 layout with inset art, a blurred backdrop and
-        genre pills.</p>
-        <p>There is no <code>measureText</code> server-side, so text metrics are
-        estimated from the DejaVu <code>hmtx</code> tables, calibrated never to
-        under-measure: long titles shrink or wrap one step early rather than
-        overrunning the card. <code>fonts-dejavu-core</code> is now installed
-        explicitly in the image, so cards can no longer rasterise as empty
-        boxes.</p>
+        <span class="tagline">UI</span>
+        <h3><span class="em" aria-hidden="true">&#128465;&#65039;</span>Long-press menu on albums removed</h3>
+        <p>The press-and-hold popup on album thumbnails is gone, to be rebuilt
+        from the basics. Right-click still does nothing on desktop, which keeps
+        the browser&rsquo;s own Save image menu out of the way.</p>
       </div>
 
       <div class="card new">
-        <span class="tagline">New</span>
-        <h3><span class="em" aria-hidden="true">📤</span>Share button on Now Playing</h3>
-        <p>The full-screen player had no way to share; it now has one beside the
-        signal-path orb. It fetches the rendered card, previews it in a bottom
-        sheet, and hands the PNG to the system share sheet via the Web Share
-        API, falling back to a download where that is unavailable. Dismissing
-        the iOS sheet is treated as &ldquo;no thanks&rdquo;, not an error.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">New</span>
-        <h3><span class="em" aria-hidden="true">🎚️</span>Discrete volume buttons</h3>
-        <p>Circular &minus; and + controls sit at the right end of the volume
-        slider, stepping by 5 and clamped to 0&ndash;100. They route through the
-        same handler the slider uses, so drag behaviour is unchanged.</p>
-        <p>The volume bar also now clears <code>env(safe-area-inset-bottom)</code>
-        plus a 44px gap, so dragging it no longer fights the iOS home-indicator
-        swipe.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">Changed</span>
-        <h3><span class="em" aria-hidden="true">🔓</span>Stable is the baseline tier</h3>
-        <p>Every install starts on Stable instead of Demo. <b>There is no trial
-        gate and no album cap</b> &mdash; the baseline tier is the floor, and no
-        install can sit below it. Baseline no longer depends on the update
-        manifest either.</p>
-        <p>The four 4-digit access codes are unchanged, and now do one job only:
-        opting a machine into the Early Access, Beta or Internal update
-        channels.</p>
+        <span class="tagline">Fixed</span>
+        <h3><span class="em" aria-hidden="true">&#128266;</span>Sonos resume reports the truth</h3>
+        <p>Resuming a Sonos zone re-loads the track and seeks to the bookmark. A
+        speaker still loading that stream refuses the seek &mdash; most likely
+        after exactly the sort of long pause above &mdash; and the app claimed
+        the bookmark anyway, so the bar read 1:27 while the speaker played from
+        the start. The refusal is now reported, and the position claimed only
+        when the seek was taken.</p>
       </div>
 
     </div>
@@ -781,7 +747,7 @@
       <code>-e MUSICD_MANIFEST_URL=https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json</code>
       to your <code>docker run</code>, restart, then <b>Check for updates</b>.
       The older parser understands this manifest, so it installs normally. Drop
-      the variable afterwards &mdash; v1.1.9.0 has the same URL as its own
+      the variable afterwards &mdash; v1.1.10.0 has the same URL as its own
       default.
     </div>
   </div>
@@ -854,7 +820,7 @@
 </main>
 
 <footer>
-  MusicD Server v1.1.9.0 &mdash; self-hosted music, one user, one library, one home network.
+  MusicD Server v1.1.10.0 &mdash; self-hosted music, one user, one library, one home network.
   <br>MIT licence &middot; <a href="https://github.com/meltface-80/MusicD-Server-v1">Source on GitHub</a>
 </footer>
 

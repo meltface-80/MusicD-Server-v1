@@ -69,6 +69,29 @@ function readAlbumPagesCache(key) {
   return hit;
 }
 
+// A stable description of WHICH list a given set of albums is: every input
+// the server's answer depends on, in a fixed order.
+//
+// The mirror effect below needs this because it cannot trust `sort` and
+// `albums` to describe the same thing. Changing the sort re-renders with the
+// new `sort` while `albums` still holds the previous order, and the load
+// effect and the mirror effect both read THAT render — so the load effect
+// scheduling setReloading(true) cannot stop the mirror running in the very
+// same commit. The entry would then claim the old list was sorted the new
+// way, and the next mount would restore it under that label.
+//
+// So the loaded list carries the key of the view it actually came from, and
+// the mirror writes only while that key still matches what is on screen.
+function albumsViewKey({ sort, showOnlyFavorites, savedOnly, tagFilter, focusQuery }) {
+  return JSON.stringify([
+    sort,
+    !!showOnlyFavorites,
+    !!savedOnly,
+    [...tagFilter].sort((a, b) => a - b),
+    focusQuery || '',
+  ]);
+}
+
 // v1.1.0.70 — `savedOnly` mirrors the v1.1.0.27-era favoritesOnly flag.
 // When true (set by App.jsx when rendering this grid as the dedicated
 // Saved-for-later screen) we add ?saved=1 to the album-list query and
@@ -312,6 +335,14 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
 
   const showOnlyFavorites = favoritesOnly || filterFavorites
 
+  // The view the albums currently in state were actually fetched under.
+  // Stamped by fetchPage when a response lands, compared by the mirror
+  // effect. Seeded from the restored entry so a rehydrated mount — which
+  // restores the sort, the favourites chip and the tag picks with it — can
+  // refresh the entry without waiting for its first re-fetch.
+  // Declared above fetchPage deliberately: const is not hoisted.
+  const loadedViewKey = useRef(restoredView ? restoredView.viewKey || null : null)
+
   // `limit` defaults to one page. The cache-rehydrate path passes the whole
   // restored length so a remount refreshes everything it restored in one
   // request rather than collapsing back to page 1.
@@ -339,6 +370,11 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
     if (append) setAlbums(prev => [...prev, ...data])
     else setAlbums(data)
     setHasMore(data.length === limit)
+    // These albums are the answer to THIS view. Recorded in the same commit
+    // as setAlbums, so the mirror effect that runs off `albums` sees it.
+    loadedViewKey.current = albumsViewKey({
+      sort: s, showOnlyFavorites, savedOnly, tagFilter, focusQuery: focusParam,
+    })
     return data.length
   }, [showOnlyFavorites, savedOnly, tagFilter, focusEnabled, focus.queryString])
 
@@ -438,8 +474,17 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
 
   // Mirror the loaded range into the module cache so the next mount can put
   // the same list back at the same height. See the cache block at the top.
+  const currentViewKey = useMemo(() => albumsViewKey({
+    sort, showOnlyFavorites, savedOnly, tagFilter,
+    focusQuery: focusEnabled ? focus.queryString : '',
+  }), [sort, showOnlyFavorites, savedOnly, tagFilter, focusEnabled, focus.queryString])
+
   useEffect(() => {
     if (loading || reloading) return
+    // `albums` is still the answer to a different view — a sort or filter
+    // has moved and the fetch for it has not landed. Writing now would
+    // label this list with a view it was never fetched under.
+    if (loadedViewKey.current !== currentViewKey) return
     if (focusEnabled && focus.queryString) {
       // Focus picks live in component state and do NOT survive the remount,
       // so a focus-filtered list must never be restored into a grid whose
@@ -456,10 +501,12 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
       sort,
       filterFavorites,
       tagIds: [...tagFilter],
+      viewKey: currentViewKey,
       savedAt: Date.now(),
     })
   }, [cacheKey, loading, reloading, albums, offset, hasMore, sort,
-      filterFavorites, tagFilter, focusEnabled, focus.queryString])
+      filterFavorites, tagFilter, focusEnabled, focus.queryString,
+      currentViewKey])
 
   // Infinite scroll
   useEffect(() => {

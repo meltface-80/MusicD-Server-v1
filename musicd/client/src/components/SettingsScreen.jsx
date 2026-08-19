@@ -611,7 +611,7 @@ export default function SettingsScreen({ onBack }) {
             </div>
           ) : (
             <div style={s.brandHeader}>
-              <img src={mdIcon} alt="MusicD" style={s.brandIcon} />
+              <img src={mdIcon} alt="MusicD" style={s.brandIcon} draggable={false} />
               <h1 style={s.heading}>Settings</h1>
               <div style={s.brandSpacer} />
               {restartFlow.phase === 'restarting'
