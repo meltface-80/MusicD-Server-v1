@@ -165,7 +165,29 @@ function newZone(zoneId, rendererIds) {
     // ring of recent album ids so we don't repeat ourselves on each pick.
     radio: false,
     radioHistory: [],
+    // v1.1.14.0 — track ids the zone moved past without playing to the end,
+    // so the queue view can fold them into one "N skipped" row instead of a
+    // wall of dimmed titles.
+    //
+    // Keyed by track ID rather than by queue index deliberately. The queue is
+    // spliced by reorder, remove, remove-batch, append, replace and the boot
+    // restore — eight sites — and a parallel index array would have to be kept
+    // in step at every one of them. Ids move with their rows, so this needs no
+    // change at any of them. The trade-off is that the same track twice in one
+    // queue shares a single skip state, which is the cheaper wrong answer.
+    skipped: new Set(),
   };
+}
+
+// A track the zone moved past before it finished. Called with the track the
+// zone is LEAVING, not the one it is starting.
+function markSkipped(zone, trackId) {
+  if (zone && trackId) zone.skipped.add(trackId);
+}
+
+// Played to the end, or started again — either way it is no longer skipped.
+function markNotSkipped(zone, trackId) {
+  if (zone && trackId) zone.skipped.delete(trackId);
 }
 
 function getZone(id) { return zones.get(id); }
@@ -1058,6 +1080,13 @@ async function advanceTrack(zone, opts = {}) {
   _dbgPlayback(`[advance] zone=${zone.id?.slice(0, 12)} via=${via} from=${fromIdx}(${fromTrack}) to=${toIdx}(${toTrack}) queueLen=${zone.queue.length}`);
   zone.advancing = true;
   try {
+    // `via` already tells us what we need and has since v1.1.0.87: 'manual' is
+    // the user pressing next or prev, 'auto-end' is the track finishing. So a
+    // skip needs no new plumbing, only recording.
+    const leaving = zone.queue[fromIdx];
+    if (via === 'manual') markSkipped(zone, leaving);
+    else markNotSkipped(zone, leaving);
+
     const next = zone.queueIndex + 1;
     if (next >= zone.queue.length) {
       // Queue exhausted. If MusicD Radio is on, top up with a random album
@@ -1460,7 +1489,7 @@ function hydrateQueue(trackIds) {
 }
 
 function publicState(zone) {
-  if (!zone) return { status: 'stopped', currentTrack: null, queue: [], queueIndex: 0, rendererId: null, volume: DEFAULT_INITIAL_VOLUME, signalPath: [], position: 0, positionAt: Date.now(), radio: false, outputMode: 'variable' };
+  if (!zone) return { status: 'stopped', currentTrack: null, queue: [], queueIndex: 0, rendererId: null, volume: DEFAULT_INITIAL_VOLUME, signalPath: [], position: 0, positionAt: Date.now(), radio: false, skipped: [], outputMode: 'variable' };
   // Output mode is surfaced in the state so the player UI can hide
   // the volume slider for fixed-mode renderers (#v1.1.0.8).
   const outputMode = zone.rendererIds[0]
@@ -1478,6 +1507,8 @@ function publicState(zone) {
     position: zone.position,
     positionAt: zone.positionAt || Date.now(),
     radio: !!zone.radio,
+    // Track ids, not indices — see the note on zone.skipped.
+    skipped: [...zone.skipped],
     zoneId: zone.id,
     outputMode,
   };
@@ -1502,6 +1533,7 @@ function persistAllZones() {
         queueIndex: z.queueIndex,
         currentTrackId: z.currentTrack?.id || null,
         radio: !!z.radio,
+        skipped: [...z.skipped],
         savedAt: Date.now(),
       };
     }
@@ -1598,8 +1630,26 @@ async function startPlayback(rendererId, trackId, queueIds, queueIndex) {
     await ensureRendererIdle(zone.rendererIds);
   }
 
-  zone.queue = (queueIds && queueIds.length) ? queueIds.slice() : [trackId];
-  zone.queueIndex = queueIndex || 0;
+  // v1.1.14.0 — tapping a track further down the queue passes over everything
+  // between here and there without playing any of it. Those are skips too, and
+  // recording them here is what stops a jump from leaving a run of tracks that
+  // read as "played" in the queue view. Done against the OLD queue and index,
+  // before either is replaced.
+  const prevQueue = zone.queue;
+  const prevIndex = zone.queueIndex;
+  const nextQueue = (queueIds && queueIds.length) ? queueIds.slice() : [trackId];
+  const nextIndex = queueIndex || 0;
+  const sameQueue = prevQueue.length === nextQueue.length &&
+    prevQueue.every((id, i) => id === nextQueue[i]);
+  if (sameQueue && nextIndex > prevIndex) {
+    for (let i = prevIndex; i < nextIndex; i++) markSkipped(zone, prevQueue[i]);
+  }
+
+  zone.queue = nextQueue;
+  zone.queueIndex = nextIndex;
+  // The track being started is by definition not skipped, even if a previous
+  // pass through the queue left it marked.
+  markNotSkipped(zone, trackId);
   setActiveZone(zone.id);
   await playTrackOnZone(zone, trackId);
 }
@@ -1877,6 +1927,12 @@ function restorePersistedQueue() {
     const zone = ensureZone(snap.rendererId);
     zone.queue = cleanQueue;
     zone.queueIndex = cleanIndex;
+    // v1.1.14.0 — carry the skip marks across the restart, filtered to what is
+    // still in the restored queue so a removed track cannot leave a mark that
+    // nothing can ever clear. Absent on a pre-v1.1.14.0 snapshot, which simply
+    // restores with nothing skipped.
+    zone.skipped = new Set(
+      (snap.skipped || []).filter(id => cleanQueue.includes(id)));
     // Always 'stopped' on boot -- never auto-resume because we don't
     // know if anyone's still in the room. The user has to press Play.
     zone.status = 'stopped';

@@ -12,6 +12,77 @@ Categories used per release:
 
 ---
 
+## v1.1.14.0 — 2026-08-19 — THE QUEUE SCREEN
+
+### New
+
+- **The playing track is pinned to the top of the queue.** Played tracks pass
+  up out of sight and stay reachable by scrolling back; the list re-pins
+  whenever the track changes, so it follows playback instead of drifting.
+
+  Measured against the sticky header rather than `scrollIntoView`, which knows
+  nothing about a header inside the scroller and would drop the row underneath
+  it.
+
+- **Skipped tracks fold into one "N skipped" row.** Tap it to expand the run.
+
+  Runs, rather than one row for the whole queue: a queue view whose rows are
+  out of queue order is worse than a few extra rows, and skips arrive in runs
+  anyway. A run of one still folds — left unfolded it would render exactly like
+  a played track, which is the distinction the feature exists to draw.
+
+  The server records this. `advanceTrack` already distinguished `via: 'manual'`
+  (you pressed next) from `via: 'auto-end'` (the track finished) — since
+  v1.1.0.87 — so the skip signal needed no new plumbing, only recording.
+  Tapping a track further down the queue also marks everything it passes over,
+  because none of it was played.
+
+  Marks are keyed by **track id, not queue position**. Eight sites splice
+  `zone.queue` — reorder, remove, remove-batch, append, replace, clear and the
+  boot restore — and an index-keyed parallel array would have to be kept in
+  step at every one of them, which is the partial migration `CLAUDE.md` warns
+  about. Ids move with their rows, so none of those sites changed. The
+  trade-off is that the same track twice in one queue shares one mark.
+
+- **Tapping a track the queue has already reached asks what you meant** — play
+  it now, or line it up next — instead of guessing. Upcoming tracks still play
+  directly, which is unambiguous and the behaviour that already existed.
+
+  "Play next" inserts at `queueIndex`, not `queueIndex + 1`: the current track
+  slides down one as the moved track passes it, so `+ 1` would land a place too
+  far.
+
+### UI
+
+- **The queue header is fixed and opaque.** The radio toggle and the
+  remaining-count/bulk row stay at the top while the list moves beneath them,
+  and the top bar carries a background too. Both were transparent over this
+  screen's blurred album-art wash, so track rows were visible against them as
+  they scrolled past.
+
+### Tests
+
+- `queue-skipped.test.js` — 31 assertions. The fold is a pure function in its
+  own module (`client/src/queueFold.js`, following `scrollRestore.js`) so it
+  can be driven directly: runs, lone skips, the playhead boundary, selection
+  mode, and a sweep asserting every track appears exactly once across every
+  combination of marks and playhead positions.
+
+  The multi-site guard compares `skipped` against `radio` — same origin, same
+  lifetime, same hydration paths — rather than pinning a count that would go
+  stale. Miss one path and the fold silently stops working on whichever route
+  that was, which is how the progress-bar anchor shipped broken twice.
+
+  Suite is 15 files and 279 assertions. Seven mutations run, each red then
+  green.
+
+### Unverified on hardware
+
+- Everything visual here. No `<head>`, root-style or safe-area changes, so the
+  home-screen shortcut does not need deleting and re-adding.
+
+---
+
 ## v1.1.13.0 — 2026-08-19 — TWO INSTALLS ON ONE HOST NO LONGER FIGHT
 
 ### Fixed

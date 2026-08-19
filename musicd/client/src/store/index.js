@@ -162,6 +162,16 @@ export const useStore = create((set, get) => ({
   displayPosition: 0,
   // MusicD Radio mode (#14) — when on, the server keeps the queue topped up.
   radio: false,
+  // v1.1.14.0 — track ids the zone moved past without finishing, so the queue
+  // view can fold them into one "N skipped" row. Ids, not indices: the server
+  // keys them that way so they survive every reorder and removal.
+  //
+  // This arrives on the SAME four paths `radio` does — the zones snapshot, the
+  // REST hydration, the single-zone REST fallback and the `state` message. Miss
+  // one and the fold silently stops working on whichever route that was, which
+  // is precisely how the progress-bar anchor shipped broken twice.
+  // test/queue-skipped.test.js greps for every site.
+  skipped: [],
 
   // Multi-zone state (#v1.1.0.9).
   // ----------------------------
@@ -250,6 +260,7 @@ export const useStore = create((set, get) => ({
         queue:         Array.isArray(z.queue) ? z.queue : [],
         queueIndex:    z.queueIndex || 0,
         radio:         !!z.radio,
+        skipped:       Array.isArray(z.skipped) ? z.skipped : [],
         position:      z.position || 0,
         positionAt:    receiveAnchor(),
         displayPosition: z.position || 0,
@@ -648,6 +659,7 @@ export const useStore = create((set, get) => ({
             positionAt: receiveAnchor(),
             displayPosition: s.position || 0,
             radio: !!s.radio,
+            skipped: Array.isArray(s.skipped) ? s.skipped : [],
             queue: Array.isArray(s.queue) ? s.queue : [],
             queueIndex: s.queueIndex || 0,
           })
@@ -693,6 +705,7 @@ export const useStore = create((set, get) => ({
             position: incomingPos,
             positionAt: receiveAnchor(),
             radio: !!payload.radio,
+            skipped: Array.isArray(payload.skipped) ? payload.skipped : [],
             ...(Array.isArray(payload.queue) ? { queue: payload.queue, queueIndex: payload.queueIndex || 0 } : {}),
             ...(trackChanged ? { displayPosition: incomingPos } : {}),
           })
