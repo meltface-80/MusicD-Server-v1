@@ -12,6 +12,48 @@ Categories used per release:
 
 ---
 
+## v1.1.6.0 — 2026-08-19 — PROGRESS BAR POSITION
+
+### Fixed
+
+- **The progress bar could start part-way into a track while the audio
+  played from the beginning.** The server samples the renderer's position
+  about once a second and sends `position` with `positionAt`, the
+  **server's** wall-clock time for that sample. The client then drew the
+  playhead as `position + (Date.now() - positionAt)`, subtracting the
+  server's clock from the browser's.
+
+  Those are two different machines. Any difference between their clocks
+  became a fixed offset on the bar: with the host running 40 seconds
+  behind the phone, a track 2 seconds in was drawn at 0:42. Nothing was
+  wrong with playback, or with what the renderer reported — only with the
+  arithmetic used to draw it. Hosts without a real-time clock (Pi,
+  DietPi) drift exactly this way between boots.
+
+  The client now anchors on its **own** clock at the moment each sample
+  arrives. The error is one network hop — tens of milliseconds — against
+  a skew that is unbounded. The server still reports `positionAt`, which
+  remains meaningful server-side; the client simply no longer subtracts
+  its own clock from it.
+
+### Changed
+
+- **Sonos is told how long the track is.** The DIDL-Lite metadata sent
+  with `SetAVTransportURI` never carried a `duration` on its `<res>`
+  element, so each item looked like a stream of unknown length — the
+  shape of thing Sonos reports unreliable transport positions for. It now
+  carries `duration="H:MM:SS.mmm"`, and omits the attribute entirely when
+  the duration is unknown, since Sonos parses an empty or zero value as
+  0:00:00.
+
+- **The first five position samples of each track are traced** under
+  `MUSICD_DEBUG_PLAYBACK=1`, recording what the device reported before
+  anything downstream touches it. If a playhead still looks wrong, this
+  separates "the renderer said so" from "we drew it wrong" without
+  guesswork.
+
+---
+
 ## v1.1.5.0 — 2026-08-19 — BRANDING
 
 ### Changed

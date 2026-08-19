@@ -16,7 +16,7 @@
     "committed after this manifest is written. null means 'no hash published' and the",
     "updater skips hash verification for that download (it still enforces the size cap,",
     "the too-small/HTML check and the ustar magic check). To turn verification on, run",
-    "  sha256sum musicd-v1-1-5-0.tar",
+    "  sha256sum musicd-v1-1-6-0.tar",
     "and paste the hex into tarSha256 and tarball_sha256 below. Do NOT put a dummy",
     "64-hex placeholder here: the updater cannot tell a placeholder from a real hash",
     "and would refuse every download.",
@@ -31,49 +31,49 @@
   "manifestVersion": 1,
   "schema_version": 1,
 
-  "version": "1.1.5.0",
-  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-5-0.tar",
-  "tarSha256": "958ab13426822f37d4fba44d3853892e92f06c80ef864851d7b5991ffd3a7b84",
+  "version": "1.1.6.0",
+  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-6-0.tar",
+  "tarSha256": "cf3e0329abe780a3d0624023ebd9d5c430a2f93dd345770d00c6278a651c5eba",
   "releasedAt": "2026-08-18T22:37:13Z",
   "releaseNotes": "Sonos stereo pairs resolve to their group coordinator, redesigned share card with a Now Playing share button, discrete volume buttons, and Stable as the baseline tier.",
 
-  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-5-0.tar",
-  "tarball_sha256": "958ab13426822f37d4fba44d3853892e92f06c80ef864851d7b5991ffd3a7b84",
+  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-6-0.tar",
+  "tarball_sha256": "cf3e0329abe780a3d0624023ebd9d5c430a2f93dd345770d00c6278a651c5eba",
   "released_at": "2026-08-18T22:37:13Z",
   "release_notes_url": "https://github.com/meltface-80/MusicD-Server-v1/blob/main/musicd/CHANGELOG.md",
 
   "channels": {
     "stable": {
-      "version": "1.1.5.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-5-0.tar",
+      "version": "1.1.6.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-6-0.tar",
       "tarSha256": null,
       "releasedAt": "2026-08-18T22:37:13Z",
       "releaseNotes": "Sonos stereo pairs resolve to their group coordinator, redesigned share card with a Now Playing share button, discrete volume buttons, and Stable as the baseline tier."
     },
     "earlyAccess": {
-      "version": "1.1.5.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-5-0.tar",
+      "version": "1.1.6.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-6-0.tar",
       "tarSha256": null,
       "releasedAt": "2026-08-18T22:37:13Z",
       "releaseNotes": "Same build as Stable — no early-access release is ahead of it right now."
     },
     "beta": {
-      "version": "1.1.5.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-5-0.tar",
+      "version": "1.1.6.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-6-0.tar",
       "tarSha256": null,
       "releasedAt": "2026-08-18T22:37:13Z",
       "releaseNotes": "Same build as Stable — no beta release is ahead of it right now."
     },
     "alpha": {
-      "version": "1.1.5.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-5-0.tar",
+      "version": "1.1.6.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-6-0.tar",
       "tarSha256": null,
       "releasedAt": "2026-08-18T22:37:13Z",
       "releaseNotes": "Same build as Stable — no in-house release is ahead of it right now."
     },
     "legacy": {
-      "version": "1.1.5.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-5-0.tar",
+      "version": "1.1.6.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-6-0.tar",
       "tarSha256": null,
       "releasedAt": "2026-08-18T22:37:13Z",
       "releaseNotes": "Same build as Stable — this repo hosts a single release tar."
