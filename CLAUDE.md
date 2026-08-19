@@ -173,7 +173,7 @@ needs no code.
 
 ## Dependencies
 
-Three advisories are knowingly left open, because every available fix is
+Three findings are knowingly left open, because every available fix is
 worse than the finding. Re-check only if the fix changes:
 
 - **`ip` (high, via `node-ssdp`)** — npm's fix is `node-ssdp@1.0.0`, a
@@ -182,8 +182,19 @@ worse than the finding. Re-check only if the fix changes:
 - **`file-type` (moderate, via `music-metadata`)** — the fix is
   music-metadata 7 → 11, which is ESM-only. The server is CommonJS and
   imports it with `require`.
-- **`esbuild` (moderate, via `vite`)** — the fix is vite 5 → 8, and the
-  advisory only affects the **dev server**. Production is a static build.
+- **`vite` (high) and `esbuild` (moderate, via `vite`)** — the fix is
+  vite 5 → 8. Every one of the four advisories affects the **dev server**
+  only: esbuild's cross-origin request reflection, vite's `.map` path
+  traversal, its `server.fs.deny` bypass on Windows alternate paths, and
+  launch-editor's NTLMv2 disclosure on Windows. Production is a static
+  `vite build`, and vite is a devDependency, so none of it ships.
+
+`npm audit` therefore reports **4 in `server/` (1 moderate, 3 high)** and
+**2 in `client/` (1 moderate, 1 high)**. Those are the expected numbers —
+npm counts the dependent package as well as the vulnerable one, so `ip`
+also lights up `node-ssdp`, and `file-type` also lights up
+`music-metadata`. A build log showing anything other than those two totals
+means something genuinely new has appeared and is worth reading.
 
 The client bundle is split by `manualChunks` in `vite.config.js` — a
 caching boundary, not route-level code splitting. Entries must be modules

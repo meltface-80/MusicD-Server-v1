@@ -187,3 +187,123 @@ test('resolveSelfIdentity falls back rather than returning a digest', () => {
   assert.deepEqual(drive({ name: null, image: null, resolved: false }),
     { name: 'musicd', image: 'musicd:latest', resolved: false });
 });
+
+// The config-preservation section, actually executed.
+//
+// Everything above asserts on the TEXT of the generated script. That is not
+// enough for this part: the first version passed the docker socket to
+// `docker run` twice — once from the preserved mounts and once from the
+// launch args — and reading the script did not make that obvious, because the
+// two halves are forty lines apart. Running it does.
+//
+// The script is /bin/sh against a stub `docker` that answers the six inspect
+// calls, so the real shell parses the real quoting with no daemon involved.
+test('the preserved flags are what a real shell builds', async (t) => {
+  const os = require('node:os');
+  const { execFileSync } = require('node:child_process');
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'musicd-updater-'));
+  const bin = path.join(dir, 'bin');
+  fs.mkdirSync(bin);
+
+  // Answers keyed off the --format string, the way the real docker would.
+  fs.writeFileSync(path.join(bin, 'docker'), [
+    '#!/bin/sh',
+    'fmt=""',
+    'for a in "$@"; do case "$a" in --format) next=1;; *) [ "$next" = 1 ] && { fmt="$a"; next=0; };; esac; done',
+    'case "$fmt" in',
+    '  *".Mounts"*)',
+    '    [ "$NO_SOCK" = 1 ] || printf \'/var/run/docker.sock|/var/run/docker.sock|rw\\n\'',
+    '    printf \'/var/lib/musicd-server-v1|/data|rw\\n\'',
+    '    printf \'/music/lib|/music|ro\\n\'',
+    '    ;;',
+    '  *".Config.Env"*) printf \'PATH=/usr/bin\\nPORT=32700\\nDB_PATH=/data/musicd.db\\n\' ;;',
+    '  *".NetworkMode"*) printf \'host\\n\' ;;',
+    '  *".RestartPolicy.Name"*) printf \'unless-stopped\\n\' ;;',
+    '  *".Devices"*) printf \'/dev/snd:/dev/snd \\n\' ;;',
+    '  *".GroupAdd"*) printf \'29 \\n\' ;;',
+    '  *) exit 0 ;;',
+    'esac',
+  ].join('\n'), { mode: 0o755 });
+
+  // Slice out the preservation section and ask it what it built.
+  const script = render({ name: NAME, image: IMAGE });
+  const from = script.indexOf('ALL_FLAGS=""');
+  const to = script.indexOf('echo "[updater] config preservation complete"');
+  assert.ok(from !== -1 && to > from, 'could not locate the preservation section');
+  const section = script.slice(from, to) + '\necho "FLAGS:$ALL_FLAGS"\n';
+  const runner = path.join(dir, 'preserve.sh');
+  fs.writeFileSync(runner, section);
+
+  const run = (env) => execFileSync('sh', [runner], {
+    encoding: 'utf8',
+    env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, ...env },
+  });
+
+  const SOCK = '/var/run/docker.sock:/var/run/docker.sock';
+  const flagsOf = (out) => out.split('\n').find(l => l.startsWith('FLAGS:')).slice(6);
+  const countOf = (hay, needle) => hay.split(needle).length - 1;
+
+  await t.test('the docker socket is passed exactly once', () => {
+    // THE regression. Twice is tolerated by some Docker versions and rejected
+    // by others as a duplicate mount destination — and when it is rejected,
+    // the rollback path runs the byte-identical command and is rejected too,
+    // leaving the user with no container at all.
+    //
+    // Counting inside ALL_FLAGS alone is not enough, and the first version of
+    // this check made exactly that mistake: the duplicate came from the LAUNCH
+    // ARGS, which are concatenated onto ALL_FLAGS at the docker run line and
+    // are nowhere near the preservation section. Putting the socket back in
+    // launchArgsFor passed. So compose the whole command and count that.
+    const flags = flagsOf(run({}));
+    for (const line of script.split('\n').filter(l => l.includes('docker run -d'))) {
+      const composed = line.replace('$ALL_FLAGS', flags);
+      assert.equal(countOf(composed, SOCK), 1,
+        `the socket appears ${countOf(composed, SOCK)} times in: ${composed.trim()}`);
+    }
+  });
+
+  await t.test('an install without the socket still gets one', () => {
+    // The new container has to be able to run its own future updates.
+    const out = run({ NO_SOCK: '1' });
+    assert.equal(countOf(flagsOf(out), `-v ${SOCK}`), 1, 'the socket was not added');
+    assert.match(out, /docker socket was not mounted/, 'it was added silently');
+  });
+
+  await t.test('nothing the container had is dropped', () => {
+    const flags = flagsOf(run({}));
+    for (const expected of [
+      '-v /var/lib/musicd-server-v1:/data',
+      '-v /music/lib:/music:ro',          // the :ro flag has to survive
+      '-e PORT=32700',
+      '-e DB_PATH=/data/musicd.db',
+      '--network host',
+      '--restart unless-stopped',
+      '--device /dev/snd:/dev/snd',       // USB DAC output dies without this
+      '--group-add 29',                   // and without this
+    ]) {
+      assert.ok(flags.includes(expected), `${expected} was not preserved: ${flags}`);
+    }
+  });
+
+  await t.test('docker-injected env vars are left behind', () => {
+    // PATH and friends belong to the image, not to the user's configuration.
+    assert.ok(!flagsOf(run({})).includes('-e PATH='), 'PATH was carried over');
+  });
+
+  await t.test('every preserved category is reported', () => {
+    // The mount bug survived several releases because this log printed one
+    // line and stopped: there was no way to tell "preserved nothing" from
+    // "preserved everything" without asking the user to run docker inspect.
+    const out = run({});
+    for (const line of [
+      /preserving mounts:/, /preserving env:/, /preserving network mode: host/,
+      /preserving restart policy: unless-stopped/, /preserving devices: /,
+      /preserving group-adds: 29/,
+    ]) {
+      assert.match(out, line, 'a preserved category is not reported in the log');
+    }
+  });
+
+  fs.rmSync(dir, { recursive: true, force: true });
+});
