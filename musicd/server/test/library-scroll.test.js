@@ -226,7 +226,6 @@ test('the album grid comes back with the pages it had', async (t) => {
       ['albums', 'setAlbums'],
       ['offset', 'setOffset'],
       ['hasMore', 'setHasMore'],
-      ['sort', 'setSort'],
     ]) {
       const m = grid.match(
         new RegExp(`const \\[${name}, ${setter}\\] = useState\\(([^\\n]*)`));
@@ -234,6 +233,22 @@ test('the album grid comes back with the pages it had', async (t) => {
       assert.match(m[1], /restoredView/,
         `${name} does not hydrate from the cache: ${m[0].trim()}`);
     }
+    // `sort` deliberately does NOT come from this cache any more (v1.1.11.0).
+    // The cache is in memory, so it dies with the page; the sort has to
+    // outlive that, and it is restored from localStorage instead. Hydrating it
+    // from here as well would give the two sources a chance to disagree.
+    assert.match(grid, /const \[sortView, setSortView\] = useState\(\(\) => loadSortView\(/,
+      'the sort is no longer restored from a store that survives a cold launch');
+  });
+
+  await t.test('a cached list from a different sort is not shown', () => {
+    // The sort can have been changed on another screen since this entry was
+    // written. Rendering the old order while the correctly-sorted fetch is in
+    // flight shows the user the sort they just left.
+    assert.match(grid, /readAlbumPagesCache\(cacheKey, mountViewKey\(cacheKey, sortView\)\)/,
+      'the mount reads the page cache without checking it matches the view');
+    assert.match(grid, /if \(viewKey && hit\.viewKey && hit\.viewKey !== viewKey\) return null/,
+      'readAlbumPagesCache hydrates an entry from any view');
   });
 
   await t.test('a hydrated grid is not put behind a spinner', () => {
@@ -245,7 +260,7 @@ test('the album grid comes back with the pages it had', async (t) => {
   await t.test('a hydrated mount refreshes the whole restored range', () => {
     // Refetching page 1 here would replace N pages with one and collapse the
     // very scroll position the hydration exists to preserve.
-    assert.match(grid, /fetchPage\(sort, 0, false, rehydrate \|\| PAGE_SIZE\)/,
+    assert.match(grid, /fetchPage\(sortView, 0, false, rehydrate \|\| PAGE_SIZE\)/,
       'the hydrated mount is not refreshing the restored range in one request');
     assert.match(grid, /async \(s, off, append, limit = PAGE_SIZE\)/,
       'fetchPage cannot be asked for anything other than one page');
@@ -352,9 +367,13 @@ test('the cache never labels a list with a view it was not fetched under', async
     const fnSrc = raw.slice(raw.indexOf('function albumsViewKey('),
                             raw.indexOf('export default function AlbumGrid'));
     assert.ok(fnSrc.includes('JSON.stringify'), 'could not lift albumsViewKey');
-    const albumsViewKey = new Function(fnSrc + '; return albumsViewKey;')();
+    // The key normalises the direction, so the lift has to supply that import.
+    const { normaliseDir } = require('../src/librarySort');
+    const albumsViewKey = new Function(
+      'normaliseDir', fnSrc + '; return albumsViewKey;')(normaliseDir);
 
-    const base = { sort: 'title', showOnlyFavorites: false, savedOnly: false, focusQuery: '' };
+    const base = { sort: 'album', dir: 'asc', seed: 1,
+                   showOnlyFavorites: false, savedOnly: false, focusQuery: '' };
     const a = albumsViewKey({ ...base, tagFilter: new Set([7, 2]) });
     const b = albumsViewKey({ ...base, tagFilter: new Set([2, 7]) });
     assert.equal(a, b, 'the same filter set produces two different keys');

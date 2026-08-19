@@ -29,50 +29,50 @@
   ],
   "manifestVersion": 1,
   "schema_version": 1,
-  "version": "1.1.10.0",
-  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-10-0.tar",
-  "tarSha256": "aa56a6adce12f938b28a78e6023d0411cb992e310d1fd2bc27056a8df30f3a26",
-  "releasedAt": "2026-08-19T18:50:00Z",
-  "releaseNotes": "In-app updates install on any install: the updater no longer assumes the container is named musicd. Pausing a track for a while no longer skips to the next one on resume. The library remembers its scroll position, and holding album art no longer opens the OS image menu.",
-  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-10-0.tar",
-  "tarball_sha256": "aa56a6adce12f938b28a78e6023d0411cb992e310d1fd2bc27056a8df30f3a26",
-  "released_at": "2026-08-19T18:50:00Z",
+  "version": "1.1.11.0",
+  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-11-0.tar",
+  "tarSha256": "4ae1cca848fff90f1069eac733bba48221a2efc0dc04dd2076ded74cb0a368d8",
+  "releasedAt": "2026-08-19T20:05:00Z",
+  "releaseNotes": "A full sort suite on the album wall: album name, artist, release year, recently added, most played, last played and random, each reversible by picking it again. The choice persists across app restarts. Albums with no year sort last in both directions, and paging a long list can no longer repeat or skip albums.",
+  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-11-0.tar",
+  "tarball_sha256": "4ae1cca848fff90f1069eac733bba48221a2efc0dc04dd2076ded74cb0a368d8",
+  "released_at": "2026-08-19T20:05:00Z",
   "release_notes_url": "https://github.com/meltface-80/MusicD-Server-v1/blob/main/musicd/CHANGELOG.md",
   "channels": {
     "stable": {
-      "version": "1.1.10.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-10-0.tar",
-      "tarSha256": "aa56a6adce12f938b28a78e6023d0411cb992e310d1fd2bc27056a8df30f3a26",
-      "releasedAt": "2026-08-19T18:50:00Z",
-      "releaseNotes": "In-app updates install on any install: the updater no longer assumes the container is named musicd. Pausing a track for a while no longer skips to the next one on resume. The library remembers its scroll position, and holding album art no longer opens the OS image menu."
+      "version": "1.1.11.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-11-0.tar",
+      "tarSha256": "4ae1cca848fff90f1069eac733bba48221a2efc0dc04dd2076ded74cb0a368d8",
+      "releasedAt": "2026-08-19T20:05:00Z",
+      "releaseNotes": "A full sort suite on the album wall: album name, artist, release year, recently added, most played, last played and random, each reversible by picking it again. The choice persists across app restarts. Albums with no year sort last in both directions, and paging a long list can no longer repeat or skip albums."
     },
     "earlyAccess": {
-      "version": "1.1.10.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-10-0.tar",
-      "tarSha256": "aa56a6adce12f938b28a78e6023d0411cb992e310d1fd2bc27056a8df30f3a26",
-      "releasedAt": "2026-08-19T18:50:00Z",
-      "releaseNotes": "In-app updates install on any install: the updater no longer assumes the container is named musicd. Pausing a track for a while no longer skips to the next one on resume. The library remembers its scroll position, and holding album art no longer opens the OS image menu."
+      "version": "1.1.11.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-11-0.tar",
+      "tarSha256": "4ae1cca848fff90f1069eac733bba48221a2efc0dc04dd2076ded74cb0a368d8",
+      "releasedAt": "2026-08-19T20:05:00Z",
+      "releaseNotes": "A full sort suite on the album wall: album name, artist, release year, recently added, most played, last played and random, each reversible by picking it again. The choice persists across app restarts. Albums with no year sort last in both directions, and paging a long list can no longer repeat or skip albums."
     },
     "beta": {
-      "version": "1.1.10.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-10-0.tar",
-      "tarSha256": "aa56a6adce12f938b28a78e6023d0411cb992e310d1fd2bc27056a8df30f3a26",
-      "releasedAt": "2026-08-19T18:50:00Z",
-      "releaseNotes": "In-app updates install on any install: the updater no longer assumes the container is named musicd. Pausing a track for a while no longer skips to the next one on resume. The library remembers its scroll position, and holding album art no longer opens the OS image menu."
+      "version": "1.1.11.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-11-0.tar",
+      "tarSha256": "4ae1cca848fff90f1069eac733bba48221a2efc0dc04dd2076ded74cb0a368d8",
+      "releasedAt": "2026-08-19T20:05:00Z",
+      "releaseNotes": "A full sort suite on the album wall: album name, artist, release year, recently added, most played, last played and random, each reversible by picking it again. The choice persists across app restarts. Albums with no year sort last in both directions, and paging a long list can no longer repeat or skip albums."
     },
     "alpha": {
-      "version": "1.1.10.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-10-0.tar",
-      "tarSha256": "aa56a6adce12f938b28a78e6023d0411cb992e310d1fd2bc27056a8df30f3a26",
-      "releasedAt": "2026-08-19T18:50:00Z",
-      "releaseNotes": "In-app updates install on any install: the updater no longer assumes the container is named musicd. Pausing a track for a while no longer skips to the next one on resume. The library remembers its scroll position, and holding album art no longer opens the OS image menu."
+      "version": "1.1.11.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-11-0.tar",
+      "tarSha256": "4ae1cca848fff90f1069eac733bba48221a2efc0dc04dd2076ded74cb0a368d8",
+      "releasedAt": "2026-08-19T20:05:00Z",
+      "releaseNotes": "A full sort suite on the album wall: album name, artist, release year, recently added, most played, last played and random, each reversible by picking it again. The choice persists across app restarts. Albums with no year sort last in both directions, and paging a long list can no longer repeat or skip albums."
     },
     "legacy": {
-      "version": "1.1.10.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-10-0.tar",
-      "tarSha256": "aa56a6adce12f938b28a78e6023d0411cb992e310d1fd2bc27056a8df30f3a26",
-      "releasedAt": "2026-08-19T18:50:00Z",
-      "releaseNotes": "In-app updates install on any install: the updater no longer assumes the container is named musicd. Pausing a track for a while no longer skips to the next one on resume. The library remembers its scroll position, and holding album art no longer opens the OS image menu."
+      "version": "1.1.11.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-11-0.tar",
+      "tarSha256": "4ae1cca848fff90f1069eac733bba48221a2efc0dc04dd2076ded74cb0a368d8",
+      "releasedAt": "2026-08-19T20:05:00Z",
+      "releaseNotes": "A full sort suite on the album wall: album name, artist, release year, recently added, most played, last played and random, each reversible by picking it again. The choice persists across app restarts. Albums with no year sort last in both directions, and paging a long list can no longer repeat or skip albums."
     }
   },
   "channelMetadata": {

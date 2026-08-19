@@ -1,7 +1,11 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
+import {
+  SORTS as SORT_OPTIONS, sortById, sortHasDir, defaultDirFor, normaliseDir,
+  nextSeed, dirLabel, loadSortView, saveSortView, sortQuery,
+} from '../librarySort'
 import { useStore } from '../store'
 import { api } from '../api'
-import { Heart, Shuffle, Play, Plus, SlidersHorizontal } from 'lucide-react'
+import { Heart, Shuffle, Play, Plus, SlidersHorizontal, ArrowUp, ArrowDown } from 'lucide-react'
 import { FocusBar, FocusPills, FocusModal, useFocusState, FOCUS_SECTIONS, applySectionOrder } from './Focus'
 
 const PAGE_SIZE = 200
@@ -56,7 +60,26 @@ const FOCUS_OPTIONS_CLIENT_TTL_MS = 60 * 60 * 1000;
 const _albumPagesCache = new Map();
 const ALBUM_PAGES_CACHE_TTL_MS = 30 * 60 * 1000;
 
-function readAlbumPagesCache(key) {
+// The view key as it will be at first render: the stored sort, and the
+// filters the cached entry itself restores (tag picks and the favourites
+// chip come back from the entry, focus picks never do). Computed before the
+// component's state exists, which is why it reads the entry rather than the
+// state.
+function mountViewKey(key, sortView) {
+  const hit = _albumPagesCache.get(key);
+  if (!hit) return null;
+  return albumsViewKey({
+    sort: sortView.sort,
+    dir: sortView.dir,
+    seed: sortView.seed,
+    showOnlyFavorites: hit.filterFavorites || key === 'favorites',
+    savedOnly: key === 'saved',
+    tagFilter: new Set(hit.tagIds || []),
+    focusQuery: '',
+  });
+}
+
+function readAlbumPagesCache(key, viewKey) {
   const hit = _albumPagesCache.get(key);
   if (!hit) return null;
   if (Date.now() - hit.savedAt > ALBUM_PAGES_CACHE_TTL_MS) {
@@ -66,6 +89,11 @@ function readAlbumPagesCache(key) {
   // An empty list has no height to restore and hydrating it would only
   // suppress the spinner on a genuinely empty library.
   if (!hit.albums.length) return null;
+  // The stored sort preference is read fresh at mount and may have been
+  // changed on another screen since this entry was written. Rendering the old
+  // order while the correctly-sorted fetch is in flight would show the user
+  // the sort they just left. Refetch from scratch instead.
+  if (viewKey && hit.viewKey && hit.viewKey !== viewKey) return null;
   return hit;
 }
 
@@ -82,9 +110,15 @@ function readAlbumPagesCache(key) {
 //
 // So the loaded list carries the key of the view it actually came from, and
 // the mirror writes only while that key still matches what is on screen.
-function albumsViewKey({ sort, showOnlyFavorites, savedOnly, tagFilter, focusQuery }) {
+function albumsViewKey({ sort, dir, seed, showOnlyFavorites, savedOnly, tagFilter, focusQuery }) {
   return JSON.stringify([
     sort,
+    // Direction and seed change the ORDER the server answers with, so they
+    // are as much a part of "which list is this" as the sort itself. Leaving
+    // the seed out would let a reshuffle mirror the previous shuffle's albums
+    // under the new seed and then restore them as if they were it.
+    normaliseDir(sort, dir),
+    sort === 'random' ? seed : 0,
     !!showOnlyFavorites,
     !!savedOnly,
     [...tagFilter].sort((a, b) => a - b),
@@ -116,9 +150,18 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
   const cacheKey = savedOnly ? 'saved'
     : favoritesOnly ? 'favorites'
     : (headingOverride || 'albums')
+  // The sort preference, restored from localStorage so it survives the app
+  // being closed and relaunched from the home screen — see ../librarySort.
+  // Read once at mount; from then on this state is the source of truth and
+  // every change is written straight back.
+  const [sortView, setSortView] = useState(() => loadSortView(cacheKey))
+  const { sort, dir: sortDir, seed: sortSeed } = sortView
+
   // Read once, at mount. Later renders must not re-read: the entry is
   // rewritten as the user loads more pages, and re-reading would fight it.
-  const [restoredView] = useState(() => readAlbumPagesCache(cacheKey))
+  // The mount view key is passed in so a cached list from a different sort is
+  // refetched rather than shown.
+  const [restoredView] = useState(() => readAlbumPagesCache(cacheKey, mountViewKey(cacheKey, sortView)))
   const [albums, setAlbums] = useState(() => restoredView ? restoredView.albums : [])
   const [totalAlbums, setTotalAlbums] = useState(0)
   const [totalTracks, setTotalTracks] = useState(0)
@@ -133,7 +176,6 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
   // holds the previous list, so a snapshot taken here would describe a view
   // the server has not answered for.
   const [reloading, setReloading] = useState(false)
-  const [sort, setSort] = useState(restoredView ? restoredView.sort : 'title')
   const [offset, setOffset] = useState(restoredView ? restoredView.offset : 0)
   const [hasMore, setHasMore] = useState(restoredView ? restoredView.hasMore : true)
   // Local heart-filter chip (#19). Combined with the favoritesOnly *prop*
@@ -255,6 +297,8 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
   // just need to support "save current picks under a new name" and
   // "update the currently-loaded one" from here.
   const [saveModal, setSaveModal] = useState(null)
+  // The sort sheet. Open/closed only — the choice itself lives in sortView.
+  const [sortSheetOpen, setSortSheetOpen] = useState(false)
   const [saveError, setSaveError] = useState(null)
 
   const handleSaveAsNew = useCallback(() => {
@@ -346,6 +390,10 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
   // `limit` defaults to one page. The cache-rehydrate path passes the whole
   // restored length so a remount refreshes everything it restored in one
   // request rather than collapsing back to page 1.
+  // `s` is the whole sort view {sort, dir, seed}, not just the sort id: the
+  // direction and the shuffle seed are as much a part of the request as the
+  // column, and passing them separately is how one of them gets forgotten at
+  // a call site.
   const fetchPage = useCallback(async (s, off, append, limit = PAGE_SIZE) => {
     const favParam = showOnlyFavorites ? '&favorites=1' : ''
     // v1.1.0.70 — composable savedOnly param. The prop is only set when
@@ -366,14 +414,15 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
     // no picks). Suppressed on Favourites/Saved For Later because
     // the funnel UI isn't shown there.
     const focusParam = focusEnabled ? focus.queryString : ''
-    const data = await api.get(`/library/albums?sort=${s}&limit=${limit}&offset=${off}${favParam}${savedParam}${tagParam}${focusParam}`)
+    const data = await api.get(`/library/albums?${sortQuery(s)}&limit=${limit}&offset=${off}${favParam}${savedParam}${tagParam}${focusParam}`)
     if (append) setAlbums(prev => [...prev, ...data])
     else setAlbums(data)
     setHasMore(data.length === limit)
     // These albums are the answer to THIS view. Recorded in the same commit
     // as setAlbums, so the mirror effect that runs off `albums` sees it.
     loadedViewKey.current = albumsViewKey({
-      sort: s, showOnlyFavorites, savedOnly, tagFilter, focusQuery: focusParam,
+      sort: s.sort, dir: s.dir, seed: s.seed,
+      showOnlyFavorites, savedOnly, tagFilter, focusQuery: focusParam,
     })
     return data.length
   }, [showOnlyFavorites, savedOnly, tagFilter, focusEnabled, focus.queryString])
@@ -401,7 +450,7 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
       setHasMore(true)
     }
     Promise.all([
-      fetchPage(sort, 0, false, rehydrate || PAGE_SIZE),
+      fetchPage(sortView, 0, false, rehydrate || PAGE_SIZE),
       api.get('/library/stats'),
     ]).then(([count, stats]) => {
       setOffset(count)
@@ -416,7 +465,37 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
       setTotalTracks(stats.total_tracks || 0)
       hasLoadedOnce.current = true
     }).finally(() => { setLoading(false); setReloading(false) })
-  }, [sort, showOnlyFavorites, savedOnly, tagFilter, fetchPage])
+  }, [sortView, showOnlyFavorites, savedOnly, tagFilter, fetchPage])
+
+  // Picking a sort. Re-picking the one already active REVERSES it, which is
+  // the whole direction affordance — there is no separate control. Random is
+  // the one option with nothing to reverse, so re-picking it reshuffles.
+  //
+  // Written to localStorage on every change rather than on unmount: the app
+  // can be discarded by iOS at any moment while backgrounded, and an unmount
+  // handler is exactly what does not run when that happens.
+  const applySort = useCallback((id) => {
+    let next
+    if (sortView.sort !== id) {
+      // A fresh pick opens at that sort's own default direction — A→Z for the
+      // alphabetical ones, newest/most first for the rest.
+      next = { sort: id, dir: defaultDirFor(id), seed: sortView.seed }
+    } else if (sortHasDir(id)) {
+      next = { ...sortView, dir: sortView.dir === 'desc' ? 'asc' : 'desc' }
+    } else {
+      next = { ...sortView, seed: nextSeed(sortView.seed) }
+    }
+    setSortView(next)
+    saveSortView(cacheKey, next)
+  }, [sortView, cacheKey])
+
+  // Declared here, above the JSX: const is not hoisted, and the chip reads
+  // all three during render.
+  const activeSort = sortById(sort) || SORT_OPTIONS[0]
+  const activeSortHasDir = sortHasDir(sort)
+  const sortChipTitle = activeSortHasDir
+    ? `Sorted by ${activeSort.label} — ${dirLabel(sort, sortDir)}. Tap to change.`
+    : `Sorted at random. Tap to change or reshuffle.`
 
   // v1.1.0.71 — load the tag catalog for the chip strip. Only on the
   // main Albums screen (not Favourites or Saved-for-later — those are
@@ -443,7 +522,7 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
       // clearing it.
     })
     return () => { cancelled = true }
-  }, [favoritesOnly, savedOnly, sort])
+  }, [favoritesOnly, savedOnly, sortView])
 
   // When the scanner moves out of 'scanning' (or 'rebuilding_stats'), refresh the
   // visible album list so newly-added albums appear without a manual reload.
@@ -463,21 +542,22 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
     setOffset(0)
     setHasMore(true)
     Promise.all([
-      fetchPage(sort, 0, false),
+      fetchPage(sortView, 0, false),
       api.get('/library/stats'),
     ]).then(([count, stats]) => {
       setOffset(count)
       setTotalAlbums(stats.total_albums || 0)
       setTotalTracks(stats.total_tracks || 0)
     }).finally(() => setReloading(false))
-  }, [libraryStatus?.phase, sort, fetchPage, cacheKey])
+  }, [libraryStatus?.phase, sortView, fetchPage, cacheKey])
 
   // Mirror the loaded range into the module cache so the next mount can put
   // the same list back at the same height. See the cache block at the top.
   const currentViewKey = useMemo(() => albumsViewKey({
-    sort, showOnlyFavorites, savedOnly, tagFilter,
+    sort, dir: sortDir, seed: sortSeed, showOnlyFavorites, savedOnly, tagFilter,
     focusQuery: focusEnabled ? focus.queryString : '',
-  }), [sort, showOnlyFavorites, savedOnly, tagFilter, focusEnabled, focus.queryString])
+  }), [sort, sortDir, sortSeed, showOnlyFavorites, savedOnly, tagFilter,
+       focusEnabled, focus.queryString])
 
   useEffect(() => {
     if (loading || reloading) return
@@ -499,13 +579,15 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
       offset,
       hasMore,
       sort,
+      dir: sortDir,
+      seed: sortSeed,
       filterFavorites,
       tagIds: [...tagFilter],
       viewKey: currentViewKey,
       savedAt: Date.now(),
     })
-  }, [cacheKey, loading, reloading, albums, offset, hasMore, sort,
-      filterFavorites, tagFilter, focusEnabled, focus.queryString,
+  }, [cacheKey, loading, reloading, albums, offset, hasMore, sort, sortDir,
+      sortSeed, filterFavorites, tagFilter, focusEnabled, focus.queryString,
       currentViewKey])
 
   // Infinite scroll
@@ -514,14 +596,14 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
     const observer = new IntersectionObserver(async ([entry]) => {
       if (entry.isIntersecting && !loadingMore && hasMore) {
         setLoadingMore(true)
-        const count = await fetchPage(sort, offset, true)
+        const count = await fetchPage(sortView, offset, true)
         setOffset(prev => prev + count)
         setLoadingMore(false)
       }
     }, { rootMargin: '300px' })
     observer.observe(sentinelRef.current)
     return () => observer.disconnect()
-  }, [offset, sort, loadingMore, hasMore, fetchPage])
+  }, [offset, sortView, loadingMore, hasMore, fetchPage])
 
   // #13 — Play a randomly-chosen album end-to-end. Asks the server for a
   // random album id, fetches its full track list, and starts the queue.
@@ -587,6 +669,20 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
           // Favourites screen: Play All, Queue All, and a Random favourite.
           // No "show favourites only" chip here — the page is already that.
           <div className="jp-chip-row" style={s.actionRow}>
+            {/* v1.1.11.0 — the sort chip belongs here too. Every grid stores
+                its own sort (see loadSortView), so leaving this row out gave
+                Favourites a persisted sort and no way to change it. */}
+            <button
+              style={{ ...s.iconChip, ...s.sortChip }}
+              onClick={() => setSortSheetOpen(true)}
+              title={sortChipTitle}
+              aria-haspopup="dialog"
+            >
+              {activeSortHasDir && (sortDir === 'desc'
+                ? <ArrowDown size={13} aria-hidden="true" />
+                : <ArrowUp size={13} aria-hidden="true" />)}
+              <span>{activeSort.label}</span>
+            </button>
             <button
               style={{ ...s.iconChip, ...s.iconChipPrimary, ...(bulkBusy ? { opacity: 0.5 } : {}) }}
               onClick={playAllFavorites}
@@ -616,21 +712,25 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
             </button>
           </div>
         ) : (
-          // Main Albums screen: 5-pill row (#v1.1.0.30) -- Title /
-          // Artist / Year sort pills + Random + Favourites (heart only)
-          // all in a single row, equal sizing.
+          // Main Albums screen: pill row (#v1.1.0.30) -- the sort chip,
+          // Random and Favourites (heart only), all in one row.
+          //
+          // v1.1.11.0 -- the three Title/Artist/Year pills became one chip
+          // opening a sheet. Seven sorts do not fit a pill row on a phone,
+          // and each of them needs a direction and, for two of them, a note
+          // saying where the data comes from.
           <div className="jp-chip-row" style={s.pillRow}>
-            {['title', 'artist', 'year'].map(o => (
-              <button
-                key={o}
-                style={{ ...s.iconChip, ...(sort === o ? s.sortChipActive : {}) }}
-                onClick={() => setSort(o)}
-                title={`Sort by ${o}`}
-                aria-pressed={sort === o}
-              >
-                <span>{o[0].toUpperCase() + o.slice(1)}</span>
-              </button>
-            ))}
+            <button
+              style={{ ...s.iconChip, ...s.sortChip }}
+              onClick={() => setSortSheetOpen(true)}
+              title={sortChipTitle}
+              aria-haspopup="dialog"
+            >
+              {activeSortHasDir && (sortDir === 'desc'
+                ? <ArrowDown size={13} aria-hidden="true" />
+                : <ArrowUp size={13} aria-hidden="true" />)}
+              <span>{activeSort.label}</span>
+            </button>
             <button
               style={{ ...s.iconChip, ...(randomBusy ? { opacity: 0.5 } : {}) }}
               onClick={playRandomAlbum}
@@ -772,6 +872,52 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
           />
         )}
       </div>
+
+      {/* v1.1.11.0 — the sort sheet. One row per sort; the active row carries
+          the direction arrow and re-picking it reverses. Reuses FocusModal so
+          it is not clipped by the sticky header, same as the save modal. */}
+      <FocusModal
+        open={sortSheetOpen}
+        onCancel={() => setSortSheetOpen(false)}
+        title="Sort by"
+      >
+        <div style={s.sortSheet}>
+          {SORT_OPTIONS.map(opt => {
+            const on = sort === opt.id
+            const hasDir = opt.hasDir !== false
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                style={{ ...s.sortRow, ...(on ? s.sortRowOn : {}) }}
+                onClick={() => applySort(opt.id)}
+                aria-pressed={on}
+                aria-label={on && hasDir
+                  ? `${opt.label} — ${dirLabel(opt.id, sortDir)}, activate to reverse`
+                  : opt.label}
+              >
+                {/* The arrow keeps a fixed column on every row, filled only on
+                    the active one, so the labels share a single left edge. */}
+                <span style={s.sortArrow} aria-hidden="true">
+                  {on && hasDir && (sortDir === 'desc'
+                    ? <ArrowDown size={15} /> : <ArrowUp size={15} />)}
+                  {on && !hasDir && <Shuffle size={14} />}
+                </span>
+                <span style={s.sortText}>
+                  <span style={s.sortLabel}>{opt.label}</span>
+                  {on && hasDir && (
+                    <span style={s.sortNote}>{dirLabel(opt.id, sortDir)} · tap to reverse</span>
+                  )}
+                  {on && !hasDir && (
+                    <span style={s.sortNote}>tap to reshuffle</span>
+                  )}
+                  {!on && opt.note && <span style={s.sortNote}>{opt.note}</span>}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </FocusModal>
 
       {/* v1.1.0.82 — save-as-new modal. Renders into a portal-style
           fixed overlay so it doesn't get clipped by the sticky
@@ -1148,9 +1294,46 @@ const s = {
   titleRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   heading: { fontSize: 24, fontWeight: 600, letterSpacing: '-0.3px', color: 'var(--jp-text)' },
   statsRow: { fontSize: 11, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)' },
-  sortRow: { display: 'flex', gap: 4 },
-  sortBtn: { padding: '4px 9px', borderRadius: 6, fontSize: 11, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border)' },
-  sortActive: { background: 'var(--accent-dim)', color: 'var(--accent)', borderColor: 'transparent' },
+  // v1.1.11.0 — the sort sheet. Replaces the old sortRow/sortBtn/sortActive
+  // trio (dead since the v1.1.0.62 chip row) and sortChipActive (which styled
+  // the three Title/Artist/Year pills this sheet replaced).
+  //
+  // The chip in the header, carrying the active sort's name and its direction
+  // arrow. Always reads as "on" — there is always a sort — so it takes the
+  // quiet fill rather than the white active fill the toggle chips use.
+  sortChip: {
+    color: 'var(--jp-text)',
+    borderColor: 'var(--jp-border-hot)',
+    fontWeight: 600,
+  },
+  sortSheet: { display: 'flex', flexDirection: 'column', gap: 2 },
+  sortRow: {
+    display: 'flex', alignItems: 'center', gap: 10,
+    width: '100%', boxSizing: 'border-box',
+    padding: '10px 12px',
+    borderRadius: 8,
+    background: 'transparent',
+    border: '1px solid transparent',
+    color: 'var(--jp-text-2)',
+    textAlign: 'left',
+    // Rows are the full width of the sheet and stacked, so a tap anywhere on
+    // one is unambiguous; 44px is the minimum comfortable touch target.
+    minHeight: 44,
+  },
+  sortRowOn: {
+    background: 'var(--jp-bg-surface)',
+    borderColor: 'var(--jp-border-hot)',
+    color: 'var(--jp-text)',
+  },
+  // Fixed-width column so every label starts on the same left edge whether or
+  // not its row is the active one.
+  sortArrow: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    width: 16, flexShrink: 0,
+  },
+  sortText: { display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 },
+  sortLabel: { fontSize: 13, fontWeight: 600 },
+  sortNote: { fontSize: 11, color: 'var(--jp-text-3)' },
   // v1.1.0.62 — JPLAY-style chip row. Was a wrap-flex centred
   // pill row with bordered chips on var(--bg-elevated). JPLAY
   // uses a horizontal scroller pinned to the start, no-border
@@ -1192,12 +1375,6 @@ const s = {
   // Active sort chip: white fill, black text. JPLAY's "this filter
   // is on" pattern. Reads as a positive selection state without
   // resorting to chromatic accent.
-  sortChipActive: {
-    color: '#000',
-    background: 'var(--jp-accent)',
-    borderColor: 'var(--jp-accent)',
-    fontWeight: 600,
-  },
   iconChipPrimary: {
     color: '#000',
     background: 'var(--jp-accent)',
