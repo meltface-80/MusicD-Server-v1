@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MusicD Server v1 — self-hosted music server</title>
-<meta name="description" content="MusicD Server v1.1.13.0 — a self-hosted music server with a Roon-inspired web UI, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
+<meta name="description" content="MusicD Server v1.1.14.0 — a self-hosted music server with a Roon-inspired web UI, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
 <style>
   :root {
     --bg:        #1b1d1f;   /* charcoal */
@@ -263,7 +263,7 @@
   presets, FIR convolution and a per-stream signal path you can actually
   read.</p>
   <div class="badges">
-    <span class="badge">v1.1.13.0</span>
+    <span class="badge">v1.1.14.0</span>
     <span class="badge">Node 20 &middot; Express &middot; SQLite</span>
     <span class="badge">React SPA &middot; PWA</span>
     <span class="badge plain">Docker &middot; port 32700</span>
@@ -275,7 +275,7 @@
 
 <section id="whats-new" aria-labelledby="whats-new-h">
   <div class="wrap">
-    <h2 id="whats-new-h">What&rsquo;s new in 1.1.13.0</h2>
+    <h2 id="whats-new-h">What&rsquo;s new in 1.1.14.0</h2>
     <p class="lead">Seven ways to sort the album wall, each reversible, and the
     choice is still there when you come back to the app.</p>
     <div class="grid">
@@ -314,6 +314,19 @@
         not year zero. It sits at the end of the list whichever way you point
         Release year &mdash; otherwise asking for oldest-first would fill the
         top of the wall with every undated album you own.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">New</span>
+        <h3><span class="em" aria-hidden="true">&#9776;</span>A queue screen that stays where you are</h3>
+        <p>The playing track sits at the top of the queue and stays there as
+        playback moves on. Tracks you have heard pass up out of the way, still
+        there if you scroll back for them.</p>
+        <p>Tracks you skipped collapse into a single <b>&ldquo;3
+        skipped&rdquo;</b> row you can tap to open, so a long session does not
+        bury the queue under things you chose not to hear. And tapping a track
+        you have already passed asks whether you want it now or next, rather
+        than guessing.</p>
       </div>
 
       <div class="card new">
@@ -721,7 +734,7 @@
       <code>-e MUSICD_MANIFEST_URL=https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json</code>
       to your <code>docker run</code>, restart, then <b>Check for updates</b>.
       The older parser understands this manifest, so it installs normally. Drop
-      the variable afterwards &mdash; v1.1.13.0 has the same URL as its own
+      the variable afterwards &mdash; v1.1.14.0 has the same URL as its own
       default.
     </div>
   </div>
@@ -794,7 +807,7 @@
 </main>
 
 <footer>
-  MusicD Server v1.1.13.0 &mdash; self-hosted music, one user, one library, one home network.
+  MusicD Server v1.1.14.0 &mdash; self-hosted music, one user, one library, one home network.
   <br>MIT licence &middot; <a href="https://github.com/meltface-80/MusicD-Server-v1">Source on GitHub</a>
 </footer>
 

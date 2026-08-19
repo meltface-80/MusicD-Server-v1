@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
 import { useStore } from '../store'
 import { api } from '../api'
-import { ChevronLeft, Play, Pause, SkipBack, SkipForward, ChevronUp, ChevronDown, Trash2, Speaker, Check, Music, ListMusic, Sliders, Cast, Settings, X, Plus, Minus, Volume2, Share2, MoreHorizontal, Heart, Disc, User, Tag, Bookmark, Star, Sparkles } from 'lucide-react'
+import { ChevronLeft, Play, Pause, SkipBack, SkipForward, ChevronUp, ChevronDown, Trash2, Speaker, Check, Music, ListMusic, Sliders, Cast, Settings, X, Plus, Minus, Volume2, Share2, MoreHorizontal, Heart, Disc, User, Tag, Bookmark, Star, Sparkles, SkipForward as SkipIcon, ChevronRight } from 'lucide-react'
 import RendererModal from './RendererModal'
+import { foldSkippedRuns, playNextTarget } from '../queueFold'
 // v56: pull these in at module load instead of via dynamic require()
 // inside the component bodies. Vite doesn't provide require() in the
 // browser bundle, so the v55 in-function requires threw at runtime
@@ -630,7 +631,33 @@ function QueueView({ queue, queueIndex, onSelectTrack }) {
   // via tap-and-hold on a row OR by choosing "Add/Remove selected"
   // from the menu. While selecting, rows show a checkbox; the header
   // becomes a "N selected · Cancel · Apply" bar.
-  const { playQueue, radio, setRadio, removeFromQueueBatch, appendIdsToQueue } = useStore()
+  const {
+    playQueue, radio, setRadio, removeFromQueueBatch, appendIdsToQueue,
+    skipped, reorderQueue,
+  } = useStore()
+
+  // Skip marks arrive as track ids (the server keys them that way so they
+  // survive reorders and removals), so look-ups go through a Set.
+  const skippedSet = useMemo(() => new Set(skipped || []), [skipped])
+
+  // Which folded skip-runs the user has opened, keyed by the run's first queue
+  // index. Runs are rebuilt on every queue change, so a key that no longer
+  // exists simply stops matching — no cleanup needed.
+  const [openSkips, setOpenSkips] = useState(() => new Set())
+  const toggleSkipRun = (start) => setOpenSkips(prev => {
+    const next = new Set(prev)
+    if (next.has(start)) next.delete(start); else next.add(start)
+    return next
+  })
+
+  // A track behind the playhead that the user tapped. Tapping one is
+  // ambiguous — play it now, or line it up next? — so it asks instead of
+  // guessing. null when no sheet is open.
+  const [reachedTap, setReachedTap] = useState(null)
+
+  const listRef = useRef(null)
+  const stickyRef = useRef(null)
+  const nowRef = useRef(null)
 
   // Sub-menu open state. Only one menu (or none) open at a time.
   const [openMenu, setOpenMenu] = useState(null) // 'add' | 'remove' | null
@@ -654,6 +681,35 @@ function QueueView({ queue, queueIndex, onSelectTrack }) {
   const remainingLabel = remainingMin > 0
     ? `${remainingMin}m ${remainingS}s left`
     : `${remainingS}s left`
+
+  const rows = useMemo(
+    () => foldSkippedRuns(queue, queueIndex, skippedSet, isSelecting),
+    [queue, queueIndex, skippedSet, isSelecting])
+
+  // Keep the playing track at the top of the list.
+  //
+  // Played tracks stay above it and are reachable by scrolling back up; they
+  // just do not occupy the screen you are looking at. Re-runs whenever the
+  // track changes, so the list follows playback rather than drifting.
+  //
+  // useLayoutEffect, and measured rather than scrollIntoView: the header is
+  // sticky INSIDE this scroller, so the row has to land below it, and
+  // scrollIntoView knows nothing about that. A second pass on the next frame
+  // catches the sticky header settling on first paint.
+  useLayoutEffect(() => {
+    let raf = 0
+    const pin = () => {
+      const list = listRef.current
+      const now = nowRef.current
+      if (!list || !now) return
+      const header = stickyRef.current ? stickyRef.current.offsetHeight : 0
+      const target = now.offsetTop - list.offsetTop - header
+      list.scrollTop = Math.max(0, target)
+    }
+    pin()
+    raf = requestAnimationFrame(pin)
+    return () => cancelAnimationFrame(raf)
+  }, [queueIndex, queue.length])
 
   // ---- Selection helpers ----
   const toggleSelected = (i) => {
@@ -778,7 +834,11 @@ function QueueView({ queue, queueIndex, onSelectTrack }) {
   }
 
   return (
-    <div style={s.queueList}>
+    <div style={s.queueList} ref={listRef}>
+      {/* The radio row and the count/bulk row stay put while the list moves
+          under them. Opaque, not translucent: a see-through bar with track
+          rows sliding behind it is what this replaces. */}
+      <div style={s.queueSticky} ref={stickyRef}>
       {/* Radio toggle row */}
       <div style={s.queueRadioRow}>
         <span style={s.queueRadioLabel}>Start radio after queue ends</span>
@@ -885,9 +945,73 @@ function QueueView({ queue, queueIndex, onSelectTrack }) {
         </div>
       )}
 
+      </div>
+
       {queue.length === 0 ? (
         <div style={s.queueEmpty}>Queue is empty</div>
-      ) : queue.map((track, i) => {
+      ) : rows.map((row) => {
+        if (row.kind === 'skips') {
+          const open = openSkips.has(row.start)
+          return (
+            <React.Fragment key={`skips:${row.start}`}>
+              <button
+                style={s.skipFold}
+                onClick={() => toggleSkipRun(row.start)}
+                aria-expanded={open}
+              >
+                <span style={s.skipFoldIcon}>
+                  {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                </span>
+                <SkipIcon size={13} style={{ opacity: 0.5, flexShrink: 0 }} />
+                <span style={s.skipFoldLabel}>
+                  {row.items.length} skipped
+                </span>
+              </button>
+              {open && row.items.map(i => renderTrackRow(i, true))}
+            </React.Fragment>
+          )
+        }
+        return renderTrackRow(row.index, false)
+      })}
+
+      {/* Tapping a track the queue has already reached asks rather than
+          guessing. "Play now" jumps the queue to it; "Play next" lifts it out
+          and drops it directly after the current track. */}
+      {reachedTap !== null && (
+        <div style={s.reachedBackdrop} onClick={() => setReachedTap(null)}>
+          <div style={s.reachedSheet} onClick={e => e.stopPropagation()}>
+            <div style={s.reachedTitle}>
+              {queue[reachedTap]?.title || 'This track'}
+            </div>
+            <button
+              style={s.reachedBtn}
+              onClick={() => { const i = reachedTap; setReachedTap(null); playQueue(queue, i) }}
+            >Play now</button>
+            <button
+              style={s.reachedBtn}
+              onClick={() => {
+                const i = reachedTap
+                setReachedTap(null)
+                // reorderQueue already shifts queueIndex when a track moves
+                // across it, so the current track keeps playing untouched.
+                reorderQueue(i, playNextTarget(queueIndex))
+              }}
+            >Play next</button>
+            <button
+              style={{ ...s.reachedBtn, ...s.reachedCancel }}
+              onClick={() => setReachedTap(null)}
+            >Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+
+  // Declared as a function statement so it is hoisted above the JSX that
+  // calls it; the rows need it during the same render.
+  function renderTrackRow(i, insideFold) {
+    const track = queue[i]
+    if (!track) return null
         const isCurrent = i === queueIndex
         const isPast = i < queueIndex
         const isSelected = selectedIndices.has(i)
@@ -902,13 +1026,18 @@ function QueueView({ queue, queueIndex, onSelectTrack }) {
             if (selectable) toggleSelected(i)
             return
           }
+          // A track the queue has already reached is ambiguous to tap: the
+          // user may want it now, or lined up after the current one. Ask.
+          // Upcoming tracks keep jumping straight there, which is
+          // unambiguous and the behaviour that already existed.
+          if (isPast) { setReachedTap(i); return }
           playQueue(queue, i)
         }
 
         return (
           <React.Fragment key={(track.id || 'x') + ':' + i}>
             {isCurrent && (
-              <div style={s.npDivider}>
+              <div style={s.npDivider} ref={nowRef}>
                 <span style={s.npDividerLine} />
                 <span style={s.npDividerLabel}>Now Playing</span>
                 <span style={s.npDividerLine} />
@@ -917,6 +1046,7 @@ function QueueView({ queue, queueIndex, onSelectTrack }) {
             <button
               style={{
                 ...s.queueRow2,
+                ...(insideFold ? s.queueRowFolded : {}),
                 opacity: isPast && !isSelecting ? 0.45 : 1,
                 background: isSelected
                   ? 'rgba(107,138,255,0.14)'
@@ -965,9 +1095,7 @@ function QueueView({ queue, queueIndex, onSelectTrack }) {
             </button>
           </React.Fragment>
         )
-      })}
-    </div>
-  )
+  }
 }
 
 // v55: tiny dropdown that closes on outside click. Used for the
@@ -1615,6 +1743,13 @@ const s = {
     // viewport-fit=cover, so the row clears the status bar itself.
     paddingTop: 'calc(14px + env(safe-area-inset-top, 0px))',
     paddingBottom: 10, flexShrink: 0,
+    // v1.1.14.0 — opaque, and above the list, so rows disappear cleanly at its
+    // edge instead of being visible against it. It is a flex sibling of the
+    // scroller rather than an overlay, so the list is already clipped here;
+    // the background is what makes that read as intended rather than as a
+    // rendering artefact.
+    position: 'relative', zIndex: 4,
+    background: 'var(--jp-bg)',
   },
   orbBtn: { width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none' },
   orb: { width: 11, height: 11, borderRadius: '50%', transition: 'all 0.3s' },
@@ -2315,6 +2450,79 @@ const s = {
 
   // Queue tab
   queueList: { flex: 1, overflowY: 'auto', paddingBottom: 32 },
+
+  // v1.1.14.0 — the radio row and the count/bulk row ride at the top of the
+  // scroller while the list moves beneath them.
+  //
+  // The background is OPAQUE on purpose. This screen paints a blurred, heavily
+  // darkened wash of the album art behind everything, and a translucent bar
+  // over it let track rows show through as they scrolled past — which is the
+  // complaint this replaces. var(--jp-bg) is what staticBg paints, so the bar
+  // reads as part of the same surface rather than as a panel.
+  queueSticky: {
+    position: 'sticky', top: 0, zIndex: 3,
+    background: 'var(--jp-bg)',
+  },
+
+  // The folded "N skipped" row. Deliberately quieter than a track row: it is
+  // a summary of things the user chose not to hear, so it should not compete
+  // with the queue itself.
+  skipFold: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    width: '100%', boxSizing: 'border-box',
+    padding: '7px 4px',
+    background: 'none', border: 'none',
+    color: 'rgba(255,255,255,0.40)',
+    textAlign: 'left', cursor: 'pointer',
+  },
+  skipFoldIcon: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    width: 16, flexShrink: 0,
+  },
+  skipFoldLabel: { fontSize: 12, fontWeight: 600, letterSpacing: '0.02em' },
+  // An expanded run is inset so its rows read as belonging to the fold above
+  // them rather than as ordinary queue entries that happen to be dim.
+  queueRowFolded: { paddingLeft: 24 },
+
+  // The sheet a tap on an already-reached track opens.
+  reachedBackdrop: {
+    position: 'fixed', inset: 0, zIndex: 600,
+    background: 'rgba(0,0,0,0.55)',
+    display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+    padding: 16,
+    // The screen is full-bleed under viewport-fit=cover, so the sheet clears
+    // the home indicator itself rather than relying on an ancestor.
+    paddingBottom: 'calc(16px + var(--safe-bot))',
+  },
+  reachedSheet: {
+    width: 'min(100%, 420px)',
+    background: 'var(--jp-bg-elevated)',
+    border: '1px solid var(--jp-border)',
+    borderRadius: 14,
+    padding: 8,
+    display: 'flex', flexDirection: 'column', gap: 4,
+    boxShadow: '0 20px 60px rgba(0,0,0,0.55)',
+  },
+  reachedTitle: {
+    padding: '10px 12px 6px',
+    fontSize: 12, fontWeight: 600,
+    color: 'var(--jp-text-2)',
+    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+  },
+  reachedBtn: {
+    width: '100%', boxSizing: 'border-box',
+    padding: '13px 12px',
+    borderRadius: 10,
+    background: 'var(--jp-bg-surface)',
+    border: '1px solid var(--jp-border)',
+    color: 'var(--jp-text)',
+    fontSize: 14, fontWeight: 600,
+    textAlign: 'left', cursor: 'pointer',
+  },
+  reachedCancel: {
+    background: 'none', border: '1px solid transparent',
+    color: 'var(--jp-text-3)', textAlign: 'center',
+  },
   queueToolbar: {
     display: 'flex', gap: 6, padding: '4px 0 12px',
     position: 'sticky', top: 0,
