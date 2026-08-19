@@ -392,11 +392,31 @@ const { predictStreamFormat } = require('../streamFormat');
 // what the stream endpoint will actually serve. Earlier versions
 // hardcoded `audio/flac`, which was a lie for non-FLAC pass-through
 // streams; some Sonos firmware notices and refuses to play.
+// v1.1.6.0 — DIDL wants H:MM:SS(.mmm) for a res duration. Sonos uses it to
+// know how long the item is; without it the item looks like a stream of
+// unknown length, which is the shape of thing Sonos reports odd transport
+// positions for.
+function didlDuration(seconds) {
+  const total = Number(seconds);
+  if (!isFinite(total) || total <= 0) return null;
+  const whole = Math.floor(total);
+  const h = Math.floor(whole / 3600);
+  const m = Math.floor((whole % 3600) / 60);
+  const sec = whole % 60;
+  const ms = Math.round((total - whole) * 1000);
+  return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` +
+         `.${String(ms).padStart(3, '0')}`;
+}
+
 function buildDidl(track, streamUrl, rendererId, sourceRate) {
   const fmt = predictStreamFormat(track, rendererId, sourceRate);
   const title  = escapeXml(track?.title  || 'Track');
   const artist = escapeXml(track?.artist || '');
   const album  = escapeXml(track?.album  || '');
+  // Omitted entirely when the duration is unknown — an empty or zero
+  // duration attribute is worse than none, as Sonos parses it as 0:00:00.
+  const dur = didlDuration(track?.duration);
+  const durationAttr = dur ? ` duration="${dur}"` : '';
   return (
     '<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" ' +
       'xmlns:dc="http://purl.org/dc/elements/1.1/" ' +
@@ -406,7 +426,7 @@ function buildDidl(track, streamUrl, rendererId, sourceRate) {
       (artist ? `<dc:creator>${artist}</dc:creator>` : '') +
       (album  ? `<upnp:album>${album}</upnp:album>`  : '') +
       '<upnp:class>object.item.audioItem.musicTrack</upnp:class>' +
-      `<res protocolInfo="http-get:*:${fmt.mime}:*">${escapeXml(streamUrl)}</res>` +
+      `<res protocolInfo="http-get:*:${fmt.mime}:*"${durationAttr}>${escapeXml(streamUrl)}</res>` +
     '</item>' +
     '</DIDL-Lite>'
   );
@@ -517,5 +537,5 @@ module.exports = {
   startDiscovery, stopDiscovery, triggerSearch,
   list, play, playNext, clearNext, pause, resume, seek, stop, setVolume, getPositionInfo, getTransportInfo,
   // Exposed for tests.
-  parseZoneGroupState, fetchTopology,
+  parseZoneGroupState, fetchTopology, buildDidl, didlDuration,
 };

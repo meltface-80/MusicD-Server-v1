@@ -44,7 +44,20 @@ function applyZonesSnapshot(set, get, payload) {
   // focused zone changes, do the same. Otherwise let the ticker keep
   // smoothing.
   const newPosition = focused ? (focused.position || 0) : 0
-  const newPositionAt = focused ? (focused.positionAt || Date.now()) : Date.now()
+  // v1.1.6.0 — anchor on OUR clock at the moment the sample arrives, not on
+  // the server's `positionAt`. The ticker below computes the playhead as
+  // Date.now() - anchor, so mixing the server's wall clock into that
+  // subtraction turns any skew between the two machines into a permanent
+  // offset on the progress bar: a host running 40s ahead of the phone shows
+  // the track starting at 0:40 while the audio plays from the beginning.
+  // Hosts without an RTC (Pi, DietPi) drift exactly like this.
+  //
+  // Receive time is the right anchor because the sample describes the
+  // renderer's position ~now; the error is one network hop (tens of ms),
+  // against a skew that is unbounded. The server still sends positionAt and
+  // it is still meaningful on the server — we simply do not subtract our
+  // clock from it.
+  const newPositionAt = Date.now()
 
   const patch = {
     zones,
@@ -95,9 +108,11 @@ function applyZonesSnapshot(set, get, payload) {
 
 // Position model
 // --------------
-// The server polls renderers ~once per second and broadcasts both `position`
-// (seconds into the track, as reported by the device) and `positionAt`
-// (server wall-clock ms when that sample was taken). We treat (position,
+// The server polls renderers ~once per second and broadcasts `position`
+// (seconds into the track, as reported by the device). We re-anchor on the
+// CLIENT's clock as each sample arrives — see applyZones — because the two
+// machines' wall clocks are not synchronised and the difference would show
+// up as a fixed offset on the playhead. We treat (position,
 // positionAt) as an anchor and compute the displayed playhead while playing as
 //
 //   displayed = anchorPosition + (Date.now() - anchorAt) / 1000

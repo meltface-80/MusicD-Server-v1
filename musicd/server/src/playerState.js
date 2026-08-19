@@ -735,6 +735,7 @@ function startPolling(zone) {
   zone.consecutiveFailures = 0;
   zone.gaplessQueued = false;
   zone.lastPolledPosition = 0;
+  zone.pollTick = 0;     // v1.1.6.0 — counts polls since this track started
   zone.polling = false;  // re-entrancy guard: skip ticks while a poll is in flight
   zone.pollTimer = setInterval(async () => {
     // If a previous poll is still in flight (slow LAN, device under load),
@@ -753,6 +754,21 @@ function startPolling(zone) {
       const newPos = (positionInfo?.position !== undefined && positionInfo.position !== null)
         ? positionInfo.position
         : null;
+
+      // v1.1.6.0 — trace the first few samples of each track. A progress bar
+      // that starts part-way in has three possible sources: the renderer
+      // reporting a stale or offset position, our state, or the client's
+      // extrapolation. This pins down which, by recording exactly what the
+      // device said before anything downstream touches it. First five polls
+      // only, so it costs nothing during normal playback.
+      zone.pollTick++;
+      if (zone.pollTick <= 5) {
+        _dbgPlayback(
+          `[poll-head] zone=${zone.id?.slice(0, 12)} tick=${zone.pollTick} ` +
+          `rawPos=${positionInfo?.position} rawDur=${positionInfo?.duration} ` +
+          `state=${transportInfo.state} trackDur=${zone.currentTrack?.duration ?? '?'}`
+        );
+      }
 
       // Detect a gapless transition: when the renderer auto-advanced from the
       // pre-queued URI, the reported playhead drops back near zero while the
