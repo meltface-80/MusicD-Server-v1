@@ -12,6 +12,51 @@ Categories used per release:
 
 ---
 
+## v1.1.7.0 — 2026-08-19 — THE UPDATER NOW KNOWS WHICH CONTAINER IT IS
+
+### Fixed
+
+- **The updater could resolve host paths against the wrong container.**
+  Installing an update needs the host-side path of
+  `/mnt/musicd_updates`, which the server looks up by asking Docker
+  about itself. It identified itself by guessing, three ways, and all
+  three can miss:
+
+  1. the container name `musicd` — misses any install started with a
+     different `--name`;
+  2. `/etc/hostname` treated as a container id — but the documented
+     `docker run` uses `--network host`, under which the container
+     inherits the **host's** hostname, so this inspects something that
+     is not a container at all;
+  3. a scan of every running container for one that already had
+     `/mnt/musicd_updates` — circular, since that is exactly the mount
+     whose absence the error is trying to explain.
+
+  An install missing the mount could therefore match some *other*
+  container and report mounts the user had never configured, which
+  made the error actively misleading.
+
+  A method that does not guess now runs first: the container reads its
+  own id out of `/proc/self/mountinfo`. Docker bind-mounts
+  `/etc/hostname`, `/etc/hosts` and `/etc/resolv.conf` from
+  `/var/lib/docker/containers/<id>/`, so the id is in our own mount
+  table whatever the container is named and whatever network mode it
+  uses. `/proc/self/cgroup` is kept as a second choice — it carries the
+  id under cgroup v1 and under systemd's `docker-<id>.scope`, though
+  often not under cgroup v2, which is why mountinfo leads.
+
+  The scan is no longer circular either: it now matches on marks a
+  musicd actually has — the data directory, or the Docker socket
+  alongside a music mount.
+
+- **The mount error names how it identified the container.** It lost
+  that detail when it was rewritten to be more actionable, which is the
+  one line that distinguishes "you are missing a mount" from "the
+  resolver looked at the wrong container". It is back, and the message
+  now says so explicitly.
+
+---
+
 ## v1.1.6.0 — 2026-08-19 — PROGRESS BAR POSITION
 
 ### Fixed

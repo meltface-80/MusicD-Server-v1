@@ -83,8 +83,48 @@ const UPDATES_DIR   = '/mnt/musicd_updates';
 //      query path. Catches non-standard container names.
 // The first method that yields a valid mount map for `containerPath`
 // wins. We log which method succeeded for diagnostics.
+//
+// v1.1.7.0: all three of those are guesses, and the guessing showed. A
+// container started with a different --name misses (1); --network host
+// makes /etc/hostname the HOST's name, so (2) inspects something that
+// isn't a container; and (3) only accepted a candidate that already had
+// /mnt/musicd_updates — circular, because that is precisely the mount
+// whose absence it is trying to explain. An install missing that mount
+// therefore got a mount map belonging to some other container, and an
+// error listing mounts the user had never configured.
+//
+// So a method that does not guess now runs first: read our own container
+// id out of /proc/self/mountinfo (see _selfContainerId). v1.1.2.5 tried
+// /proc/self/cgroup and /etc/hostname and was right that both are
+// unreliable — but mountinfo is neither. Docker bind-mounts
+// /etc/hostname, /etc/hosts and /etc/resolv.conf from
+// /var/lib/docker/containers/<id>/, so the id is in our own mount table
+// regardless of container name or network mode. cgroup is kept only as
+// a second-choice fallback, and (3) now matches on marks a musicd
+// actually has rather than the one it is missing.
 let _hostMountCache = null;
 let _hostMountCacheSource = null;
+// v1.1.7.0 — our own container id, straight from the kernel.
+//
+// /proc/self/mountinfo lists the files Docker bind-mounts in from
+// /var/lib/docker/containers/<id>/, so the id is in our own mount table
+// whatever the container is named and whatever network mode it uses.
+// /proc/self/cgroup is the fallback: it carries the id under cgroup v1,
+// but frequently just "0::/" under v2.
+function _selfContainerId() {
+  const ID = /[0-9a-f]{64}/;
+  for (const [file, re] of [
+    ['/proc/self/mountinfo', /\/containers\/([0-9a-f]{64})\//],
+    ['/proc/self/cgroup',    /[:/-]([0-9a-f]{64})/],
+  ]) {
+    try {
+      const m = fs.readFileSync(file, 'utf8').match(re);
+      if (m && ID.test(m[1])) return m[1];
+    } catch { /* not in a container, or the file is unreadable */ }
+  }
+  return null;
+}
+
 function resolveHostMountPath(containerPath) {
   if (_hostMountCache === null) {
     const { execSync } = require('child_process');
@@ -108,6 +148,26 @@ function resolveHostMountPath(containerPath) {
 
     let result = null;
 
+    // v1.1.7.0 — Method 0: ask the kernel which container we are.
+    //
+    // This runs first because it is the only method that identifies THIS
+    // container rather than guessing. Docker bind-mounts /etc/hostname,
+    // /etc/hosts and /etc/resolv.conf from
+    // /var/lib/docker/containers/<id>/, so our own mountinfo contains our
+    // container id. cgroup v1 carries it too; v2 often does not, which is
+    // why mountinfo is tried first.
+    //
+    // The methods below it are all guesses, and two of them are actively
+    // unreliable here: the container is usually started with --network
+    // host, which makes /etc/hostname the HOST's name rather than the
+    // container id, and the scan looked for a container that already had
+    // /mnt/musicd_updates — circular, since that is the mount whose
+    // absence we are trying to report.
+    if (!result) {
+      const id = _selfContainerId();
+      if (id) result = tryInspect(id, `self=${id.slice(0, 12)}`);
+    }
+
     // Method 1: container name 'musicd' (install.sh standard).
     if (!result) result = tryInspect('musicd', 'name=musicd');
 
@@ -119,16 +179,24 @@ function resolveHostMountPath(containerPath) {
       } catch { /* */ }
     }
 
-    // Method 3: scan all containers for one with our expected mount.
-    // This is the most defensive — works for any name. Slower because it
-    // inspects every running container, but only runs once (cached).
+    // Method 3: scan all containers and take the one that looks like us.
+    //
+    // v1.1.7.0: this used to require a candidate to already have
+    // /mnt/musicd_updates, which meant it could never help the install
+    // that is missing exactly that mount. It now accepts any container
+    // carrying the marks of a musicd: the data directory, or the docker
+    // socket plus a music mount. Whichever it settles on, the label says
+    // which, so a wrong guess is visible in the error rather than silent.
     if (!result) {
       try {
         const ids = execSync('docker ps -q', { encoding: 'utf8', timeout: 5000 })
           .split('\n').filter(Boolean);
+        const looksLikeUs = (m) =>
+          m['/mnt/musicd_updates'] || m['/data'] ||
+          (m['/var/run/docker.sock'] && m['/music']);
         for (const id of ids) {
-          const r = tryInspect(id, `scan-found=${id.slice(0,12)}`);
-          if (r && r.map['/mnt/musicd_updates']) { result = r; break; }
+          const r = tryInspect(id, `scan-found=${id.slice(0, 12)}`);
+          if (r && looksLikeUs(r.map)) { result = r; break; }
         }
       } catch { /* */ }
     }
@@ -651,7 +719,9 @@ async function runUpdateDocker(tarFilename, opts = {}) {
       'Add "-v /var/lib/musicd-server-v1/updates:/mnt/musicd_updates" to your ' +
       'docker run (or the equivalent volume in docker-compose.yml), create the ' +
       'directory first so it belongs to UID 1000, and restart. ' +
-      `Mounts this container does have: ${info.knownDestinations.length ? info.knownDestinations.join(', ') : '(none — the Docker socket is not reachable)'}.`
+      `Resolved this container via ${info.source}; its mounts are: ` +
+      `${info.knownDestinations.length ? info.knownDestinations.join(', ') : '(none — the Docker socket is not reachable)'}. ` +
+      `If those are not the mounts you started musicd with, the resolver matched the wrong container — say so and it can be pinned.`
     );
   }
   fs.appendFileSync(logPath,
