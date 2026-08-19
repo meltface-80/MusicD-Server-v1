@@ -83,6 +83,50 @@ Optionally also mount `-v /var/lib/musicd-server-v1/downloads:/mnt/downloads`
 if you want to install a release by dropping its tarball on the host
 rather than fetching it from the manifest. In-app updates do not need it.
 
+### Upgrading from v1.1.9.0 or earlier — one manual step
+
+Up to and including v1.1.9.0 the in-app updater assumed the container was
+called `musicd` and the image `musicd:latest`, because that is what
+`install.sh` creates. The `docker run` above — and the one on the Pages
+site — names it `musicd-server`, built from an image called
+`musicd-server`. On those installs every `docker inspect musicd` in the
+generated update script matched nothing, so:
+
+- no mounts, environment variables, network mode, devices or group-adds
+  were carried over (the update log showed a single preserved mount,
+  `/var/run/docker.sock`, which the script adds itself);
+- `docker stop musicd` and `docker rm musicd` matched nothing, so the old
+  container kept running;
+- a second container started beside it with no `/data` and no `/music`.
+
+The update reported success and the server stayed on its old version.
+
+v1.1.10.0 reads the container's real name and image off its own container
+id and refuses to run at all if that container cannot be found — but the
+broken updater is the one doing the updating, so it cannot deliver its own
+fix. Take this release manually once, and in-app updates work from then
+on regardless of what you named things:
+
+```sh
+cd ~/MusicD-Server-v1 && git pull
+docker build -t musicd-server ./musicd
+docker stop musicd-server
+docker rm musicd-server
+```
+
+Then re-run the `docker run` command from the top of this section, exactly
+as you originally ran it. Your library, database and settings live in
+`/var/lib/musicd-server-v1` on the host and are untouched by this.
+
+Check afterwards that you have one container, not two:
+
+```sh
+docker ps -a --format '{{.Names}}\t{{.Image}}\t{{.Status}}'
+```
+
+If an earlier failed update left a stray container called `musicd`,
+remove it — `docker rm -f musicd`. It has no data of its own.
+
 ### Upgrading from v1.1.3.7 or earlier — one manual step
 
 The move to this repo's manifest shipped in v1.1.3.8, so a server still
