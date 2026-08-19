@@ -12,6 +12,68 @@ Categories used per release:
 
 ---
 
+## v1.1.9.0 — 2026-08-19 — THE PROGRESS BAR, PROPERLY, PLUS A TEST SUITE
+
+### Fixed
+
+- **The progress bar started ~40s in while the track played from zero.**
+  Fixed for real this time, and the reason the last two attempts did not
+  land is the interesting part.
+
+  The client draws the playhead as `position + (now - anchor)`. The anchor
+  must be the client's own clock; using the server's `positionAt` subtracts
+  one machine's clock from another's, so any skew between them becomes a
+  permanent offset. A host running 40 seconds behind the phone draws a
+  track that has just started at 0:40.
+
+  v1.1.6.0 fixed **one** of six sites. The `position` WebSocket message —
+  which fires every second — kept re-anchoring on the server's stamp and
+  clobbered the fix on the very next tick, so nothing changed on the
+  device. Two further sites (`z.positionAt` in the zones hydration,
+  `s.positionAt` in the single-zone REST fallback) were found only because
+  the new test greps for them.
+
+  All six now take the anchor from the local clock, and
+  `test/position-anchor.test.js` fails if any future site does not.
+
+### New
+
+- **A test suite.** `cd musicd/server && npm test` — 105 assertions across
+  eight files, needing no device, no renderer and no database. It exists
+  because every bug it covers shipped at least once, several of them twice.
+
+  | file | what it pins |
+  |---|---|
+  | `position-anchor` | every anchor site takes the local clock; the skew arithmetic |
+  | `ios-pwa` | one viewport meta with `viewport-fit=cover`; the three forbidden Apple metas and the manifest link stay out; insets on screens, never on the shell; shell is `height:100%` |
+  | `client-styles` | no duplicate keys in inline style objects — esbuild only warns, and the later value silently wins |
+  | `release-consistency` | VERSION, both package.json, install.sh, manifest and tarball hash all agree; the four code hashes; the updates mount in all three files |
+  | `tier-config` | Stable is the floor; the four codes resolve; the salt is unchanged |
+  | `container-id` | the updater identifies its own container from `/proc`, and the scan is no longer circular |
+  | `sonos-topology` | all three firmware shapes of a bonded set; the escaped-XML double parse; fail-open |
+  | `sonos-didl` | duration formatting, omission when unknown, and escaping of hostile metadata |
+
+  The static checks are greps, so each was mutation-tested: the bug was
+  reintroduced in a scratch copy and the check confirmed red before being
+  restored. `client-styles` carries its own detector self-test, because a
+  static check that cannot fail is worse than no check.
+
+### Changed
+
+- **The share card carries no logo.** Two attempts put an approximation
+  there — the word "MusicD", then a reconstructed lockup — and neither was
+  the real artwork. The card is left clean rather than carrying an
+  impression of a brand. `CLAUDE.md` records that a mark may only come
+  from the actual logo file, committed and embedded.
+
+- **`CLAUDE.md` restructured around preventing regressions**, following
+  MusicD-Remote's: a pre-flight checklist, development rules drawn from
+  the bugs that actually happened, a bug protocol that requires the test
+  which would have caught it, and the standing rule that a check which
+  cannot fail is worse than none.
+
+---
+
 ## v1.1.8.0 — 2026-08-19 — BUILD WARNINGS
 
 ### Fixed
