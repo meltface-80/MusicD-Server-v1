@@ -4,6 +4,23 @@ import { api } from '../api'
 let positionTimer = null
 let wsBackoff = 1000
 
+// v1.1.9.0 — the anchor for playhead interpolation is ALWAYS our own clock.
+//
+// The server stamps each sample with `positionAt` from ITS wall clock. The
+// ticker below computes the playhead as `Date.now() - anchor`, so using the
+// server's stamp subtracts one machine's clock from another's and turns any
+// skew between them into a permanent offset on the progress bar — a host 40
+// seconds off draws a track that has just started at 0:40, while the audio
+// plays correctly from zero. Hosts without an RTC drift exactly like this.
+//
+// Receive time is the correct anchor: the sample describes the renderer's
+// position ~now, so the error is one network hop (tens of ms) against a skew
+// that is unbounded. `payload.positionAt` must never reach this value —
+// there is a test that greps for it, because fixing three of the four sites
+// last time left the every-second one clobbering the other three.
+const receiveAnchor = () => Date.now()
+
+
 // applyZonesSnapshot (#v1.1.0.9)
 // ------------------------------
 // Takes a {focusedZoneId, zones} payload from the server (either from
@@ -57,7 +74,7 @@ function applyZonesSnapshot(set, get, payload) {
   // against a skew that is unbounded. The server still sends positionAt and
   // it is still meaningful on the server — we simply do not subtract our
   // clock from it.
-  const newPositionAt = Date.now()
+
 
   const patch = {
     zones,
@@ -75,7 +92,7 @@ function applyZonesSnapshot(set, get, payload) {
     patch.queueIndex    = focused.queueIndex || 0
     patch.radio         = !!focused.radio
     patch.position      = newPosition
-    patch.positionAt    = newPositionAt
+    patch.positionAt    = receiveAnchor()
     if (trackChanged || focusedChanged) {
       patch.displayPosition = newPosition
     }
@@ -234,7 +251,7 @@ export const useStore = create((set, get) => ({
         queueIndex:    z.queueIndex || 0,
         radio:         !!z.radio,
         position:      z.position || 0,
-        positionAt:    z.positionAt || Date.now(),
+        positionAt:    receiveAnchor(),
         displayPosition: z.position || 0,
       })
       if (z.status === 'playing') get().startTicker()
@@ -628,7 +645,7 @@ export const useStore = create((set, get) => ({
             outputMode: s.outputMode || 'variable',
             signalPath: s.signalPath || [],
             position: s.position || 0,
-            positionAt: s.positionAt || Date.now(),
+            positionAt: receiveAnchor(),
             displayPosition: s.position || 0,
             radio: !!s.radio,
             queue: Array.isArray(s.queue) ? s.queue : [],
@@ -666,7 +683,6 @@ export const useStore = create((set, get) => ({
           else get().stopTicker()
           const trackChanged = payload.currentTrack?.id !== prev.currentTrack?.id
           const incomingPos = (payload.position != null) ? payload.position : (trackChanged ? 0 : prev.position)
-          const incomingPosAt = payload.positionAt || Date.now()
           set({
             playerStatus: payload.status,
             currentTrack: payload.currentTrack,
@@ -675,7 +691,7 @@ export const useStore = create((set, get) => ({
             outputMode: payload.outputMode || 'variable',
             signalPath: payload.signalPath || [],
             position: incomingPos,
-            positionAt: incomingPosAt,
+            positionAt: receiveAnchor(),
             radio: !!payload.radio,
             ...(Array.isArray(payload.queue) ? { queue: payload.queue, queueIndex: payload.queueIndex || 0 } : {}),
             ...(trackChanged ? { displayPosition: incomingPos } : {}),
@@ -693,20 +709,20 @@ export const useStore = create((set, get) => ({
               [payload.zoneId]: {
                 ...prev.zones[payload.zoneId],
                 position: payload.position,
-                positionAt: payload.positionAt || Date.now(),
+                positionAt: receiveAnchor(),
               },
             }
             const patch = { zones: updatedZones }
             if (payload.zoneId === prev.focusedZoneId) {
               patch.position = payload.position
-              patch.positionAt = payload.positionAt || Date.now()
+              patch.positionAt = receiveAnchor()
             }
             set(patch)
           } else {
             // Legacy: pre-multi-zone server, just update the mirror.
             set({
               position: payload.position,
-              positionAt: payload.positionAt || Date.now(),
+              positionAt: receiveAnchor(),
             })
           }
         }

@@ -14,13 +14,18 @@
  *   │  (full bleed left)  │   (wraps up to 4)           │
  *   │                     │   by Artist Name            │
  *   │                     │                             │
- *   │                     │                    MusicD   │
+ *   │                     │                             │
  *   └─────────────────────┴─────────────────────────────┘
  *
  * Art fills the entire left half edge-to-edge, centre-cropped to a square.
  * Release date, title and artist form a single block, vertically centred in
  * the right half (nudged 10px up — optical centre sits above the maths).
- * The wordmark is pinned to the bottom-right corner.
+ *
+ * v1.1.9.0 — the card carries no mark. Earlier versions set the word
+ * "MusicD" here, then a reconstruction of the logo; neither was the real
+ * artwork, so the card is left clean rather than carrying an approximation
+ * of a brand. Do not add one back from a description — only from the actual
+ * logo file, committed to the repo and embedded.
  */
 const sharp = require('sharp');
 const db = require('./db');
@@ -33,7 +38,6 @@ const TEXT_X = ART_W + DIVIDER;          // 640
 const TEXT_PAD_R = 48;
 const TEXT_W = CARD_W - TEXT_X - TEXT_PAD_R;   // 512px text column
 const FADE_W = 40;                       // width of the fade over the art edge
-const WORDMARK_PAD = 36;                 // wordmark inset from the bottom-right corner
 const TOP_SAFE_Y = 40;                   // block never rides above this line
 
 // ── Colours (identical to the browser card) ─────────────────────────────────
@@ -74,48 +78,7 @@ const ARTIST_MAX_LINES = 4;
 // laid out at top y lands where canvas would have put it.
 const BASELINE_RATIO = 0.8;
 
-// v1.1.5.0 — the mark is the MusicD logo lockup: the "MusicD" wordmark with
-// the waveform beneath it. Drawn as vector — text plus rounded bars — rather
-// than an embedded bitmap, so it stays crisp at any card size and the card
-// remains a single self-contained SVG that sharp can rasterise.
-//
-// Authored in a 100 x 54 unit box and scaled to LOCKUP_W on the card, so the
-// proportions are fixed and only one number moves it. The waveform is
-// symmetric about its axis and carries the thin tails that run out to either
-// side in the artwork.
-const WORDMARK_OPACITY = 0.88;
 
-// Unit box.
-const LOCKUP_UW = 100, LOCKUP_UH = 54;
-// Drawn width on the card; height follows from the box ratio.
-const LOCKUP_W = 176;
-
-// Wordmark: centred, sitting above the waveform. "MusicD" has no descenders,
-// so its baseline is also its visual bottom.
-const LOCKUP_TEXT = 'MusicD';
-const LOCKUP_TEXT_SIZE = 31;
-const LOCKUP_TEXT_BASELINE = 30;
-
-// Waveform: axis, horizontal extent, bar geometry.
-const WAVE_AXIS_Y = 46;
-const WAVE_X0 = 7, WAVE_X1 = 93;
-const WAVE_BAR_W = 0.9;
-const WAVE_MAX_HALF = 10.5;       // half-height of the tallest bar
-const WAVE_TAIL_X0 = 1, WAVE_TAIL_X1 = 99;
-const WAVE_TAIL_THICK = 0.55;
-
-// Bar half-heights, 0..1 of WAVE_MAX_HALF. Hand-authored to match the
-// artwork's rhythm: short at the ends, dense variation through the middle,
-// with a handful of full-height spikes.
-// The floor is deliberately well above zero: in the artwork the waveform
-// reads as a continuous band with spikes out of it, not as scattered ticks.
-const WAVE_BARS = [
-  0.26, 0.34, 0.28, 0.52, 0.40, 0.64, 0.48, 0.78, 0.56, 0.94,
-  0.46, 0.72, 0.38, 0.62, 0.50, 0.84, 0.58, 0.42, 0.68, 1.00,
-  0.52, 0.36, 0.46, 0.32, 0.42, 0.60, 0.38, 0.50, 0.74, 0.44,
-  0.90, 0.48, 0.34, 0.64, 0.46, 0.80, 0.40, 0.96, 0.54, 0.38,
-  0.68, 0.46, 0.86, 0.42, 0.60, 0.34, 0.50, 0.30, 0.38, 0.26,
-];
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -277,24 +240,6 @@ async function generateForAlbum(albumId) {
     ? ''
     : `<rect x="0" y="0" width="${ART_W}" height="${ART_H}" fill="${COL_ART_EMPTY}"/>`;
 
-  // Logo lockup pinned bottom-right, WORDMARK_PAD clear of both edges. The
-  // unit box is the drawn extent, so the box corner IS the ink corner.
-  const lockupScale = LOCKUP_W / LOCKUP_UW;
-  const lockupX = (CARD_W - WORDMARK_PAD) - LOCKUP_UW * lockupScale;
-  const lockupY = (CARD_H - WORDMARK_PAD) - LOCKUP_UH * lockupScale;
-
-  // Waveform bars, evenly spaced across the span, each centred on the axis
-  // and fully rounded so the caps match the artwork.
-  const waveStep = (WAVE_X1 - WAVE_X0) / (WAVE_BARS.length - 1);
-  const waveBars = WAVE_BARS.map((amp, i) => {
-    const half = Math.max(WAVE_BAR_W / 2, amp * WAVE_MAX_HALF);
-    const x = WAVE_X0 + i * waveStep - WAVE_BAR_W / 2;
-    return `<rect x="${x.toFixed(2)}" y="${(WAVE_AXIS_Y - half).toFixed(2)}" ` +
-           `width="${WAVE_BAR_W}" height="${(half * 2).toFixed(2)}" rx="${WAVE_BAR_W / 2}"/>`;
-  }).join('');
-  const waveTail =
-    `<rect x="${WAVE_TAIL_X0}" y="${(WAVE_AXIS_Y - WAVE_TAIL_THICK / 2).toFixed(2)}" ` +
-    `width="${WAVE_TAIL_X1 - WAVE_TAIL_X0}" height="${WAVE_TAIL_THICK}" rx="${WAVE_TAIL_THICK / 2}"/>`;
 
   const svg = `<svg width="${CARD_W}" height="${CARD_H}" viewBox="0 0 ${CARD_W} ${CARD_H}" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -314,13 +259,6 @@ async function generateForAlbum(albumId) {
     ${metaSvg}
     ${titleSvg}
     ${artistSvg}
-    <g transform="translate(${lockupX.toFixed(2)} ${lockupY.toFixed(2)}) scale(${lockupScale.toFixed(4)})"
-       fill="${COL_TITLE}" opacity="${WORDMARK_OPACITY}">
-      <text x="${LOCKUP_UW / 2}" y="${LOCKUP_TEXT_BASELINE}" text-anchor="middle"
-            font-family="${FONT_FAMILY}" font-weight="700"
-            font-size="${LOCKUP_TEXT_SIZE}" letter-spacing="-0.6">${LOCKUP_TEXT}</text>
-      ${waveTail}${waveBars}
-    </g>
   </svg>`;
 
   // Base plate is the card background; art goes under the SVG so the fade
