@@ -29,50 +29,50 @@
   ],
   "manifestVersion": 1,
   "schema_version": 1,
-  "version": "1.1.12.0",
-  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-12-0.tar",
-  "tarSha256": "ce3645c7f864903dd6a6713892cbafd63a0fc4c794c151d8d7cf9fcdbc381e5f",
-  "releasedAt": "2026-08-19T20:45:00Z",
-  "releaseNotes": "Updater housekeeping found in a successful update's log: the Docker socket was being passed to docker run twice, and the log reported only the mounts it preserved rather than the env vars, network mode, devices and group-adds as well.",
-  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-12-0.tar",
-  "tarball_sha256": "ce3645c7f864903dd6a6713892cbafd63a0fc4c794c151d8d7cf9fcdbc381e5f",
-  "released_at": "2026-08-19T20:45:00Z",
+  "version": "1.1.13.0",
+  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-13-0.tar",
+  "tarSha256": "16fb50fde546434f52d1d4c27d52a4740e7c0bd3befc1733936a317a30d761c9",
+  "releasedAt": "2026-08-19T21:15:00Z",
+  "releaseNotes": "Two musicd containers on one host could destroy each other's update: the updater sidecar had a fixed name and every update force-removed it, so a second install could rip away an in-flight update and leave no container. The sidecar is now named per install.",
+  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-13-0.tar",
+  "tarball_sha256": "16fb50fde546434f52d1d4c27d52a4740e7c0bd3befc1733936a317a30d761c9",
+  "released_at": "2026-08-19T21:15:00Z",
   "release_notes_url": "https://github.com/meltface-80/MusicD-Server-v1/blob/main/musicd/CHANGELOG.md",
   "channels": {
     "stable": {
-      "version": "1.1.12.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-12-0.tar",
-      "tarSha256": "ce3645c7f864903dd6a6713892cbafd63a0fc4c794c151d8d7cf9fcdbc381e5f",
-      "releasedAt": "2026-08-19T20:45:00Z",
-      "releaseNotes": "Updater housekeeping found in a successful update's log: the Docker socket was being passed to docker run twice, and the log reported only the mounts it preserved rather than the env vars, network mode, devices and group-adds as well."
+      "version": "1.1.13.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-13-0.tar",
+      "tarSha256": "16fb50fde546434f52d1d4c27d52a4740e7c0bd3befc1733936a317a30d761c9",
+      "releasedAt": "2026-08-19T21:15:00Z",
+      "releaseNotes": "Two musicd containers on one host could destroy each other's update: the updater sidecar had a fixed name and every update force-removed it, so a second install could rip away an in-flight update and leave no container. The sidecar is now named per install."
     },
     "earlyAccess": {
-      "version": "1.1.12.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-12-0.tar",
-      "tarSha256": "ce3645c7f864903dd6a6713892cbafd63a0fc4c794c151d8d7cf9fcdbc381e5f",
-      "releasedAt": "2026-08-19T20:45:00Z",
-      "releaseNotes": "Updater housekeeping found in a successful update's log: the Docker socket was being passed to docker run twice, and the log reported only the mounts it preserved rather than the env vars, network mode, devices and group-adds as well."
+      "version": "1.1.13.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-13-0.tar",
+      "tarSha256": "16fb50fde546434f52d1d4c27d52a4740e7c0bd3befc1733936a317a30d761c9",
+      "releasedAt": "2026-08-19T21:15:00Z",
+      "releaseNotes": "Two musicd containers on one host could destroy each other's update: the updater sidecar had a fixed name and every update force-removed it, so a second install could rip away an in-flight update and leave no container. The sidecar is now named per install."
     },
     "beta": {
-      "version": "1.1.12.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-12-0.tar",
-      "tarSha256": "ce3645c7f864903dd6a6713892cbafd63a0fc4c794c151d8d7cf9fcdbc381e5f",
-      "releasedAt": "2026-08-19T20:45:00Z",
-      "releaseNotes": "Updater housekeeping found in a successful update's log: the Docker socket was being passed to docker run twice, and the log reported only the mounts it preserved rather than the env vars, network mode, devices and group-adds as well."
+      "version": "1.1.13.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-13-0.tar",
+      "tarSha256": "16fb50fde546434f52d1d4c27d52a4740e7c0bd3befc1733936a317a30d761c9",
+      "releasedAt": "2026-08-19T21:15:00Z",
+      "releaseNotes": "Two musicd containers on one host could destroy each other's update: the updater sidecar had a fixed name and every update force-removed it, so a second install could rip away an in-flight update and leave no container. The sidecar is now named per install."
     },
     "alpha": {
-      "version": "1.1.12.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-12-0.tar",
-      "tarSha256": "ce3645c7f864903dd6a6713892cbafd63a0fc4c794c151d8d7cf9fcdbc381e5f",
-      "releasedAt": "2026-08-19T20:45:00Z",
-      "releaseNotes": "Updater housekeeping found in a successful update's log: the Docker socket was being passed to docker run twice, and the log reported only the mounts it preserved rather than the env vars, network mode, devices and group-adds as well."
+      "version": "1.1.13.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-13-0.tar",
+      "tarSha256": "16fb50fde546434f52d1d4c27d52a4740e7c0bd3befc1733936a317a30d761c9",
+      "releasedAt": "2026-08-19T21:15:00Z",
+      "releaseNotes": "Two musicd containers on one host could destroy each other's update: the updater sidecar had a fixed name and every update force-removed it, so a second install could rip away an in-flight update and leave no container. The sidecar is now named per install."
     },
     "legacy": {
-      "version": "1.1.12.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-12-0.tar",
-      "tarSha256": "ce3645c7f864903dd6a6713892cbafd63a0fc4c794c151d8d7cf9fcdbc381e5f",
-      "releasedAt": "2026-08-19T20:45:00Z",
-      "releaseNotes": "Updater housekeeping found in a successful update's log: the Docker socket was being passed to docker run twice, and the log reported only the mounts it preserved rather than the env vars, network mode, devices and group-adds as well."
+      "version": "1.1.13.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-13-0.tar",
+      "tarSha256": "16fb50fde546434f52d1d4c27d52a4740e7c0bd3befc1733936a317a30d761c9",
+      "releasedAt": "2026-08-19T21:15:00Z",
+      "releaseNotes": "Two musicd containers on one host could destroy each other's update: the updater sidecar had a fixed name and every update force-removed it, so a second install could rip away an in-flight update and leave no container. The sidecar is now named per install."
     }
   },
   "channelMetadata": {

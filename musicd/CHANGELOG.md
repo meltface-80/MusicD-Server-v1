@@ -12,6 +12,48 @@ Categories used per release:
 
 ---
 
+## v1.1.13.0 — 2026-08-19 — TWO INSTALLS ON ONE HOST NO LONGER FIGHT
+
+### Fixed
+
+- **Two musicd containers on one host could destroy each other's update.**
+  The updater sidecar was always called `musicd-updater`, and every update
+  began with `docker rm -f musicd-updater` to clear a stale one.
+
+  That is fine for a single install. A host that took one of the broken
+  pre-v1.1.10.0 updates is left running **both** `musicd` and `musicd-server`
+  — two servers, both polling the same manifest, both holding the Docker
+  socket, both entitled to start an update. Whichever moved second force-
+  removed the other's **in-flight** sidecar. Land that between the victim's
+  `docker rm <container>` and the `docker run` that recreates it, and the
+  machine is left with no musicd container at all, and nothing in the log to
+  explain it.
+
+  The sidecar is now named after the container it is updating —
+  `musicd-updater-musicd-server`, `musicd-updater-musicd` — so the two are
+  independent. The name is sanitised to Docker's `[a-zA-Z0-9][a-zA-Z0-9_.-]*`,
+  since it comes from `docker inspect` rather than from us.
+
+  The old shared name is still cleaned up, because it is debris on every
+  install that has ever updated — but with plain `docker rm`, never `-f`. If
+  another musicd on the host has one running under the old name right now,
+  `docker rm` simply fails and leaves it alone, which is exactly the wanted
+  behaviour.
+
+- **`docker logs musicd-updater` was useless advice** once the sidecar could
+  be called something else. The stuck-update hint now names the container that
+  actually exists.
+
+### Tests
+
+- Seven more assertions in `updater-container.test.js` (27 in the file, 248 in
+  the suite): distinct names per install, a legal Docker name out of every
+  input including empty and non-ASCII, the legacy name cleaned but never
+  forced, and the log hint tracking the real name. Four mutations, each red
+  then green.
+
+---
+
 ## v1.1.12.0 — 2026-08-19 — UPDATER HOUSEKEEPING, FOUND IN A SUCCESSFUL UPDATE'S LOG
 
 The v1.1.10.0 updater fix worked: the first clean in-app install on a
