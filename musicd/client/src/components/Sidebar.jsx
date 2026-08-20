@@ -73,6 +73,9 @@ export default function Sidebar({ onClose }) {
     // back to this"). Bookmark icon to distinguish from the Heart
     // and from the Tag-as-Genres icon. The list view itself is a
     // simple AlbumGrid driven by ?saved=1 on /library/albums.
+    // v1.1.20.0 — Tags moved here from Settings → Tags. It is a way through
+    // the library, like the two entries around it, not an admin screen.
+    { id: 'tags', label: 'Tags', icon: Tag },
     { id: 'saved', label: 'Saved for later', icon: Bookmark },
     // v1.1.0.82 — Focus Library lists the user's saved focus
     // combinations (e.g. "Late Night Jazz"). Tap one to open the

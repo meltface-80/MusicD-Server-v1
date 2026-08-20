@@ -32,6 +32,11 @@ export default function NewsSection() {
   const load = useCallback(async () => {
     try {
       const r = await api.get('/news/feed?limit=60')
+      // v1.1.20.0 — every source is off on a new install and nothing is
+      // fetched until one is switched on. `enabled` says whether any is, so
+      // the block can be left out entirely rather than showing a "no news
+      // yet — first fetch is still running" that would never resolve.
+      if (r && r.enabled === false) { setPhase('disabled'); setError(null); return }
       const list = r?.items || []
       setItems(list)
       setPhase(list.length === 0 ? 'empty' : 'ready')
@@ -86,6 +91,11 @@ export default function NewsSection() {
   const bandcampArticles    = articlesAll.filter(it => it.source === 'bandcamp')
   const nonBandcampArticles = articlesAll.filter(it => it.source !== 'bandcamp')
   const articles = [...bandcampArticles, ...nonBandcampArticles]
+
+  // Nothing enabled: render nothing at all. Not an empty panel with a header
+  // and a refresh button that would fetch nothing — the whole point of the
+  // switch being off is that this costs the user nothing.
+  if (phase === 'disabled') return null
 
   return (
     <div style={s.panel}>

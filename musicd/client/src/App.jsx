@@ -21,6 +21,7 @@ import HomeScreen from './components/HomeScreen'
 import UnmatchedScreen from './components/UnmatchedScreen'
 import FocusLibraryScreen from './components/FocusLibraryScreen'
 import PlaylistsScreen from './components/PlaylistsScreen'
+import TagsScreen from './components/TagsScreen'
 
 // Screen identity for the scroll memory below. Declared at module scope so
 // it exists before every use inside the component.
@@ -287,6 +288,7 @@ export default function App() {
     // pendingFocusToLoad in the store.
     if (sidebarSection === 'focusLibrary') return <FocusLibraryScreen />
     if (sidebarSection === 'playlists') return <PlaylistsScreen />
+    if (sidebarSection === 'tags') return <TagsScreen />
     if (sidebarSection === 'albums') return <AlbumGrid onAlbumSelect={handleSetSelectedAlbum} />
     return <HomeScreen
       onAlbumSelect={handleSetSelectedAlbum}

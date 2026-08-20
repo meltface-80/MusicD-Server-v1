@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useStore } from '../store'
 import { api } from '../api'
-import { Volume2, Play, Square, Download, RefreshCw, ChevronRight, ChevronLeft, User, Sliders, Headphones, Folder, Save, Image as ImageIcon, Radio, LogOut, Cable, Key, Tag, Power, Cpu } from 'lucide-react'
+import { Volume2, Play, Square, Download, RefreshCw, ChevronRight, ChevronLeft, User, Sliders, Headphones, Folder, Save, Image as ImageIcon, Radio, LogOut, Cable, Key, Home, Power, Cpu } from 'lucide-react'
 import DspTab from './DspTab'
 import AutoEqTab from './AutoEqTab'
 import LibraryScopeSection from './LibraryScopeSection'
@@ -11,7 +11,7 @@ import {
   SHARE_FILES, SHARE_INSECURE,
 } from '../bugReportShare'
 import BackupSection from './BackupSection'
-import TagManagementSection from './TagManagementSection'
+import HomeScreenSection from './HomeScreenSection'
 import AudioSection from './AudioSection'
 import CpuTweaksSection from './CpuTweaksSection'
 
@@ -539,10 +539,9 @@ export default function SettingsScreen({ onBack }) {
   // Scrobbling → Backup → Software Update.
   const SECTIONS = [
     { id: 'library',    title: 'Library',          icon: <Folder size={14} style={{ marginRight: 8 }} /> },
-    // v1.1.0.72 — tag management. Sits between Library and Audio
-    // because tags are conceptually a library-level concern (they
-    // attach to albums and tracks, not playback).
-    { id: 'tags',       title: 'Tags',             icon: <Tag size={14} style={{ marginRight: 8 }} /> },
+    // v1.1.20.0 — Home Screen took the slot Tags used to hold. Tags is now a
+    // side-menu entry; what remains here is what the Home screen may fetch.
+    { id: 'home',       title: 'Home Screen',      icon: <Home size={14} style={{ marginRight: 8 }} /> },
     { id: 'audio',      title: 'Audio Devices',    icon: <Cable size={14} style={{ marginRight: 8 }} /> },
     { id: 'dsp',        title: 'DSP',              icon: <Sliders size={14} style={{ marginRight: 8 }} /> },
     { id: 'autoeq',     title: 'AutoEQ',           icon: <Headphones size={14} style={{ marginRight: 8 }} /> },
@@ -630,12 +629,11 @@ export default function SettingsScreen({ onBack }) {
         </div>
       </Section>
 
-      {/* v1.1.0.72 — Tag management. List, rename, recolour, delete
-          all user tags. The picker on overflow sheets remains the
-          most-common create path; this is the canonical edit
-          surface. */}
-      <Section id="tags" title="Tags" icon={<Tag size={14} style={{ marginRight: 8 }} />} openSection={openSection} setOpenSection={setOpenSection}>
-        <TagManagementSection />
+      {/* v1.1.20.0 — Tags moved to the side menu (it is a way through the
+          library, not an admin screen). Home Screen takes its place: what the
+          Home screen is allowed to fetch and show. */}
+      <Section id="home" title="Home Screen" icon={<Home size={14} style={{ marginRight: 8 }} />} openSection={openSection} setOpenSection={setOpenSection}>
+        <HomeScreenSection />
       </Section>
 
       <Section id="audio" title="Audio Devices" icon={<Cable size={14} style={{ marginRight: 8 }} />} openSection={openSection} setOpenSection={setOpenSection}>
