@@ -12,6 +12,80 @@ Categories used per release:
 
 ---
 
+## v1.1.19.0 — 2026-08-20 — PLAYLISTS, AND THE MENU ROWS THAT NEVER ARRIVED
+
+### New
+
+- **Playlists.** The track menu's "Add to Playlist" row has been greyed out
+  with a `v60` badge on it since v57, because nothing backed it. Now something
+  does.
+
+  `playlists` and `playlist_tracks` tables, a `/api/playlists` router, a
+  **Playlists** entry in the sidebar, and an **Add to Playlist** sheet on the
+  ⋯ menu. The sheet ticks the playlists a track is already in — adding is
+  idempotent server-side, and this is what makes that visible rather than
+  mysterious — and "New playlist" creates *and* fills in one round trip.
+
+  Track membership is keyed `(playlist_id, track_id)`, so tapping the menu row
+  twice cannot silently duplicate a row. The cost is that a playlist cannot
+  deliberately repeat a track; that is the rarer want, and the menu action is
+  the common one.
+
+  Positions continue from the current **maximum**, not the row count. Counting
+  reuses a position a later track still holds, and `ORDER BY position` is then
+  ambiguous between them.
+
+- **"Add to Tag" and "Save for later" now work** — and were waiting on
+  nothing. The per-track tag endpoints and the `save-for-later` route both
+  already existed and were already wired up for albums; only these two menu
+  rows were left disabled, one badged `v61` and the other `v61`. They call the
+  routes that were already there, and Add to Tag opens the same `TagPicker` the
+  album screen has used since v1.1.0.67.
+
+### UI
+
+- **The share card is centred instead of anchored to the bottom.** It was a
+  bottom sheet, which put it — and its own Download button — underneath the
+  mini transport bar. Both the album screen's card and the Now Playing one now
+  sit in the middle of the screen and clear the safe areas themselves.
+
+- **The Download button is gone from both.** On a plain-HTTP LAN install
+  `navigator.canShare` is undefined, so that button only ever offered a blob
+  download. Touch-and-hold on the card gives the OS save-and-share sheet, which
+  is what the `.allow-callout` class added in v1.1.15.0 is there for.
+
+### Still disabled, deliberately
+
+- **Suggestions.** Unlike the three rows above it, this one has nothing behind
+  it *and* no single obvious meaning — "more from this artist", "same genre",
+  "things you have not played" and "similar-sounding" are four different
+  features with four different implementations. Building one and calling it
+  Suggestions would be inventing a spec rather than completing one, so it keeps
+  an honest placeholder until that call is made. Its badge now reads "soon"
+  rather than a version number it has already missed.
+
+### Tests
+
+- `playlists.test.js` — 32 assertions driving the **real route handlers**
+  against a real in-memory SQLite built from **db.js's own DDL**, lifted from
+  the source rather than restated, so a schema change that breaks the routes
+  fails here instead of on a device.
+
+  One assertion had to be rewritten: checking the resulting track *order*
+  after a remove-then-re-add passed the position-collision bug, because on a
+  tie SQLite returns rows in rowid order, which happened to be the order the
+  test wanted. It now asserts the invariant directly — positions within a
+  playlist are unique.
+
+  Suite is 19 files and 401 assertions. Six mutations run, each red then green.
+
+### Unverified on hardware
+
+- All the UI work. No `<head>`, root-style or safe-area *shell* changes, so the
+  home-screen shortcut does not need deleting and re-adding.
+
+---
+
 ## v1.1.18.0 — 2026-08-20 — BANDCAMP RELEASES NOW COME FROM THE ALBUM PAGE
 
 ### Fixed

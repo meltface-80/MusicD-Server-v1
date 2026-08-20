@@ -80,6 +80,10 @@ export default function Sidebar({ onClose }) {
     // funnel/sliders icon used for the Focus button itself so the
     // visual association is obvious.
     { id: 'focusLibrary', label: 'Focus library', icon: SlidersHorizontal },
+    // v1.1.19.0 — playlists. Sits after the other saved-collection entries
+    // because it belongs with them rather than with the browse-by-metadata
+    // ones above.
+    { id: 'playlists', label: 'Playlists', icon: ListMusic },
   ]
 
   const activeRenderer = renderers.find(r => r.id === rendererId)

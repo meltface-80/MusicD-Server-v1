@@ -495,6 +495,45 @@ function init() {
   // The two link tables (album_tags, track_tags) carry no extra
   // metadata — just the pair. ON DELETE CASCADE handles tag deletion
   // and album/track scanner removals cleanly.
+  // ── Playlists (v1.1.19.0) ──────────────────────────────────────────
+  //
+  // The "Add to Playlist" row has sat disabled in the track menu since v57
+  // with a "v60" badge on it. This is the backing store it was waiting for.
+  //
+  // Track membership is keyed (playlist_id, track_id), so a track appears in
+  // a playlist at most once and "add to playlist" is idempotent — tapping it
+  // twice from a menu does not silently duplicate the row. The cost is that a
+  // playlist cannot deliberately repeat a track; that is the rarer want, and
+  // the menu action is the common one.
+  //
+  // `position` keeps the user's order independent of insertion time so the
+  // list can be reordered later without rewriting added_at.
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS playlists (
+        id         TEXT PRIMARY KEY,
+        name       TEXT NOT NULL,
+        created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+        updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+      )
+    `);
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS playlist_tracks (
+        playlist_id TEXT NOT NULL,
+        track_id    TEXT NOT NULL,
+        position    INTEGER NOT NULL,
+        added_at    INTEGER NOT NULL DEFAULT (unixepoch()),
+        PRIMARY KEY (playlist_id, track_id),
+        FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE,
+        FOREIGN KEY (track_id)    REFERENCES tracks(id)    ON DELETE CASCADE
+      )
+    `);
+    // Ordering a playlist's own rows, and finding which playlists hold a
+    // track (used to tick the ones it is already in).
+    db.exec('CREATE INDEX IF NOT EXISTS idx_playlist_tracks_pos ON playlist_tracks(playlist_id, position)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_playlist_tracks_track ON playlist_tracks(track_id)');
+  } catch (e) { console.error('[db] playlists create:', e.message); }
+
   try {
     db.exec(`
       CREATE TABLE IF NOT EXISTS tags (

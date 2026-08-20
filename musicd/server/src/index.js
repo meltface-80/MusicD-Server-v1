@@ -24,6 +24,7 @@ const schedulerRouter = require('./routes/scheduler');
 const bugReportRouter = require('./routes/bugReport');
 // v1.1.0.67 — user-defined tags + Save-for-later
 const tagsRouter = require('./routes/tags');
+const playlistsRouter = require('./routes/playlists');
 
 process.on('uncaughtException', err => console.error('UNCAUGHT EXCEPTION:', err));
 process.on('unhandledRejection', (reason) => console.error('UNHANDLED REJECTION:', reason));
@@ -113,6 +114,7 @@ app.use('/api/debug', debugRouter);
 app.use('/api/scheduler', schedulerRouter);
 app.use('/api/bug-report', bugReportRouter);
 app.use('/api/tags', tagsRouter);
+app.use('/api/playlists', playlistsRouter);
 
 // SPA fallback: any non-API route returns index.html so client-side routing works
 app.get('*', (req, res, next) => {

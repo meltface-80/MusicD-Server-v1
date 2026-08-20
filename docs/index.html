@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MusicD Server v1 — self-hosted music server</title>
-<meta name="description" content="MusicD Server v1.1.18.0 — a self-hosted music server with a Roon-inspired web UI, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
+<meta name="description" content="MusicD Server v1.1.19.0 — a self-hosted music server with a Roon-inspired web UI, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
 <style>
   :root {
     --bg:        #1b1d1f;   /* charcoal */
@@ -263,7 +263,7 @@
   presets, FIR convolution and a per-stream signal path you can actually
   read.</p>
   <div class="badges">
-    <span class="badge">v1.1.18.0</span>
+    <span class="badge">v1.1.19.0</span>
     <span class="badge">Node 20 &middot; Express &middot; SQLite</span>
     <span class="badge">React SPA &middot; PWA</span>
     <span class="badge plain">Docker &middot; port 32700</span>
@@ -275,7 +275,7 @@
 
 <section id="whats-new" aria-labelledby="whats-new-h">
   <div class="wrap">
-    <h2 id="whats-new-h">What&rsquo;s new in 1.1.18.0</h2>
+    <h2 id="whats-new-h">What&rsquo;s new in 1.1.19.0</h2>
     <p class="lead">Seven ways to sort the album wall, each reversible, and the
     choice is still there when you come back to the app.</p>
     <div class="grid">
@@ -314,6 +314,27 @@
         not year zero. It sits at the end of the list whichever way you point
         Release year &mdash; otherwise asking for oldest-first would fill the
         top of the wall with every undated album you own.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">New</span>
+        <h3><span class="em" aria-hidden="true">&#127925;</span>Playlists</h3>
+        <p>Build playlists and play them: a <b>Playlists</b> entry in the menu,
+        and <b>Add to Playlist</b> on any track&rsquo;s &ctdot; menu. The sheet
+        ticks the playlists a track is already in, and making a new one adds
+        the track at the same time.</p>
+        <p><b>Add to Tag</b> and <b>Save for later</b> work from that menu too
+        &mdash; both had been greyed out waiting for features that already
+        existed everywhere else in the app.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">Fixed</span>
+        <h3><span class="em" aria-hidden="true">&#128228;</span>The share card is out from under the player</h3>
+        <p>It opened as a bottom sheet, so the mini player sat on top of it.
+        It now opens in the middle of the screen. The Download button is gone
+        &mdash; touch and hold the card to save or share it with the usual iOS
+        sheet.</p>
       </div>
 
       <div class="card new">
@@ -773,7 +794,7 @@
       <code>-e MUSICD_MANIFEST_URL=https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json</code>
       to your <code>docker run</code>, restart, then <b>Check for updates</b>.
       The older parser understands this manifest, so it installs normally. Drop
-      the variable afterwards &mdash; v1.1.18.0 has the same URL as its own
+      the variable afterwards &mdash; v1.1.19.0 has the same URL as its own
       default.
     </div>
   </div>
@@ -846,7 +867,7 @@
 </main>
 
 <footer>
-  MusicD Server v1.1.18.0 &mdash; self-hosted music, one user, one library, one home network.
+  MusicD Server v1.1.19.0 &mdash; self-hosted music, one user, one library, one home network.
   <br>MIT licence &middot; <a href="https://github.com/meltface-80/MusicD-Server-v1">Source on GitHub</a>
 </footer>
 
