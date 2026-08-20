@@ -6,6 +6,10 @@ import DspTab from './DspTab'
 import AutoEqTab from './AutoEqTab'
 import LibraryScopeSection from './LibraryScopeSection'
 import HelpTooltip from './HelpTooltip'
+import {
+  classifyShare, hasAsyncClipboard, reportDownloadUrl,
+  SHARE_FILES, SHARE_INSECURE,
+} from '../bugReportShare'
 import BackupSection from './BackupSection'
 import TagManagementSection from './TagManagementSection'
 import AudioSection from './AudioSection'
@@ -1842,28 +1846,15 @@ function BugReportPanel({ currentVersion }) {
   const [error, setError] = useState(null)
   const [hasShared, setHasShared] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [downloaded, setDownloaded] = useState(false)
 
-  // Detect Web Share with file support. Some browsers expose
-  // navigator.share but reject files (canShare returns false). We
-  // probe with a tiny dummy File at render time so the UI knows
-  // which path to offer.
-  //
-  // v1.1.0.84: probe with text/plain rather than application/json.
-  // iOS Safari occasionally approves canShare for application/json
-  // files at probe time but then throws "permission denied" when
-  // the actual share fires. text/plain is consistently accepted.
-  // We still probe with a small placeholder; the real file gets
-  // re-checked in shareViaWebShare with canShare on the actual
-  // payload before invoking share().
-  const canShareFiles = (() => {
-    if (typeof navigator === 'undefined' || !navigator.share || !navigator.canShare) return false
-    try {
-      const probe = new File(['probe'], 'probe.txt', { type: 'text/plain' })
-      return navigator.canShare({ files: [probe] })
-    } catch {
-      return false
-    }
-  })()
+  // Can this page attach the report to a share sheet, and if not, why not?
+  // See ../bugReportShare — the answer on a LAN install is almost always
+  // "the origin is not secure", not "the browser cannot".
+  const shareMode = (typeof navigator === 'undefined')
+    ? SHARE_INSECURE
+    : classifyShare(navigator, typeof window !== 'undefined' && window.isSecureContext, null)
+  const canShareFiles = shareMode === SHARE_FILES
 
   const send = async () => {
     if (!note.trim()) return
@@ -1938,12 +1929,50 @@ function BugReportPanel({ currentVersion }) {
     setHasShared(true)
   }
 
+  // Put the real .json on the device.
+  //
+  // The server already saved it and already serves it back with
+  // Content-Disposition: attachment, so this is a plain navigation: iOS puts
+  // the file in Files → Downloads, where the mail app's attachment picker can
+  // reach it. That is the difference between "attach the report" and "ask the
+  // developer for 2026-08-19T20-38-09-129Z-m01rt8.json — it's saved on your
+  // box", which is what this screen used to say.
+  const downloadReport = () => {
+    const url = reportDownloadUrl(result?.filename)
+    if (!url) {
+      setError('No saved report to download')
+      return
+    }
+    setDownloaded(true)
+    window.location.href = url
+  }
+
   const copyBodyToClipboard = async () => {
     if (!result?.emailBody) return
+    const text = `To: ${BUG_REPORT_RECIPIENT}\nSubject: ${subject}\n\n${result.emailBody}`
     try {
-      await navigator.clipboard.writeText(
-        `To: ${BUG_REPORT_RECIPIENT}\nSubject: ${subject}\n\n${result.emailBody}`
-      )
+      if (hasAsyncClipboard(navigator)) {
+        await navigator.clipboard.writeText(text)
+      } else {
+        // navigator.clipboard is secure-context-gated, so on a plain-HTTP LAN
+        // install it is undefined and the old code threw "undefined is not an
+        // object". execCommand is deprecated but is not gated, and is the only
+        // thing that works on exactly the origins that need it.
+        const ta = document.createElement('textarea')
+        ta.value = text
+        // Off-screen rather than hidden: a display:none textarea cannot be
+        // selected, and iOS needs it focusable and non-zero-sized.
+        ta.setAttribute('readonly', '')
+        ta.style.position = 'fixed'
+        ta.style.top = '0'
+        ta.style.left = '-9999px'
+        document.body.appendChild(ta)
+        ta.select()
+        ta.setSelectionRange(0, text.length)   // iOS ignores select() alone
+        const ok = document.execCommand('copy')
+        document.body.removeChild(ta)
+        if (!ok) throw new Error('the browser refused the copy')
+      }
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (e) {
@@ -2050,15 +2079,32 @@ function BugReportPanel({ currentVersion }) {
                     Share with full attachment…
                   </button>
                 )}
+                {/* Without the direct-attach path this is the button that
+                    actually gets the JSON to the user, so it leads. */}
+                {!canShareFiles && (
+                  <button
+                    onClick={downloadReport}
+                    style={{
+                      padding: '7px 14px',
+                      background: 'var(--accent)',
+                      border: 'none', borderRadius: 6,
+                      color: '#fff',
+                      fontSize: 12, fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {downloaded ? 'Saved ✓' : 'Save report file'}
+                  </button>
+                )}
                 <button
                   onClick={shareViaMailto}
                   style={{
                     padding: '7px 14px',
-                    background: canShareFiles ? 'transparent' : 'var(--accent)',
-                    border: canShareFiles ? '1px solid var(--border-soft)' : 'none',
+                    background: 'transparent',
+                    border: '1px solid var(--border-soft)',
                     borderRadius: 6,
-                    color: canShareFiles ? 'var(--text-secondary)' : '#fff',
-                    fontSize: 12, fontWeight: canShareFiles ? 500 : 600,
+                    color: 'var(--text-secondary)',
+                    fontSize: 12, fontWeight: 500,
                     cursor: 'pointer',
                   }}
                 >
@@ -2079,7 +2125,7 @@ function BugReportPanel({ currentVersion }) {
                   {copied ? 'Copied ✓' : 'Copy as text'}
                 </button>
                 <button
-                  onClick={() => { setOpen(false); setNote(''); setResult(null); setError(null); setHasShared(false) }}
+                  onClick={() => { setOpen(false); setNote(''); setResult(null); setError(null); setHasShared(false); setDownloaded(false) }}
                   style={{
                     padding: '7px 14px',
                     background: 'transparent',
@@ -2095,12 +2141,30 @@ function BugReportPanel({ currentVersion }) {
               </div>
               {hasShared && (
                 <div style={{ marginTop: 10, fontSize: 11, color: '#3fd07a' }}>
-                  Thanks — your mail app should be open with the report ready to send.
+                  {canShareFiles
+                    ? 'Thanks — your mail app should be open with the report attached.'
+                    : 'Thanks — your mail app should be open with a summary. Attach the saved report file to it if you have not already.'}
                 </div>
               )}
               {!canShareFiles && (
-                <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>
-                  Your browser doesn't support sharing files directly. The email body has a summary; if you need the full JSON for follow-up, ask the developer for <code style={{ fontFamily: 'var(--font-mono)' }}>{result.filename}</code> — it's saved on your box.
+                <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+                  {shareMode === SHARE_INSECURE ? (
+                    <>
+                      <b>Save report file</b> downloads <code style={{ fontFamily: 'var(--font-mono)' }}>{result.filename}</code>
+                      {' '}to this device — on iOS it lands in Files → Downloads. Then tap <b>Open email app</b> and attach it from there.
+                      <div style={{ marginTop: 6 }}>
+                        Attaching it in one step needs the Web Share API, which browsers only
+                        expose over HTTPS. MusicD is served over plain HTTP on your network, so
+                        the browser withholds it — nothing to do with which browser you use.
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      This browser can't attach files to a share sheet. <b>Save report file</b> downloads
+                      {' '}<code style={{ fontFamily: 'var(--font-mono)' }}>{result.filename}</code> to this
+                      device so you can attach it to the email yourself.
+                    </>
+                  )}
                 </div>
               )}
             </div>

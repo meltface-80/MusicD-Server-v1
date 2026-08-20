@@ -12,6 +12,76 @@ Categories used per release:
 
 ---
 
+## v1.1.17.0 — 2026-08-19 — GETTING THE BUG REPORT OFF THE PHONE
+
+### Fixed
+
+- **The bug-report screen blamed the wrong thing, and the copy button threw.**
+  Both were the same cause.
+
+  It said "Your browser doesn't support sharing files directly" and told the
+  user to go and find the JSON on the server. Safari on iOS shares files
+  perfectly well — what it will not do is expose the Web Share API on an
+  **insecure origin**. MusicD is served over plain HTTP on a LAN address, so
+  `navigator.share` and `navigator.canShare` are simply absent, and the old
+  code read that absence as a browser limitation.
+
+  `navigator.clipboard` is withheld on exactly the same terms, which is why
+  "Copy as text" failed with `undefined is not an object (evaluating
+  'navigator.clipboard.writeText')` — the code dereferenced an object the
+  browser had not provided. Neither failure is fixed by switching browsers.
+
+  The screen now distinguishes the two cases and says which one it is.
+
+- **"Copy as text" works on a plain-HTTP install.** It falls back to
+  `document.execCommand('copy')`, which is deprecated but is not
+  secure-context-gated, and is therefore the only thing that works on exactly
+  the origins that need it. The textarea is positioned off-screen rather than
+  hidden (a `display: none` textarea cannot be selected) and uses
+  `setSelectionRange`, because iOS ignores `select()` on its own and would
+  otherwise copy nothing while reporting success.
+
+### New
+
+- **"Save report file"** downloads the real `.json` to the device. The server
+  already saved it and already served it back as an attachment
+  (`GET /api/bug-report/file/:name` → `res.download`), so this needed no
+  server change at all — only a button pointing at it.
+
+  On iOS the file lands in **Files → Downloads**, where the mail app's
+  attachment picker can reach it: tap **Save report file**, tap **Open email
+  app**, attach. That replaces "ask the developer for
+  `2026-08-19T20-38-09-129Z-m01rt8.json` — it's saved on your box".
+
+  The client's filename guard is the server's own `/^[\w\-:.]+\.json$/`, so a
+  name the route would reject is never turned into a URL that 400s after the
+  user has already tapped.
+
+  One-tap attachment still needs the Web Share API and therefore HTTPS. The
+  button is offered only when that path is unavailable; where it is available,
+  nothing changes.
+
+- The confirmation line now distinguishes the two paths. It said "your mail app
+  should be open with the report ready to send" on both, including the `mailto:`
+  path, which cannot carry an attachment — which is how a report arrives with
+  nothing attached and nobody notices.
+
+### Tests
+
+- `bug-report-share.test.js` — 21 assertions over the capability classification
+  (secure and insecure, half-present APIs, a probe that throws), the clipboard
+  guard, and the download URL. One asserts the client's filename guard and the
+  server's cannot diverge.
+
+  Suite is 17 files and 336 assertions. Six mutations run, each red then green.
+
+### Unverified on hardware
+
+- The download landing in Files, and the `execCommand` copy, are both iOS
+  behaviours this environment cannot exercise.
+
+---
+
 ## v1.1.16.0 — 2026-08-19 — PLAY NOW / PLAY NEXT ON UPCOMING TRACKS TOO
 
 ### Fixed
