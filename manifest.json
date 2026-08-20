@@ -29,50 +29,50 @@
   ],
   "manifestVersion": 1,
   "schema_version": 1,
-  "version": "1.1.16.0",
-  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-16-0.tar",
-  "tarSha256": "bf98abec6fc55ba1d2f78c95345b082b1221b036c405bf55711a5772a7be13b4",
-  "releasedAt": "2026-08-19T23:55:00Z",
-  "releaseNotes": "Tapping a track that had not played yet just started it instead of offering Play now / Play next. The sheet now opens for every track except the one playing, and Play next uses the right destination from either side of the playhead.",
-  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-16-0.tar",
-  "tarball_sha256": "bf98abec6fc55ba1d2f78c95345b082b1221b036c405bf55711a5772a7be13b4",
-  "released_at": "2026-08-19T23:55:00Z",
+  "version": "1.1.17.0",
+  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-17-0.tar",
+  "tarSha256": "33dd7e5918ebae48b60685423d97fe690ab57d9fd35f2b2191c5dc9272ec149d",
+  "releasedAt": "2026-08-20T00:25:00Z",
+  "releaseNotes": "Bug reports: a Save report file button puts the .json straight onto the device (Files > Downloads on iOS) so it can be attached to the email, instead of telling you to find it on the server. The screen also stops blaming the browser for what is a plain-HTTP restriction, and Copy as text works again.",
+  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-17-0.tar",
+  "tarball_sha256": "33dd7e5918ebae48b60685423d97fe690ab57d9fd35f2b2191c5dc9272ec149d",
+  "released_at": "2026-08-20T00:25:00Z",
   "release_notes_url": "https://github.com/meltface-80/MusicD-Server-v1/blob/main/musicd/CHANGELOG.md",
   "channels": {
     "stable": {
-      "version": "1.1.16.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-16-0.tar",
-      "tarSha256": "bf98abec6fc55ba1d2f78c95345b082b1221b036c405bf55711a5772a7be13b4",
-      "releasedAt": "2026-08-19T23:55:00Z",
-      "releaseNotes": "Tapping a track that had not played yet just started it instead of offering Play now / Play next. The sheet now opens for every track except the one playing, and Play next uses the right destination from either side of the playhead."
+      "version": "1.1.17.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-17-0.tar",
+      "tarSha256": "33dd7e5918ebae48b60685423d97fe690ab57d9fd35f2b2191c5dc9272ec149d",
+      "releasedAt": "2026-08-20T00:25:00Z",
+      "releaseNotes": "Bug reports: a Save report file button puts the .json straight onto the device (Files > Downloads on iOS) so it can be attached to the email, instead of telling you to find it on the server. The screen also stops blaming the browser for what is a plain-HTTP restriction, and Copy as text works again."
     },
     "earlyAccess": {
-      "version": "1.1.16.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-16-0.tar",
-      "tarSha256": "bf98abec6fc55ba1d2f78c95345b082b1221b036c405bf55711a5772a7be13b4",
-      "releasedAt": "2026-08-19T23:55:00Z",
-      "releaseNotes": "Tapping a track that had not played yet just started it instead of offering Play now / Play next. The sheet now opens for every track except the one playing, and Play next uses the right destination from either side of the playhead."
+      "version": "1.1.17.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-17-0.tar",
+      "tarSha256": "33dd7e5918ebae48b60685423d97fe690ab57d9fd35f2b2191c5dc9272ec149d",
+      "releasedAt": "2026-08-20T00:25:00Z",
+      "releaseNotes": "Bug reports: a Save report file button puts the .json straight onto the device (Files > Downloads on iOS) so it can be attached to the email, instead of telling you to find it on the server. The screen also stops blaming the browser for what is a plain-HTTP restriction, and Copy as text works again."
     },
     "beta": {
-      "version": "1.1.16.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-16-0.tar",
-      "tarSha256": "bf98abec6fc55ba1d2f78c95345b082b1221b036c405bf55711a5772a7be13b4",
-      "releasedAt": "2026-08-19T23:55:00Z",
-      "releaseNotes": "Tapping a track that had not played yet just started it instead of offering Play now / Play next. The sheet now opens for every track except the one playing, and Play next uses the right destination from either side of the playhead."
+      "version": "1.1.17.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-17-0.tar",
+      "tarSha256": "33dd7e5918ebae48b60685423d97fe690ab57d9fd35f2b2191c5dc9272ec149d",
+      "releasedAt": "2026-08-20T00:25:00Z",
+      "releaseNotes": "Bug reports: a Save report file button puts the .json straight onto the device (Files > Downloads on iOS) so it can be attached to the email, instead of telling you to find it on the server. The screen also stops blaming the browser for what is a plain-HTTP restriction, and Copy as text works again."
     },
     "alpha": {
-      "version": "1.1.16.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-16-0.tar",
-      "tarSha256": "bf98abec6fc55ba1d2f78c95345b082b1221b036c405bf55711a5772a7be13b4",
-      "releasedAt": "2026-08-19T23:55:00Z",
-      "releaseNotes": "Tapping a track that had not played yet just started it instead of offering Play now / Play next. The sheet now opens for every track except the one playing, and Play next uses the right destination from either side of the playhead."
+      "version": "1.1.17.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-17-0.tar",
+      "tarSha256": "33dd7e5918ebae48b60685423d97fe690ab57d9fd35f2b2191c5dc9272ec149d",
+      "releasedAt": "2026-08-20T00:25:00Z",
+      "releaseNotes": "Bug reports: a Save report file button puts the .json straight onto the device (Files > Downloads on iOS) so it can be attached to the email, instead of telling you to find it on the server. The screen also stops blaming the browser for what is a plain-HTTP restriction, and Copy as text works again."
     },
     "legacy": {
-      "version": "1.1.16.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-16-0.tar",
-      "tarSha256": "bf98abec6fc55ba1d2f78c95345b082b1221b036c405bf55711a5772a7be13b4",
-      "releasedAt": "2026-08-19T23:55:00Z",
-      "releaseNotes": "Tapping a track that had not played yet just started it instead of offering Play now / Play next. The sheet now opens for every track except the one playing, and Play next uses the right destination from either side of the playhead."
+      "version": "1.1.17.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-17-0.tar",
+      "tarSha256": "33dd7e5918ebae48b60685423d97fe690ab57d9fd35f2b2191c5dc9272ec149d",
+      "releasedAt": "2026-08-20T00:25:00Z",
+      "releaseNotes": "Bug reports: a Save report file button puts the .json straight onto the device (Files > Downloads on iOS) so it can be attached to the email, instead of telling you to find it on the server. The screen also stops blaming the browser for what is a plain-HTTP restriction, and Copy as text works again."
     }
   },
   "channelMetadata": {
