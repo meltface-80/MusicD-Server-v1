@@ -52,24 +52,40 @@ const db = require('./db');
 // section page like a browser would. Less frequent updates than Pitchfork
 // (a few articles a week vs many per day) but editorial-quality content
 // covering new releases. See parseQobuzHtml for the scraping logic.
+// ── Which rows the Home screen may show ───────────────────────────────
+//
+// v1.1.20.0. Every one of these is OFF on a new install, and off means off:
+// no upstream request is made, and the refresh timer does not exist. Turning
+// the last one off stops the timer again. See newsEnabled()/applyPrefs().
+//
+// The four keys are the four rows a user actually sees, not the five feeds
+// behind them — "Bandcamp new releases" and "Bandcamp reviews" both come out
+// of one crawl of daily.bandcamp.com, and the three Pitchfork RSS feeds all
+// land in the same articles list.
+const NEWS_PREF_KEYS = ['qobuzReleases', 'bandcampReleases', 'pitchforkArticles', 'bandcampArticles'];
+const NEWS_PREFS_SETTING = 'home_news_sources';
+
 const FEEDS = [
   {
     source:  'pitchfork',
     section: 'News',
     url:     'https://pitchfork.com/feed/feed-news/rss',
     kind:    'rss',
+    needs:   ['pitchforkArticles'],
   },
   {
     source:  'pitchfork',
     section: 'Album Reviews',
     url:     'https://pitchfork.com/feed/feed-album-reviews/rss',
     kind:    'rss',
+    needs:   ['pitchforkArticles'],
   },
   {
     source:  'pitchfork',
     section: 'The Pitch',
     url:     'https://pitchfork.com/feed/feed-the-pitch/rss',
     kind:    'rss',
+    needs:   ['pitchforkArticles'],
   },
   {
     source:  'qobuz',
@@ -77,6 +93,7 @@ const FEEDS = [
     url:     'https://www.qobuz.com/us-en/magazine/section/news',
     kind:    'html',
     parser:  'qobuz',
+    needs:   ['qobuzReleases'],
   },
   {
     // Bandcamp Daily — editorial features, lists, artist spotlights.
@@ -89,6 +106,10 @@ const FEEDS = [
     url:     'https://daily.bandcamp.com/',
     kind:    'html',
     parser:  'bandcamp',
+    // One crawl feeds two rows, so this feed runs if EITHER is on — and the
+    // album-page resolution inside it is skipped when only the articles are
+    // wanted, which is the expensive half.
+    needs:   ['bandcampReleases', 'bandcampArticles'],
   },
 ];
 
@@ -217,10 +238,10 @@ function normaliseItem(item, source, section) {
 //            listing page → article URLs → fetch article bodies →
 //            extract embedded album cards. Different DOM per source so
 //            the parsers are separate functions.
-async function fetchFeed(feed) {
+async function fetchFeed(feed, prefs = null) {
   try {
     if (feed.kind === 'html' && feed.parser === 'qobuz')    return await fetchQobuz(feed);
-    if (feed.kind === 'html' && feed.parser === 'bandcamp') return await fetchBandcamp(feed);
+    if (feed.kind === 'html' && feed.parser === 'bandcamp') return await fetchBandcamp(feed, prefs);
     // Default: RSS
     return await fetchRss(feed);
   } catch (e) {
@@ -678,7 +699,12 @@ async function resolveBandcampAlbums(urls) {
   return out;
 }
 
-async function fetchBandcamp(feed) {
+async function fetchBandcamp(feed, prefs = null) {
+  // One crawl serves two rows. When only one of them is switched on, do not
+  // do the other one's work: resolving album pages is ~24 extra requests, and
+  // an install that only wants the reviews should not be making them.
+  const wantReleases = !prefs || prefs.bandcampReleases !== false;
+  const wantArticles = !prefs || prefs.bandcampArticles !== false;
   const listingHtml = await httpGet(feed.url);
   if (!listingHtml) {
     console.warn(`[news] ${feed.source}/${feed.section}: empty listing response`);
@@ -715,17 +741,21 @@ async function fetchBandcamp(feed) {
     // Collect the album links this article mentions. The article body is used
     // only to find WHICH albums; everything shown about them comes from the
     // album's own page — see resolveBandcampAlbum.
-    for (const c of extractBandcampReleaseCards(html, articleUrl)) {
-      if (seenReleases.has(c.url)) continue;
-      seenReleases.add(c.url);
-      releases.push(c);
+    if (wantReleases) {
+      for (const c of extractBandcampReleaseCards(html, articleUrl)) {
+        if (seenReleases.has(c.url)) continue;
+        seenReleases.add(c.url);
+        releases.push(c);
+      }
     }
 
     // Always record the article itself for the articles list. We use
     // the same og:meta extraction as the Qobuz fallback — Bandcamp Daily
     // articles have proper Open Graph tags.
-    const tile = bandcampArticleAsTile(articleUrl, html);
-    if (tile) articles.push(tile);
+    if (wantArticles) {
+      const tile = bandcampArticleAsTile(articleUrl, html);
+      if (tile) articles.push(tile);
+    }
   }
 
   // Replace the article-derived guesses with what each album says about
@@ -1047,6 +1077,77 @@ function pruneOld() {
   }
 }
 
+// ── Home-screen news preferences ──────────────────────────────────────
+//
+// Stored as one JSON row in `settings` rather than four rows, so reading them
+// is a single lookup on a path that runs on every refresh and every feed
+// request.
+//
+// Everything defaults to FALSE. A fresh install must not reach out to
+// Pitchfork, Qobuz or Bandcamp until someone asks it to, so the absence of the
+// row means "all off" — not "all on", which is the easy mistake here and the
+// one that would make a new install phone out on first boot.
+function getNewsPrefs() {
+  const out = {};
+  for (const k of NEWS_PREF_KEYS) out[k] = false;
+  try {
+    const row = db.get().prepare('SELECT value FROM settings WHERE key = ?').get(NEWS_PREFS_SETTING);
+    if (row && row.value) {
+      const parsed = JSON.parse(row.value);
+      // Read only the keys we know. A blob from a later build carrying extra
+      // keys must not switch anything on here by accident.
+      for (const k of NEWS_PREF_KEYS) if (parsed && parsed[k] === true) out[k] = true;
+    }
+  } catch (e) {
+    // Unreadable or malformed. All-off is the safe reading: it costs the user
+    // a toggle, where the other way costs them unrequested network calls.
+    console.warn('[news] could not read preferences, treating as all-off:', e.message);
+  }
+  return out;
+}
+
+function setNewsPrefs(patch) {
+  const next = getNewsPrefs();
+  for (const k of NEWS_PREF_KEYS) {
+    if (patch && typeof patch[k] === 'boolean') next[k] = patch[k];
+  }
+  db.get().prepare(`
+    INSERT INTO settings (key, value) VALUES (?, ?)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value
+  `).run(NEWS_PREFS_SETTING, JSON.stringify(next));
+  // Starting or stopping the timer is part of saving, not a thing the caller
+  // has to remember: "off means no background work" has to hold the moment
+  // the switch moves, not at the next boot.
+  applyPrefs();
+  return next;
+}
+
+const anyNewsEnabled = (prefs) => NEWS_PREF_KEYS.some(k => prefs[k]);
+
+// The feeds worth fetching for the current preferences. A feed runs only if
+// something it feeds is switched on.
+function enabledFeeds(prefs) {
+  return FEEDS.filter(f => (f.needs || []).some(k => prefs[k]));
+}
+
+// Rows whose source is now switched off are deleted, so turning a row off
+// empties it instead of leaving the last fetch sitting there for 30 days
+// until pruneOld() gets to it.
+function purgeDisabled(prefs) {
+  const drop = [];
+  if (!prefs.qobuzReleases)     drop.push(["source = 'qobuz'", []]);
+  if (!prefs.pitchforkArticles) drop.push(["source = 'pitchfork'", []]);
+  if (!prefs.bandcampReleases)  drop.push(["source = 'bandcamp' AND kind = 'release'", []]);
+  if (!prefs.bandcampArticles)  drop.push(["source = 'bandcamp' AND kind = 'article'", []]);
+  if (drop.length === 0) return 0;
+  let n = 0;
+  for (const [where] of drop) {
+    try { n += db.get().prepare(`DELETE FROM news_items WHERE ${where}`).run().changes; }
+    catch (e) { console.warn('[news] purge failed:', e.message); }
+  }
+  return n;
+}
+
 // One full refresh cycle. Concurrent fetches across all feeds, then a
 // single persist transaction. We share the in-flight promise so callers
 // hitting refresh() while a refresh is already running just await the
@@ -1055,7 +1156,18 @@ async function refresh() {
   if (_refreshInFlight) return _refreshInFlight;
   _refreshInFlight = (async () => {
     const t0 = Date.now();
-    const allLists = await Promise.all(FEEDS.map(fetchFeed));
+    const prefs = getNewsPrefs();
+    // Always sweep first: a source switched off between refreshes should have
+    // its rows gone even if nothing is enabled and we return immediately.
+    const purged = purgeDisabled(prefs);
+    const feeds = enabledFeeds(prefs);
+    if (feeds.length === 0) {
+      // Nothing is on. No upstream request is made at all — not a fetch that
+      // is discarded afterwards, none.
+      if (purged) console.log(`[news] all sources off; removed ${purged} stale item(s)`);
+      return { inserted: 0, pruned: 0, purged, skipped: true };
+    }
+    const allLists = await Promise.all(feeds.map(f => fetchFeed(f, prefs)));
     const all = [].concat(...allLists);
     const inserted = persistItems(all);
     const pruned = pruneOld();
@@ -1090,12 +1202,42 @@ async function refreshManual() {
 
 // Start the periodic refresh loop. Idempotent — calling start() twice
 // won't create two timers. Called from index.js boot.
+// Start or stop the periodic refresh to match the current preferences.
+//
+// This is what makes "off means no background work" true rather than
+// aspirational: with everything off there is no interval registered at all,
+// and switching the last source off clears the one that was.
+function applyPrefs() {
+  const on = anyNewsEnabled(getNewsPrefs());
+  if (on && !_refreshTimer) {
+    _refreshTimer = setInterval(() => {
+      refresh().catch(e => console.warn('[news] periodic refresh failed:', e.message));
+    }, REFRESH_INTERVAL_MS);
+    console.log('[news] a source was enabled — refreshing every 30 min');
+    refresh().catch(e => console.warn('[news] refresh after enable failed:', e.message));
+  } else if (!on && _refreshTimer) {
+    clearInterval(_refreshTimer);
+    _refreshTimer = null;
+    console.log('[news] all sources disabled — no further fetches scheduled');
+    // Clear the rows so the Home screen empties immediately rather than
+    // showing the last fetch until it ages out.
+    try { purgeDisabled(getNewsPrefs()); } catch (e) { /* nothing to clear */ }
+  }
+  return on;
+}
+
 function start() {
   if (_refreshTimer) return;
   // Initial fetch on boot, but deferred a few seconds so the rest of the
   // server has finished starting up. setImmediate runs next tick — we use
   // a small setTimeout instead so the boot logs aren't interleaved with
   // [news] logs.
+  // v1.1.20.0 — nothing at all happens on a fresh install. No boot fetch, no
+  // interval. The first thing that runs is whatever the user switches on.
+  if (!anyNewsEnabled(getNewsPrefs())) {
+    console.log('[news] no sources enabled — idle (Settings → Home Screen)');
+    return;
+  }
   setTimeout(() => { refresh().catch(e => console.warn('[news] initial refresh failed:', e.message)); }, 5_000);
   _refreshTimer = setInterval(() => {
     refresh().catch(e => console.warn('[news] periodic refresh failed:', e.message));
@@ -1135,6 +1277,16 @@ module.exports = {
   refresh,
   refreshManual,
   listItems,
+  getNewsPrefs,
+  setNewsPrefs,
+  // Test hook: whether a periodic refresh is currently scheduled. "Off means
+  // no background work" is a claim about this handle, so the suite has to be
+  // able to see it rather than infer it.
+  _hasRefreshTimer: () => !!_refreshTimer,
+  anyNewsEnabled,
+  enabledFeeds,
+  applyPrefs,
+  NEWS_PREF_KEYS,
   // Exported for tests
   _stripHtml: stripHtml,
   _normaliseItem: normaliseItem,

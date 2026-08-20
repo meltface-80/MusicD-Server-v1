@@ -12,6 +12,84 @@ Categories used per release:
 
 ---
 
+## v1.1.20.0 — 2026-08-20 — MUSIC NEWS IS OPT-IN, AND TAGS MOVES TO THE MENU
+
+### Changed
+
+- **Tags moved from Settings to the side menu**, directly under Favourites. It
+  was filed under Settings → Tags, which put a browsing surface behind an admin
+  screen — tags are a way through the library, like Favourites and Saved for
+  later, and those live in the menu. The management UI itself is unchanged; only
+  where it hangs has moved.
+
+- **Settings → Home Screen** takes the slot Tags left.
+
+### New
+
+- **Music News is off until you ask for it.** Four switches, one per row:
+
+  | Switch | Feeds it runs |
+  |---|---|
+  | New releases from Qobuz | the Qobuz Magazine scrape |
+  | New releases from Bandcamp | the Bandcamp Daily crawl |
+  | Pitchfork reviews and news | three Pitchfork RSS feeds |
+  | Bandcamp Daily reviews | the Bandcamp Daily crawl |
+
+  **Every one is off on a new install, and off means off.** Not "fetched and
+  hidden" — with nothing enabled the server makes no request to Pitchfork,
+  Qobuz or Bandcamp, and registers no refresh interval at all. Until now the
+  loop ran unconditionally: an interval at boot and five upstream feeds every
+  30 minutes whether or not anyone wanted them, with no way to decline.
+
+  Switching the last source off **stops the timer** rather than leaving it
+  fetching into a hidden panel, and clears the rows that source left behind so
+  the Home screen empties immediately instead of showing the last fetch until
+  `pruneOld` reaches it 30 days later.
+
+  Turning one on starts the loop and fetches once, straight away.
+
+  Two efficiencies fall out of the mapping. The two Bandcamp rows come from a
+  single crawl, so it runs for either and only once when both are on — and when
+  only the reviews are wanted, the per-album resolution added in v1.1.18.0 is
+  skipped entirely, which is ~24 requests saved. The Qobuz crawl produces
+  magazine articles as well as release cards; with no separate switch for them
+  they ride with the Qobuz row, and the setting says so rather than leaving it
+  to be discovered.
+
+- `GET /api/news/prefs` and `PUT /api/news/prefs`. The PUT is a partial patch,
+  so two quick taps on different switches cannot race into overwriting each
+  other with a stale copy of the whole object. `GET /api/news/feed` now reports
+  `enabled` alongside its items, which is what lets the Home screen leave the
+  block out entirely rather than render an empty panel with a refresh button
+  that would fetch nothing.
+
+### Tests
+
+- `news-prefs.test.js` — 29 assertions, run against a real in-memory database
+  with `axios` replaced by a counter that **throws if anything reaches for the
+  network**, so "makes no request" is demonstrated rather than asserted.
+
+  Covers: all-off by default, an absent settings row reading as off rather than
+  on, `start()` scheduling nothing, a refresh making zero calls, the timer
+  starting on the first enable and stopping on the last disable, which feeds
+  each row selects, the purge clearing only disabled sources, and a settings
+  blob that cannot talk itself into being enabled — malformed JSON, a
+  non-object, a truthy string, or keys from a later build.
+
+  The first version of the harness stubbed `global.setInterval` for the
+  duration of the require and restored it afterwards, so every later
+  `applyPrefs()` got the real one, registered a live 30-minute handle, and hung
+  the run. It reads the module's own timer through a test hook instead.
+
+  Suite is 20 files and 430 assertions. Eight mutations run, each red then
+  green.
+
+### Unverified on hardware
+
+- The UI moves. No `<head>`, root-style or safe-area shell changes.
+
+---
+
 ## v1.1.19.0 — 2026-08-20 — PLAYLISTS, AND THE MENU ROWS THAT NEVER ARRIVED
 
 ### New
