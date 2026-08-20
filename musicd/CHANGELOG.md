@@ -12,6 +12,36 @@ Categories used per release:
 
 ---
 
+## v1.1.22.0 — 2026-08-20 — THE ABOUT-THE-TRACK PANEL IS GONE
+
+### Removed
+
+- **The chevron at the bottom of the Now Playing screen, and the About-the-
+  Track panel it opened.** The panel showed the artist bio and then Title,
+  Album, Duration, Genre, Artist and Audio Format — every one of which was
+  already on the screen the chevron was drawn over. The bio keeps its own
+  route in from the album and artist screens (`BioModal`), so nothing is
+  actually lost.
+- With it go the state, the swipe-up gesture ref, the `AboutTrackOverlay` and
+  `AboutRow` components, the `/library/artists/:name/bio` call this screen was
+  making, seventeen dead style keys and the now-unused `ChevronUp` import.
+  The client bundle is ~5 kB smaller.
+- `showAbout` was one term of the boolean that suppresses the queue swipe
+  while an overlay is open. Only that term was removed; the volume popover,
+  DSP, renderer modal, overflow menu and share card still suppress it.
+
+### Tests
+
+- `now-playing-about.test.js` — 8 assertions, seven mutations proven
+  red-then-green. It pins all six of the panel's footholds as gone, that the
+  format strip the chevron sat under is untouched, that the swipe guard kept
+  its five other members, and that `ChevronUp` left while `ChevronDown` — which
+  the queue's disclosure arrow still uses — stayed. This project has shipped a
+  half-finished removal before; `artwork-longpress.test.js` exists for the same
+  reason.
+
+---
+
 ## v1.1.21.0 — 2026-08-20 — THREE CAROUSELS ON THE HOME SCREEN
 
 ### New
