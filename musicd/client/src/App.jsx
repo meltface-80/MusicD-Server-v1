@@ -22,6 +22,7 @@ import UnmatchedScreen from './components/UnmatchedScreen'
 import FocusLibraryScreen from './components/FocusLibraryScreen'
 import PlaylistsScreen from './components/PlaylistsScreen'
 import TagsScreen from './components/TagsScreen'
+import RandomAlbumsScreen from './components/RandomAlbumsScreen'
 
 // Screen identity for the scroll memory below. Declared at module scope so
 // it exists before every use inside the component.
@@ -289,6 +290,10 @@ export default function App() {
     if (sidebarSection === 'focusLibrary') return <FocusLibraryScreen />
     if (sidebarSection === 'playlists') return <PlaylistsScreen />
     if (sidebarSection === 'tags') return <TagsScreen />
+    // v1.1.21.0 — the full 3-across Random-albums wall, opened by tapping the
+    // Home screen carousel's heading. Routed as a section rather than as local
+    // state so the top bar's back chevron already knows how to leave it.
+    if (sidebarSection === 'random') return <RandomAlbumsScreen onAlbumSelect={handleSetSelectedAlbum} />
     if (sidebarSection === 'albums') return <AlbumGrid onAlbumSelect={handleSetSelectedAlbum} />
     return <HomeScreen
       onAlbumSelect={handleSetSelectedAlbum}

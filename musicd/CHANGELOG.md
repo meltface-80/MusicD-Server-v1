@@ -12,6 +12,71 @@ Categories used per release:
 
 ---
 
+## v1.1.21.0 — 2026-08-20 — THREE CAROUSELS ON THE HOME SCREEN
+
+### New
+
+- **Random albums on the Home screen.** A carousel of albums picked at random
+  from the whole library. Its heading is a button: tapping it opens a full
+  wall, three across and five down, with a **Refresh** at the top for another
+  roll. Modelled on MusicD-Remote's random wall, which is where the shape and
+  the refresh affordance come from.
+- **`GET /api/library/albums/random-set?limit=N`** — N albums at random,
+  defaulting to 15 and capped at 60, in the same row shape as
+  `/albums/recent`. Distinct from the existing `/albums/random`, which returns
+  one id for "play something". Deliberately unseeded, unlike the library
+  grid's Random *sort*: that one is paged and has to hold still between pages,
+  where this returns one short set and a fresh roll is the entire point.
+- **`GET` / `PUT /api/home/prefs`** — which carousels are switched on. A
+  partial patch, so two switches tapped in quick succession cannot overwrite
+  each other.
+
+### Changed
+
+- **"Recent activity" is now two rows, not one behind tabs.** *Recently added*
+  and *Recently played* each have their own carousel. Seeing both used to mean
+  tapping between them, with whichever you were not looking at invisible. The
+  PLAYED/ADDED tab strip is gone.
+- **Settings → Home Screen now has two groups, separated by a break line.**
+  Above it: the three carousels, which read this server's own library. Below
+  it: the four Music News sources, which fetch from Pitchfork, Qobuz and
+  Bandcamp.
+- **The three carousels are ON by default; the four news sources stay OFF.**
+  They are two settings keys and two endpoints on purpose — one blob would
+  have forced one default onto both halves, and whichever default won would
+  have been wrong for the other. A carousel costs one local query when the
+  Home screen mounts: no upstream request, no background timer, nothing to
+  schedule. A row that is switched off does not run its query at all.
+- The library counters (ARTISTS / ALBUMS / TRACKS / GENRES) are unchanged and
+  stay at the top of the Home screen.
+
+### UI
+
+- Random albums are held for five minutes at module scope, so opening an album
+  and coming back does not reshuffle the row you were looking at. The wall's
+  Refresh button is there for when a new roll *is* what you want.
+- The wall paints skeleton tiles rather than a spinner, so tapping Refresh does
+  not collapse the grid and bounce the page back to the top.
+
+### Tests
+
+- `home-carousels.test.js` — 41 assertions. The defaults (all-on, and not
+  reaching into the news blob), the partial patch, the type checks on both the
+  read and write paths, a corrupt settings row reading as defaults, and that
+  reading or writing a carousel preference registers no timer and touches no
+  network. The `random-set` SQL is lifted out of the route and run against a
+  real SQLite: it honours the limit, never returns an empty or excluded album,
+  and actually varies between calls. Route-declaration order is pinned too —
+  `/albums/random-set` after `/albums/:id` would 404 with `id="random-set"`,
+  and the symptom is an empty carousel, not an error anyone would trace back.
+- Sixteen mutations proven red-then-green, including the two that first slipped
+  through: a truthiness check in place of the type check on the read path, and
+  the counter tiles moving below the carousels.
+- `artwork-longpress.test.js` now lists `RandomAlbumsScreen.jsx` among the
+  surfaces that draw artwork and must mark it undraggable.
+
+---
+
 ## v1.1.20.0 — 2026-08-20 — MUSIC NEWS IS OPT-IN, AND TAGS MOVES TO THE MENU
 
 ### Changed

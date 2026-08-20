@@ -479,6 +479,41 @@ router.get('/albums/random', (req, res) => {
   res.json({ id: row.id });
 });
 
+// GET /api/library/albums/random-set — N albums picked at random (v1.1.21.0).
+//   ?limit=N — defaults to 15 (the 3x5 wall); capped at 60
+//
+// The Home screen's "Random albums" carousel and the full wall behind its
+// title both read this. Distinct from /albums/random above, which returns one
+// id for "play something" — this returns whole album rows in the same shape
+// as /albums/recent, so the Home carousels can share one tile component.
+//
+// Deliberately unseeded, unlike the library grid's Random sort. That sort is
+// paged with LIMIT/OFFSET and needs the order to hold still between pages, or
+// it serves duplicates; this returns one short set in one request, and a fresh
+// roll is the entire point of the Refresh button.
+router.get('/albums/random-set', (req, res) => {
+  const database = db.get();
+  const limit = clamp(req.query.limit, 1, 60, 15);
+
+  const rows = database.prepare(`
+    SELECT id, title, album_artist, artist, year,
+           primary_format, track_count,
+           COALESCE(is_favorite, 0) as is_favorite,
+           CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art
+    FROM albums
+    WHERE track_count > 0 AND excluded = 0
+    ORDER BY RANDOM()
+    LIMIT ?
+  `).all(limit);
+
+  res.json(rows.map(a => ({
+    ...a,
+    is_favorite: !!a.is_favorite,
+    cover_art: a.has_art ? `/api/library/albums/${a.id}/cover` : null,
+    has_art: undefined,
+  })));
+});
+
 // GET /api/library/albums/recent — albums for the Home screen's
 // "Recent activity" tabs (#28.5).
 //   ?type=added   (default) — albums by added_at DESC
