@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
 import { useStore } from '../store'
 import { api } from '../api'
-import { ChevronLeft, Play, Pause, SkipBack, SkipForward, ChevronUp, ChevronDown, Trash2, Speaker, Check, Music, ListMusic, Sliders, Cast, Settings, X, Plus, Minus, Volume2, Share2, MoreHorizontal, Heart, Disc, User, Tag, Bookmark, Star, Sparkles, SkipForward as SkipIcon, ChevronRight } from 'lucide-react'
+import { ChevronLeft, Play, Pause, SkipBack, SkipForward, ChevronDown, Trash2, Speaker, Check, Music, ListMusic, Sliders, Cast, Settings, X, Plus, Minus, Volume2, Share2, MoreHorizontal, Heart, Disc, User, Tag, Bookmark, Star, Sparkles, SkipForward as SkipIcon, ChevronRight } from 'lucide-react'
 import RendererModal from './RendererModal'
 import TagPicker from './TagPicker'
 import AddToPlaylistSheet from './AddToPlaylistSheet'
@@ -100,30 +100,30 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
   // and close back to it. Triggered from the volume popover icon row.
   const [showDsp, setShowDsp] = useState(false)
   const [showDeviceSettings, setShowDeviceSettings] = useState(false)
-  // v57: ⋯ overflow menu (top-right) and About-the-Track panel.
-  // Overflow opens a small dropdown with track-context actions.
-  // About is a full-screen overlay launched from the chevron under
-  // the HI-RES badge.
+  // v57: ⋯ overflow menu (top-right). Opens a small dropdown with
+  // track-context actions.
+  //
+  // v1.1.22.0 — the About-the-Track panel that used to live beside it,
+  // and the chevron under the format strip that opened it, are gone. The
+  // artist bio it showed is still reachable from the album and artist
+  // screens (BioModal); the rest of it restated what the screen above it
+  // was already showing.
   const [showOverflow, setShowOverflow] = useState(false)
-  const [showAbout, setShowAbout] = useState(false)
   // v1.1.3.8 — share-card sheet. Held as { url, blob }: the preview
   // <img> needs an object URL, but Web Share needs the raw blob to
   // build a File. Same shape AlbumDetail uses for the album card.
   const [shareCard, setShareCard] = useState(null)
   const [shareLoading, setShareLoading] = useState(false)
-  // v1.1.0.60 — swipe-up gesture origin tracking for About chevron
-  const aboutSwipeStartY = useRef(null)
   const [activeTab, setActiveTab] = useState('nowplaying')
 
   // v1.1.0.60 — horizontal swipe across the NowPlaying screen.
   // Swipe right→left switches to the queue tab. Swipe left→right
-  // returns to the now-playing tab. Mirrors the gesture already
-  // wired into the About panel. Disabled when any overlay is open
-  // (volume popup, DSP, About, Renderer modal, share card — v1.1.3.8)
-  // so they don't fight for the gesture.
+  // returns to the now-playing tab. Disabled when any overlay is open
+  // (volume popup, DSP, Renderer modal, share card — v1.1.3.8) so they
+  // don't fight for the gesture.
   const screenTouchRef = useRef({ x: 0, y: 0, t: 0, active: false })
   const onScreenTouchStart = (e) => {
-    if (showVolume || showRendererLocal || showDsp || showDeviceSettings || showAbout || showOverflow || shareCard) {
+    if (showVolume || showRendererLocal || showDsp || showDeviceSettings || showOverflow || shareCard) {
       screenTouchRef.current.active = false
       return
     }
@@ -388,20 +388,6 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
         />
       )}
 
-      {/* v57: About-the-Track full-screen overlay. Opens from the
-          chevron under the format strip. Shows artist bio + track
-          metadata that exists today; track credits and suggestions
-          are stubbed/hidden until those data sources land. */}
-      {showAbout && currentTrack && (
-        <div style={s.modalOverlay}>
-          <AboutTrackOverlay
-            track={currentTrack}
-            onClose={() => setShowAbout(false)}
-            onSwipeQueue={() => { setShowAbout(false); setActiveTab('queue') }}
-          />
-        </div>
-      )}
-
       {/* Renderer modal — renders inside this screen, no navigation.
           v56: mode="move" so tapping a device actually transfers the
           active queue to that renderer. The picker behind the volume
@@ -557,8 +543,7 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
             {/* v57: format/sample-rate strip under transport. Was shown
                 inline-only in album rows previously; pulling it up to
                 NowPlaying so the user always knows what they're
-                hearing. Tapping the chevron under it opens the
-                About-the-Track panel. */}
+                hearing. */}
             {currentTrack && (
               <div style={s.formatStrip}>
                 <FormatBadge format={currentTrack.format} codec={currentTrack.codec} />
@@ -570,35 +555,6 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
                 </span>
               </div>
             )}
-            {/* v1.1.0.60 — chevron is now a small (44×44) square
-                absolutely pinned to the bottom-centre. It opens the
-                About panel on tap, and also accepts a swipe-up
-                gesture originating on the chevron itself (anything
-                ≥30 px upward movement counts). The earlier full-width
-                button was opening the About panel on accidental
-                taps anywhere below the format strip. */}
-            <button
-              style={s.aboutChevron}
-              onClick={() => currentTrack && setShowAbout(true)}
-              onTouchStart={(e) => {
-                if (!currentTrack) return
-                aboutSwipeStartY.current = e.touches[0].clientY
-              }}
-              onTouchEnd={(e) => {
-                if (!currentTrack) return
-                const startY = aboutSwipeStartY.current
-                aboutSwipeStartY.current = null
-                if (startY == null) return
-                const dy = e.changedTouches[0].clientY - startY
-                if (dy < -30) setShowAbout(true)
-              }}
-              disabled={!currentTrack}
-              aria-label="About this track"
-              title="About this track"
-            >
-              <ChevronDown size={20} />
-            </button>
-
             {/* Bottom bar.
                 v1.1.0.91: orb moved from a stacked column on the right
                 to the bottom-left, on the same horizontal plane as
@@ -1612,168 +1568,6 @@ function TrackOverflowMenu({ track, onClose, onCloseScreen, onArtistClick, onAlb
   )
 }
 
-// v57: About-the-Track full-screen overlay. Renders a scrollable
-// page with the artist bio (fetched on mount), track metadata fields,
-// and stubbed sections (Track Credits / Suggestions) that hide
-// themselves until backing data exists. Swipe-left dismisses to the
-// queue tab; swipe-down dismisses to NowPlaying.
-function AboutTrackOverlay({ track, onClose, onSwipeQueue }) {
-  const [bioState, setBioState] = useState({ loading: true, text: null, error: null })
-  const [bioExpanded, setBioExpanded] = useState(false)
-  // Touch tracking for swipe gestures. We measure the start point on
-  // touchstart and resolve a direction on touchend; if the swipe is
-  // more horizontal than vertical we treat it as left/right, else
-  // up/down. Threshold is conservative (60px) so casual scrolls
-  // don't trigger.
-  const touchRef = useRef({ x: 0, y: 0, t: 0 })
-  const SWIPE_PX = 60
-
-  useEffect(() => {
-    let cancelled = false
-    const load = async () => {
-      const name = track.album_artist || track.artist
-      if (!name) { setBioState({ loading: false, text: null, error: 'no-artist' }); return }
-      try {
-        const r = await api.get(`/library/artists/${encodeURIComponent(name)}/bio`)
-        if (cancelled) return
-        // bioFetch returns either { bio: "..." } or { content/summary } depending on source.
-        const text = r?.bio || r?.content || r?.summary || null
-        setBioState({ loading: false, text, error: text ? null : 'empty' })
-      } catch (e) {
-        if (!cancelled) setBioState({ loading: false, text: null, error: e.message || 'fetch failed' })
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [track?.album_artist, track?.artist])
-
-  // v1.1.0.72 — touch handler now only resolves *horizontal* swipes
-  // (left → queue tab). The previous down-swipe-to-close was being
-  // triggered by stray downward motion during normal reading scrolls
-  // — even short flicks crossed the 60 px threshold, and on a long
-  // bio you couldn't reach the bottom without the panel dismissing
-  // itself. The X in the header is the canonical close. We keep the
-  // start-point capture and use the AY < SWIPE_PX guard so a swipe
-  // that's more vertical than horizontal is silently ignored rather
-  // than mis-interpreted as a horizontal swipe with too little
-  // X movement.
-  const onTouchStart = (e) => {
-    const t = e.touches?.[0]
-    if (!t) return
-    touchRef.current = { x: t.clientX, y: t.clientY, t: Date.now() }
-  }
-  const onTouchEnd = (e) => {
-    const t = e.changedTouches?.[0]
-    if (!t) return
-    const dx = t.clientX - touchRef.current.x
-    const dy = t.clientY - touchRef.current.y
-    const ax = Math.abs(dx)
-    const ay = Math.abs(dy)
-    if (ax < SWIPE_PX) return
-    // Only respond to motion that's clearly horizontal — at least
-    // ~50% more X than Y. Otherwise the user is probably scrolling
-    // (vertical-dominant) and we let the body's overflow handle it.
-    if (ax < ay * 1.5) return
-    // Horizontal swipe. Left → queue (mirrors the NowPlaying gesture).
-    if (dx < -SWIPE_PX && onSwipeQueue) onSwipeQueue()
-  }
-
-  // Format helpers
-  const fmtDur = (s) => {
-    if (!s) return '—'
-    const m = Math.floor(s / 60); const ss = Math.floor(s % 60)
-    return `${m}:${String(ss).padStart(2, '0')}`
-  }
-  const fmtRate = (hz) => {
-    if (!hz) return null
-    return hz % 1000 === 0 ? `${hz / 1000}kHz` : `${(hz / 1000).toFixed(1)}kHz`
-  }
-  const audioFormat = [
-    track.bit_depth ? `${track.bit_depth}-bit` : null,
-    fmtRate(track.sample_rate),
-  ].filter(Boolean).join(' · ')
-
-  return (
-    <div
-      style={s.aboutOverlay}
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
-    >
-      <div style={s.aboutHeader}>
-        <button style={s.dspOverlayClose} onClick={onClose} aria-label="Close">
-          <X size={22} />
-        </button>
-        <span style={s.dspOverlayTitle}>About</span>
-        <div style={{ width: 36 }} />
-      </div>
-
-      <div style={s.aboutBody}>
-        {/* Artist header */}
-        <div style={s.aboutArtistHeader}>
-          <span style={s.aboutArtistLabel}>Artist</span>
-          <span style={s.aboutArtistName}>{track.album_artist || track.artist || 'Unknown'}</span>
-        </div>
-
-        {/* Bio. Collapsed to ~3 lines initially with a chevron to
-            expand. Full text and any newlines are preserved. */}
-        {bioState.loading && (
-          <div style={s.aboutBioLoading}>Loading bio…</div>
-        )}
-        {!bioState.loading && bioState.text && (
-          <div style={{ ...s.aboutBio, ...(bioExpanded ? {} : s.aboutBioCollapsed) }}>
-            {bioState.text}
-          </div>
-        )}
-        {!bioState.loading && bioState.text && (
-          <button
-            style={s.aboutBioToggle}
-            onClick={() => setBioExpanded(v => !v)}
-            aria-expanded={bioExpanded}
-            aria-label={bioExpanded ? 'Collapse bio' : 'Expand bio'}
-          >
-            {bioExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-          </button>
-        )}
-        {!bioState.loading && !bioState.text && (
-          <div style={s.aboutBioEmpty}>
-            No biography available for this artist.
-          </div>
-        )}
-
-        {/* About the track */}
-        <div style={s.aboutSectionHeading}>
-          <span style={s.aboutSectionRule} />
-          About the Track
-        </div>
-        <AboutRow label="Title" value={track.title} />
-        <AboutRow label="Album" value={track.album} />
-        <AboutRow label="Duration" value={fmtDur(track.duration)} />
-        {track.genre && <AboutRow label="Genre" value={track.genre} />}
-        <AboutRow label="Artist" value={track.artist} />
-        {audioFormat && <AboutRow label="Audio Format" value={audioFormat} />}
-        {/* Composer / Label / Copyright / Album Release Date —
-            placeholders for fields that don't exist in the schema
-            today. They'll appear automatically once the scanner is
-            extended to extract them from file tags. */}
-
-        {/* Suggestions and Track Credits — backing data doesn't exist
-            yet. Hidden until v58/v61+. The headings are deliberately
-            absent rather than empty so the user doesn't see "Coming
-            soon" stubs in a place where they expect data. */}
-      </div>
-    </div>
-  )
-}
-
-function AboutRow({ label, value }) {
-  return (
-    <div style={s.aboutRow}>
-      <div style={s.aboutRowLabel}>{label}</div>
-      <div style={s.aboutRowValue}>{value || '—'}</div>
-    </div>
-  )
-}
-
 const s = {
   // v1.1.0.64 — JPLAY-style full-screen Now Playing.
   // Pure black ground (was #0a0a10 charcoal-blue). The bgWash
@@ -2300,8 +2094,9 @@ const s = {
     opacity: 0.3,
   },
 
-  // v57: format strip + chevron under transport (HI-RES + bit-rate
-  // line, then a downward chevron to open About-the-Track).
+  // v57: format strip under the transport — the HI-RES badge and the
+  // bit-depth/rate line. The downward chevron that used to sit beneath it
+  // and open About-the-Track was removed in v1.1.22.0.
   formatStrip: {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     gap: 8, paddingTop: 8,
@@ -2312,26 +2107,6 @@ const s = {
     color: 'var(--text-secondary)',
     fontFamily: 'var(--font-mono)',
     letterSpacing: '0.02em',
-  },
-  aboutChevron: {
-    // v1.1.0.60 — was a full-width button which made any tap below
-    // the transport open the About panel by accident. Now a 44×44
-    // square (≈10mm at iPad/iPhone density, matches Apple HIG min
-    // tap target), pinned to the very bottom of the NowPlaying inner
-    // container so it doesn't crowd the format strip.
-    position: 'absolute',
-    left: '50%',
-    bottom: 4,
-    transform: 'translateX(-50%)',
-    width: 44,
-    height: 44,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    padding: 0,
-    background: 'transparent', border: 'none',
-    color: 'var(--text-tertiary)',
-    cursor: 'pointer',
-    flexShrink: 0,
-    touchAction: 'none', // we handle vertical swipe ourselves
   },
 
   // v57: ⋯ overflow menu. Anchored under top-right via a translucent
@@ -2438,91 +2213,6 @@ const s = {
     color: 'rgba(255,255,255,0.35)',
     cursor: 'pointer',
     borderRadius: 6,
-  },
-
-  // v57: About-the-Track overlay
-  aboutOverlay: {
-    position: 'absolute', inset: 0,
-    background: 'var(--bg-base)',
-    display: 'flex', flexDirection: 'column',
-    overflow: 'hidden',
-  },
-  aboutHeader: { paddingTop: 'calc(14px + var(--safe-top))',
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '14px 14px 10px',
-    borderBottom: '1px solid var(--border)',
-    flexShrink: 0,
-  },
-  aboutBody: { paddingBottom: 'calc(80px + var(--safe-bot))',
-    flex: 1, overflowY: 'auto',
-    padding: '12px 18px 80px',
-  },
-  aboutArtistHeader: {
-    display: 'flex', flexDirection: 'column', gap: 2,
-    marginBottom: 8,
-  },
-  aboutArtistLabel: {
-    fontSize: 11, fontWeight: 600,
-    color: 'var(--text-tertiary)',
-    textTransform: 'uppercase', letterSpacing: '0.08em',
-  },
-  aboutArtistName: {
-    fontSize: 22, fontWeight: 700,
-    color: 'var(--text-primary)',
-  },
-  aboutBio: {
-    fontSize: 14, lineHeight: 1.55,
-    color: 'var(--text-secondary)',
-    whiteSpace: 'pre-wrap',
-    marginTop: 8,
-  },
-  aboutBioCollapsed: {
-    display: '-webkit-box',
-    WebkitLineClamp: 4,
-    WebkitBoxOrient: 'vertical',
-    overflow: 'hidden',
-  },
-  aboutBioToggle: {
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    width: '100%',
-    padding: '6px 0 8px',
-    background: 'transparent', border: 'none',
-    color: 'var(--text-tertiary)',
-    cursor: 'pointer',
-  },
-  aboutBioLoading: {
-    fontSize: 13, color: 'var(--text-tertiary)',
-    padding: '12px 0',
-  },
-  aboutBioEmpty: {
-    fontSize: 13, color: 'var(--text-tertiary)',
-    fontStyle: 'italic',
-    padding: '12px 0',
-  },
-  aboutSectionHeading: {
-    display: 'flex', alignItems: 'center', gap: 8,
-    fontSize: 16, fontWeight: 700,
-    color: 'var(--text-primary)',
-    marginTop: 22, marginBottom: 4,
-  },
-  aboutSectionRule: {
-    width: 3, height: 18,
-    background: 'var(--accent)',
-    borderRadius: 2,
-  },
-  aboutRow: {
-    display: 'flex', flexDirection: 'column', gap: 2,
-    padding: '12px 0',
-    borderBottom: '1px solid var(--border)',
-  },
-  aboutRowLabel: {
-    fontSize: 11, fontWeight: 600,
-    color: 'var(--text-tertiary)',
-    textTransform: 'uppercase', letterSpacing: '0.05em',
-  },
-  aboutRowValue: {
-    fontSize: 14, fontWeight: 500,
-    color: 'var(--text-primary)',
   },
 
   // v1.1.0.64 — sharper art corners (4 not 14), no heavy
