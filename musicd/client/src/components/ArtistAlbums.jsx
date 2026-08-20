@@ -218,7 +218,7 @@ const s = {
   playAllBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '8px 14px', borderRadius: 999,
-    background: 'var(--jp-accent)', color: '#000',
+    background: 'var(--jp-accent)', color: 'var(--jp-bg)',
     fontSize: 12, fontWeight: 600,
     border: 'none', cursor: 'pointer',
   },
@@ -256,7 +256,7 @@ const s = {
   card: { display: 'block', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', minWidth: 0, width: '100%' },
   artBox: { width: '100%', aspectRatio: '1/1', borderRadius: 4, overflow: 'hidden', background: 'var(--jp-bg-surface)', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   art: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
-  artEmpty: { fontSize: 24, color: 'rgba(255,255,255,0.18)' },
+  artEmpty: { fontSize: 24, color: 'rgba(var(--tint-rgb), 0.18)' },
   cardTitle: { fontSize: 13, fontWeight: 500, color: 'var(--jp-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 2, lineHeight: 1.25 },
   cardArtist: { fontSize: 12, fontWeight: 400, color: 'var(--jp-text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   // (cardYear retained as an inert style for any leftover callers

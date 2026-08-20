@@ -416,7 +416,7 @@ const s = {
   saveAsBtn: {
     width: 28, height: 28,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: 'var(--accent)', color: '#fff',
+    background: 'var(--accent)', color: 'var(--on-accent)',
     border: 'none', borderRadius: 4, cursor: 'pointer',
   },
   saveAsBtnGhost: {

@@ -959,7 +959,7 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
                   padding: '7px 14px',
                   background: 'var(--jp-accent)',
                   border: 'none', borderRadius: 6,
-                  color: '#0a0a0c', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  color: 'var(--jp-bg)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
                   opacity: (saveModal.busy || !saveModal.name.trim()) ? 0.5 : 1,
                 }}
               >
@@ -1346,7 +1346,7 @@ const s = {
     padding: '7px 13px', borderRadius: 999,
     fontSize: 12, fontWeight: 500,
     color: 'var(--jp-text-2)',
-    background: 'rgba(255,255,255,0.05)',
+    background: 'rgba(var(--tint-rgb), 0.05)',
     border: '1px solid transparent',
     cursor: 'pointer',
     whiteSpace: 'nowrap',
@@ -1361,7 +1361,7 @@ const s = {
   // is on" pattern. Reads as a positive selection state without
   // resorting to chromatic accent.
   iconChipPrimary: {
-    color: '#000',
+    color: 'var(--jp-bg)',
     background: 'var(--jp-accent)',
     borderColor: 'var(--jp-accent)',
     fontWeight: 600,
@@ -1384,7 +1384,7 @@ const s = {
   // the title has room to breathe.
   artBox: { width: '100%', aspectRatio: '1/1', borderRadius: 4, overflow: 'hidden', background: 'var(--jp-bg-surface)', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   art: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
-  artEmpty: { fontSize: 24, color: 'rgba(255,255,255,0.18)' },
+  artEmpty: { fontSize: 24, color: 'rgba(var(--tint-rgb), 0.18)' },
   // Title 13/500 (was 11/500) — large enough to read at arm's
   // length on a phone, restrained enough to let the cover dominate.
   cardTitle: { fontSize: 13, fontWeight: 500, color: 'var(--jp-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 2, lineHeight: 1.25 },
@@ -1428,7 +1428,7 @@ const s = {
     flexShrink: 0,
   },
   tagChipActive: {
-    background: 'rgba(255,255,255,0.10)',
+    background: 'rgba(var(--tint-rgb), 0.10)',
     borderColor: 'var(--jp-border-hot)',
     color: 'var(--jp-text)',
   },
@@ -1444,7 +1444,7 @@ const s = {
 // file but it's three lines and only two callers; not worth the import
 // churn yet.
 function hexToRgba(hex, alpha) {
-  if (!hex || hex.length !== 7) return `rgba(255,255,255,${alpha})`
+  if (!hex || hex.length !== 7) return `rgba(var(--tint-rgb), ${alpha})`
   const r = parseInt(hex.slice(1, 3), 16)
   const g = parseInt(hex.slice(3, 5), 16)
   const b = parseInt(hex.slice(5, 7), 16)
@@ -1459,7 +1459,7 @@ const fs = {
   steps: { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 },
   step: { display: 'flex', alignItems: 'center', gap: 10 },
   stepDot: { width: 18, height: 18, borderRadius: '50%', background: 'var(--bg-overlay)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0 },
-  stepActive: { background: 'var(--accent)', borderColor: 'var(--accent)', color: '#fff', animation: 'pulse 1.4s ease-in-out infinite' },
+  stepActive: { background: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--on-accent)', animation: 'pulse 1.4s ease-in-out infinite' },
   stepDone: { background: 'rgba(63,208,122,0.15)', borderColor: 'rgba(63,208,122,0.4)', color: '#3fd07a' },
   stepLabel: { fontSize: 12, color: 'var(--text-tertiary)' },
   stepLabelActive: { color: 'var(--text-primary)', fontWeight: 600 },

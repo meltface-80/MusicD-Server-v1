@@ -115,6 +115,10 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
   const [shareCard, setShareCard] = useState(null)
   const [shareLoading, setShareLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('nowplaying')
+  // v1.1.24.0 — the queue view's current multi-selection, published upward so
+  // the ⋯ menu (which lives up here, above the tab switcher) can act on it.
+  // null whenever the queue view is not mounted. See QueueView's publisher.
+  const [queueSelection, setQueueSelection] = useState(null)
 
   // v1.1.0.60 — horizontal swipe across the NowPlaying screen.
   // Swipe right→left switches to the queue tab. Swipe left→right
@@ -373,13 +377,18 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
       )}
 
       {/* v57: ⋯ overflow menu — small dropdown anchored under the
-          top-right ⋯ button. Track-context actions: Album, Artist,
-          Genre links work today; Add to Favorites toggles the album
-          favourite (track-level lands in v58); the rest are placeholder
-          rows showing what's coming so the user can see the shape. */}
+          top-right ⋯ button.
+          v1.1.24.0: the two tabs no longer share one menu. On Now Playing it
+          is unchanged — Album / Artist / Genre links, then the track actions.
+          On Queue the navigation block goes (it describes what is playing,
+          which is not what that screen is about) and the selection actions
+          take its place. `variant` is derived from the tab rather than passed
+          per call site, so the two cannot fall out of step. */}
       {showOverflow && currentTrack && (
         <TrackOverflowMenu
           track={currentTrack}
+          variant={activeTab === 'queue' ? 'queue' : 'nowplaying'}
+          selection={activeTab === 'queue' ? queueSelection : null}
           onClose={() => setShowOverflow(false)}
           onCloseScreen={onClose}
           onArtistClick={onArtistClick}
@@ -446,10 +455,15 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
         </div>
 
         {activeTab === 'queue' ? (
-          <QueueView queue={queue} queueIndex={queueIndex} onSelectTrack={(i) => {
-            const { playQueue } = useStore.getState()
-            playQueue(queue, i)
-          }} />
+          <QueueView
+            queue={queue}
+            queueIndex={queueIndex}
+            onSelectionChange={setQueueSelection}
+            onSelectTrack={(i) => {
+              const { playQueue } = useStore.getState()
+              playQueue(queue, i)
+            }}
+          />
         ) : (
           <>
             {/* Album art. The wrapper only centres; the square box is what
@@ -608,7 +622,7 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
   )
 }
 
-function QueueView({ queue, queueIndex, onSelectTrack }) {
+function QueueView({ queue, queueIndex, onSelectTrack, onSelectionChange }) {
   function fmtT(s) { if(!s) return ''; return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}` }
   // v55: queue rows stay informational, but the header now has + and
   // − action buttons that open sub-menus. Selection mode is entered
@@ -617,7 +631,7 @@ function QueueView({ queue, queueIndex, onSelectTrack }) {
   // becomes a "N selected · Cancel · Apply" bar.
   const {
     playQueue, radio, setRadio, removeFromQueueBatch, appendIdsToQueue,
-    skipped, reorderQueue,
+    skipped, reorderQueue, moveSelectionNext, playNext: skipToNextTrack,
   } = useStore()
 
   // Skip marks arrive as track ids (the server keys them that way so they
@@ -801,6 +815,55 @@ function QueueView({ queue, queueIndex, onSelectTrack }) {
     await appendIdsToQueue(ids)
     exitSelectMode()
   }
+
+  // v1.1.24.0 — the ⋯ overflow menu lives in the parent, above the tab
+  // switcher, but the selection lives here. Rather than lift the whole of
+  // selection state up (fifteen call sites, all of them local to this view),
+  // publish a small handle: what is selected, and the three things the menu
+  // can do with it.
+  //
+  // onSelectionChange is the parent's useState SETTER, which is referentially
+  // stable, and the handle is rebuilt only when its inputs change — an inline
+  // arrow here would give the effect a new dependency on every render and spin
+  // parent-render → child-render → setState forever.
+  useEffect(() => {
+    if (!onSelectionChange) return
+    const indices = () => Array.from(selectedIndices)
+    onSelectionChange({
+      count: selectedIndices.size,
+      isSelecting,
+      // Move the selection to just after the playing track, then skip into it.
+      // Both halves are the server's, in that order: after the move the first
+      // selected track IS queueIndex + 1, so "now" is "next, then advance".
+      playNow: async () => {
+        const picked = indices()
+        if (picked.length === 0) return
+        await moveSelectionNext(picked)
+        await skipToNextTrack()
+        exitSelectMode()
+      },
+      playNext: async () => {
+        const picked = indices()
+        if (picked.length === 0) return
+        await moveSelectionNext(picked)
+        exitSelectMode()
+      },
+      clearSelected: async () => {
+        const picked = indices()
+        if (picked.length === 0) return
+        await removeFromQueueBatch(picked)
+        exitSelectMode()
+      },
+      cancel: exitSelectMode,
+    })
+  }, [onSelectionChange, selectedIndices, isSelecting,
+      moveSelectionNext, skipToNextTrack, removeFromQueueBatch])
+
+  // Selection state belongs to this view, so it has to be torn down with it:
+  // leaving a stale handle in the parent would let the overflow menu act on
+  // indices from a queue the user has navigated away from.
+  useEffect(() => () => { if (onSelectionChange) onSelectionChange(null) },
+    [onSelectionChange])
 
   // Apply button in the selection-mode header. Routes to whichever
   // pending action the user picked from the sub-menu. If they entered
@@ -1041,7 +1104,7 @@ function QueueView({ queue, queueIndex, onSelectTrack }) {
                 opacity: isPast && !isSelecting ? 0.45 : 1,
                 background: isSelected
                   ? 'rgba(107,138,255,0.14)'
-                  : (isCurrent ? 'rgba(255,255,255,0.04)' : 'none'),
+                  : (isCurrent ? 'rgba(var(--tint-rgb), 0.04)' : 'none'),
                 cursor: isSelecting && !selectable ? 'not-allowed' : 'pointer',
               }}
               onClick={onRowTap}
@@ -1236,7 +1299,25 @@ function DeviceSettingsOverlay({ rendererId, renderer, onClose }) {
 // "Favourite this track"). The remaining items render disabled with
 // a "v58+" badge so the surface is committed but doesn't lie about
 // being functional.
-function TrackOverflowMenu({ track, onClose, onCloseScreen, onArtistClick, onAlbumClick, onGenreClick }) {
+// v1.1.24.0 — two variants, one component.
+//
+//   'nowplaying'  unchanged: the track summary, the Album / Artist / Genre
+//                 links, then the track actions, then Suggestions.
+//   'queue'       the navigation block is gone — it describes the album that
+//                 happens to be playing, which is not what the queue screen is
+//                 about — and so is Suggestions, which has nothing behind it.
+//                 In its place, when rows are ticked, the three things you
+//                 actually want to do with a selection.
+//
+// One component rather than two because everything below the divider is
+// identical and is expected to stay that way; a fork would have been two
+// copies of the favourite/rate/playlist/tag/save block, and this project has
+// already been bitten by a rule that had to be applied at several sites and
+// was applied at one.
+function TrackOverflowMenu({ track, variant = 'nowplaying', selection = null,
+                             onClose, onCloseScreen, onArtistClick, onAlbumClick, onGenreClick }) {
+  const isQueue = variant === 'queue'
+  const selectedCount = (isQueue && selection && selection.count) || 0
   const ref = useRef(null)
   const { setTrackFavorite, setTrackRating, toggleTrackSaved } = useStore()
   // v1.1.19.0 — the three rows below the favourites that shipped disabled in
@@ -1383,7 +1464,10 @@ function TrackOverflowMenu({ track, onClose, onCloseScreen, onArtistClick, onAlb
   return (
     <div style={s.overflowSheet} role="menu">
       <div ref={ref} style={s.overflowBox}>
-        {/* Header — track summary (mini cover + title + artist + actions) */}
+        {/* Header — track summary (mini cover + title + artist + actions).
+            Kept on both variants: every row below the divider acts on THIS
+            track, and a menu of unlabelled verbs is how you tap "Favourite
+            this track" believing it means the ones you ticked. */}
         <div style={s.overflowHeader}>
           <span style={s.overflowArt}>
             {track.id && (
@@ -1402,18 +1486,58 @@ function TrackOverflowMenu({ track, onClose, onCloseScreen, onArtistClick, onAlb
           </div>
         </div>
 
-        <button style={s.overflowItem} onClick={goAlbum} disabled={!track.album}>
-          <Disc size={16} style={s.overflowItemIcon} />
-          <span>{track.album || 'Album'}</span>
-        </button>
-        <button style={s.overflowItem} onClick={goArtist} disabled={!(track.artist || track.album_artist)}>
-          <User size={16} style={s.overflowItemIcon} />
-          <span>{track.album_artist || track.artist || 'Artist'}</span>
-        </button>
-        <button style={s.overflowItem} onClick={goGenre} disabled={!track.genre}>
-          <Music size={16} style={s.overflowItemIcon} />
-          <span>{track.genre || 'Genre'}</span>
-        </button>
+        {/* Now Playing only. On the queue screen these three describe the
+            album that happens to be playing, which is not what that screen is
+            for — the owner asked for them gone. */}
+        {!isQueue && (
+          <>
+            <button style={s.overflowItem} onClick={goAlbum} disabled={!track.album}>
+              <Disc size={16} style={s.overflowItemIcon} />
+              <span>{track.album || 'Album'}</span>
+            </button>
+            <button style={s.overflowItem} onClick={goArtist} disabled={!(track.artist || track.album_artist)}>
+              <User size={16} style={s.overflowItemIcon} />
+              <span>{track.album_artist || track.artist || 'Artist'}</span>
+            </button>
+            <button style={s.overflowItem} onClick={goGenre} disabled={!track.genre}>
+              <Music size={16} style={s.overflowItemIcon} />
+              <span>{track.genre || 'Genre'}</span>
+            </button>
+          </>
+        )}
+
+        {/* Queue only, and only with rows ticked. Rendering these greyed-out
+            with nothing selected would put three dead rows at the top of the
+            menu every time it is opened; with no selection the queue menu is
+            simply the track actions. */}
+        {isQueue && selectedCount > 0 && (
+          <>
+            <div style={s.overflowSectionLabel}>
+              {selectedCount} track{selectedCount === 1 ? '' : 's'} selected
+            </div>
+            <button
+              style={s.overflowItem}
+              onClick={() => { onClose(); selection.playNow() }}
+            >
+              <Play size={16} style={s.overflowItemIcon} />
+              <span>Play now</span>
+            </button>
+            <button
+              style={s.overflowItem}
+              onClick={() => { onClose(); selection.playNext() }}
+            >
+              <SkipIcon size={16} style={s.overflowItemIcon} />
+              <span>Play next</span>
+            </button>
+            <button
+              style={s.overflowItem}
+              onClick={() => { onClose(); selection.clearSelected() }}
+            >
+              <Trash2 size={16} style={s.overflowItemIcon} />
+              <span>Clear selected from queue</span>
+            </button>
+          </>
+        )}
 
         <div style={s.overflowDivider} />
 
@@ -1532,11 +1656,13 @@ function TrackOverflowMenu({ track, onClose, onCloseScreen, onArtistClick, onAlb
             "similar-sounding" are four different features. Guessing which one
             the badge promised would be inventing a spec, so it keeps its
             honest placeholder until that is decided. */}
-        <button style={s.overflowItemDisabled} disabled aria-disabled="true">
-          <Sparkles size={16} style={s.overflowItemIcon} />
-          <span>Suggestions</span>
-          <span style={s.overflowSoon}>soon</span>
-        </button>
+        {!isQueue && (
+          <button style={s.overflowItemDisabled} disabled aria-disabled="true">
+            <Sparkles size={16} style={s.overflowItemIcon} />
+            <span>Suggestions</span>
+            <span style={s.overflowSoon}>soon</span>
+          </button>
+        )}
 
         <button style={s.overflowClose} onClick={onClose}>Close</button>
       </div>
@@ -1590,8 +1716,8 @@ const s = {
     background: 'rgba(0,0,0,0.3)',
   },
   volPopup: {
-    background: '#1a1a24',
-    border: '1px solid rgba(255,255,255,0.1)',
+    background: 'var(--jp-bg-surface)',
+    border: '1px solid rgba(var(--tint-rgb), 0.1)',
     borderRadius: '20px 20px 0 0',
     width: '100%',
     // v1.1.0.91: trimmed bottom padding 48 → 28, top 20 → 16. Popup
@@ -1608,11 +1734,11 @@ const s = {
     // shell stays edge to edge.
     paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 44px)',
   },
-  volTitle: { fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 20, textAlign: 'center' },
+  volTitle: { fontSize: 14, fontWeight: 600, color: 'var(--jp-text)', marginBottom: 20, textAlign: 'center' },
   volSliderWrap: { display: 'flex', alignItems: 'center', gap: 12 },
   volSlider: { flex: 1, accentColor: 'var(--accent)' },
-  volMin: { fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-mono)', width: 16 },
-  volMax: { fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-mono)', width: 28, textAlign: 'right' },
+  volMin: { fontSize: 11, color: 'rgba(var(--tint-rgb), 0.3)', fontFamily: 'var(--font-mono)', width: 16 },
+  volMax: { fontSize: 11, color: 'rgba(var(--tint-rgb), 0.5)', fontFamily: 'var(--font-mono)', width: 28, textAlign: 'right' },
   // v1.1.3.8 — circular − / + volume steps at the right end of the
   // slider row. Same 36px circle as deviceIconBtn so every round
   // control on this screen reads as one family. touch-action
@@ -1622,9 +1748,9 @@ const s = {
   volStepBtn: {
     width: 36, height: 36,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    color: 'rgba(255,255,255,0.85)',
-    background: 'rgba(255,255,255,0.08)',
-    border: '1px solid rgba(255,255,255,0.12)',
+    color: 'rgba(var(--tint-rgb), 0.85)',
+    background: 'rgba(var(--tint-rgb), 0.08)',
+    border: '1px solid rgba(var(--tint-rgb), 0.12)',
     borderRadius: 999,
     cursor: 'pointer',
     flexShrink: 0,
@@ -1649,12 +1775,12 @@ const s = {
   },
   orbBtn: { width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none' },
   orb: { width: 11, height: 11, borderRadius: '50%', transition: 'all 0.3s' },
-  topBtn: { width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.7)', background: 'none', border: 'none' },
+  topBtn: { width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(var(--tint-rgb), 0.7)', background: 'none', border: 'none' },
 
   tabs: { display: 'flex', alignItems: 'center', gap: 20 },
   tabBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0', position: 'relative' },
-  tabLabel: { fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', display: 'block' },
-  tabLabelActive: { color: '#fff' },
+  tabLabel: { fontSize: 12, fontWeight: 700, color: 'rgba(var(--tint-rgb), 0.3)', letterSpacing: '0.08em', display: 'block' },
+  tabLabelActive: { color: 'var(--jp-text)' },
   tabUnderline: { position: 'absolute', bottom: -2, left: 0, right: 0, height: 2, background: 'var(--accent)', borderRadius: 1 },
 
   // v54: icon-pill tabs for Now Playing / Queue. Single rounded
@@ -1664,8 +1790,8 @@ const s = {
   tabPill: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: 4,
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.10)',
+    background: 'rgba(var(--tint-rgb), 0.06)',
+    border: '1px solid rgba(var(--tint-rgb), 0.10)',
     borderRadius: 999,
   },
   tabPillBtn: {
@@ -1674,7 +1800,7 @@ const s = {
     border: '1.5px solid transparent',
     borderRadius: 999,
     background: 'transparent',
-    color: 'rgba(255,255,255,0.55)',
+    color: 'rgba(var(--tint-rgb), 0.55)',
     cursor: 'pointer',
     transition: 'all 0.15s',
   },
@@ -1710,9 +1836,9 @@ const s = {
   deviceIconBtn: {
     width: 36, height: 36,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    color: 'rgba(255,255,255,0.85)',
-    background: 'rgba(255,255,255,0.08)',
-    border: '1px solid rgba(255,255,255,0.12)',
+    color: 'rgba(var(--tint-rgb), 0.85)',
+    background: 'rgba(var(--tint-rgb), 0.08)',
+    border: '1px solid rgba(var(--tint-rgb), 0.12)',
     borderRadius: 999,
     cursor: 'pointer',
   },
@@ -1726,7 +1852,7 @@ const s = {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     color: '#fff',
     background: 'rgba(0,0,0,0.55)',
-    border: '1px solid rgba(255,255,255,0.22)',
+    border: '1px solid rgba(var(--tint-rgb), 0.22)',
     borderRadius: 999,
     cursor: 'pointer',
     touchAction: 'manipulation',
@@ -1741,11 +1867,11 @@ const s = {
   shareOnArtDark: {
     color: '#fff',
     background: 'rgba(0,0,0,0.62)',
-    borderColor: 'rgba(255,255,255,0.28)',
+    borderColor: 'rgba(var(--tint-rgb), 0.28)',
   },
   shareOnArtLight: {
     color: '#000',
-    background: 'rgba(255,255,255,0.72)',
+    background: 'rgba(var(--tint-rgb), 0.72)',
     borderColor: 'rgba(0,0,0,0.22)',
   },
 
@@ -1770,8 +1896,8 @@ const s = {
   shareSheet: {
     width: 'min(100%, 420px)', maxHeight: '100%',
     overflowY: 'auto',
-    background: '#1a1a24',
-    border: '1px solid rgba(255,255,255,0.10)',
+    background: 'var(--jp-bg-surface)',
+    border: '1px solid rgba(var(--tint-rgb), 0.10)',
     borderRadius: 20,
     boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
     // The overlay carries the safe-area padding now that the card is
@@ -1898,8 +2024,8 @@ const s = {
   },
   queueRadioToggle: {
     width: 44, height: 24, padding: 2,
-    background: 'rgba(255,255,255,0.10)',
-    border: '1px solid rgba(255,255,255,0.14)',
+    background: 'rgba(var(--tint-rgb), 0.10)',
+    border: '1px solid rgba(var(--tint-rgb), 0.14)',
     borderRadius: 999,
     cursor: 'pointer',
     transition: 'background 0.15s',
@@ -1946,7 +2072,7 @@ const s = {
   },
   queueRowArt: {
     width: 36, height: 36,
-    background: 'rgba(255,255,255,0.06)',
+    background: 'rgba(var(--tint-rgb), 0.06)',
     borderRadius: 4,
     overflow: 'hidden', flexShrink: 0,
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -1997,8 +2123,8 @@ const s = {
   queueBulkBtn: {
     width: 30, height: 30,
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.10)',
+    background: 'rgba(var(--tint-rgb), 0.06)',
+    border: '1px solid rgba(var(--tint-rgb), 0.10)',
     borderRadius: 999,
     color: 'var(--text-secondary)',
     cursor: 'pointer',
@@ -2014,8 +2140,8 @@ const s = {
     top: 'calc(100% + 6px)',
     right: 0,
     minWidth: 180,
-    background: '#1a1a24',
-    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'var(--jp-bg-surface)',
+    border: '1px solid rgba(var(--tint-rgb), 0.12)',
     borderRadius: 8,
     boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
     padding: 4,
@@ -2056,7 +2182,7 @@ const s = {
   queueSelectCancel: {
     padding: '6px 12px',
     background: 'transparent',
-    border: '1px solid rgba(255,255,255,0.16)',
+    border: '1px solid rgba(var(--tint-rgb), 0.16)',
     borderRadius: 999,
     color: 'var(--text-secondary)',
     fontSize: 12, fontWeight: 500,
@@ -2067,7 +2193,7 @@ const s = {
     background: 'var(--accent)',
     border: '1px solid var(--accent)',
     borderRadius: 999,
-    color: '#fff',
+    color: 'var(--on-accent)',
     fontSize: 12, fontWeight: 600,
     cursor: 'pointer',
   },
@@ -2080,10 +2206,10 @@ const s = {
   queueRowCheckbox: {
     width: 36, height: 36,
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    border: '2px solid rgba(255,255,255,0.30)',
+    border: '2px solid rgba(var(--tint-rgb), 0.30)',
     borderRadius: 6,
     background: 'transparent',
-    color: '#fff',
+    color: 'var(--jp-text)',
     flexShrink: 0,
   },
   queueRowCheckboxOn: {
@@ -2121,8 +2247,8 @@ const s = {
   },
   overflowBox: { paddingBottom: 'var(--safe-bot)',
     width: '100%', maxWidth: 480,
-    background: '#1a1a24',
-    border: '1px solid rgba(255,255,255,0.10)',
+    background: 'var(--jp-bg-surface)',
+    border: '1px solid rgba(var(--tint-rgb), 0.10)',
     borderRadius: '20px 20px 0 0',
     padding: '8px 0 32px',
     boxShadow: '0 -10px 40px rgba(0,0,0,0.5)',
@@ -2135,7 +2261,7 @@ const s = {
     width: 56, height: 56,
     borderRadius: 4,
     overflow: 'hidden',
-    background: 'rgba(255,255,255,0.06)',
+    background: 'rgba(var(--tint-rgb), 0.06)',
     flexShrink: 0,
   },
   overflowArtImg: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
@@ -2151,8 +2277,17 @@ const s = {
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
   },
   overflowDivider: {
-    height: 1, background: 'rgba(255,255,255,0.08)',
+    height: 1, background: 'rgba(var(--tint-rgb), 0.08)',
     margin: '6px 16px',
+  },
+  // Caption over the queue selection actions. The actions below the divider
+  // act on the track in the header; these act on the ticked rows, and without
+  // a label nothing in the menu says so.
+  overflowSectionLabel: {
+    padding: '10px 18px 4px',
+    fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+    color: 'var(--text-tertiary)',
   },
   overflowItem: {
     display: 'flex', alignItems: 'center', gap: 12,
@@ -2192,7 +2327,7 @@ const s = {
     margin: '12px 16px 0',
     padding: '14px 0',
     background: 'transparent',
-    border: '1px solid rgba(255,255,255,0.12)',
+    border: '1px solid rgba(var(--tint-rgb), 0.12)',
     borderRadius: 999,
     color: 'var(--text-primary)',
     fontSize: 14, fontWeight: 600,
@@ -2210,7 +2345,7 @@ const s = {
     width: 36, height: 36,
     background: 'transparent',
     border: 'none',
-    color: 'rgba(255,255,255,0.35)',
+    color: 'rgba(var(--tint-rgb), 0.35)',
     cursor: 'pointer',
     borderRadius: 6,
   },
@@ -2270,7 +2405,7 @@ const s = {
   // Progress: 2px line, white fill on a 8% white track. Times in
   // mono at --jp-text-3.
   progressSection: { flexShrink: 0, marginBottom: 16 },
-  progressTrack: { height: 2, background: 'rgba(255,255,255,0.08)', borderRadius: 1, marginBottom: 6, overflow: 'hidden' },
+  progressTrack: { height: 2, background: 'rgba(var(--tint-rgb), 0.08)', borderRadius: 1, marginBottom: 6, overflow: 'hidden' },
   progressFill: { height: '100%', background: 'var(--jp-accent)', borderRadius: 1, transition: 'width 0.25s linear' },
   times: { display: 'flex', justifyContent: 'space-between', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--jp-text-3)' },
 
@@ -2286,17 +2421,17 @@ const s = {
   playBtn: {
     width: 76, height: 76, borderRadius: '50%',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: 'var(--jp-accent)', color: '#000', border: 'none', flexShrink: 0,
+    background: 'var(--jp-accent)', color: 'var(--jp-bg)', border: 'none', flexShrink: 0,
   },
-  spinner: { width: 24, height: 24, border: '2px solid rgba(0,0,0,0.2)', borderTopColor: '#000', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
+  spinner: { width: 24, height: 24, border: '2px solid rgba(0,0,0,0.2)', borderTopColor: 'var(--jp-bg)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
 
   bottomBar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 32, flexShrink: 0 },
   bottomBtn: {
     display: 'flex', alignItems: 'center', gap: 7,
     padding: '8px 14px', borderRadius: 20,
-    background: 'rgba(255,255,255,0.07)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    color: 'rgba(255,255,255,0.7)', cursor: 'pointer', maxWidth: '46%',
+    background: 'rgba(var(--tint-rgb), 0.07)',
+    border: '1px solid rgba(var(--tint-rgb), 0.1)',
+    color: 'rgba(var(--tint-rgb), 0.7)', cursor: 'pointer', maxWidth: '46%',
   },
   bottomBtnLabel: { fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
 
@@ -2324,7 +2459,7 @@ const s = {
     width: '100%', boxSizing: 'border-box',
     padding: '7px 4px',
     background: 'none', border: 'none',
-    color: 'rgba(255,255,255,0.40)',
+    color: 'rgba(var(--tint-rgb), 0.40)',
     textAlign: 'left', cursor: 'pointer',
   },
   skipFoldIcon: {
@@ -2384,9 +2519,9 @@ const s = {
     display: 'inline-flex', alignItems: 'center', gap: 5,
     padding: '5px 11px', borderRadius: 14,
     fontSize: 11, fontWeight: 600,
-    color: 'rgba(255,255,255,0.55)',
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.10)',
+    color: 'rgba(var(--tint-rgb), 0.55)',
+    background: 'rgba(var(--tint-rgb), 0.06)',
+    border: '1px solid rgba(var(--tint-rgb), 0.10)',
     cursor: 'pointer',
   },
   queueChipActive: {
@@ -2400,9 +2535,9 @@ const s = {
     display: 'inline-flex', alignItems: 'center', gap: 5,
     padding: '5px 11px', borderRadius: 14,
     fontSize: 11, fontWeight: 600,
-    color: 'rgba(255,255,255,0.55)',
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.10)',
+    color: 'rgba(var(--tint-rgb), 0.55)',
+    background: 'rgba(var(--tint-rgb), 0.06)',
+    border: '1px solid rgba(var(--tint-rgb), 0.10)',
     cursor: 'pointer',
     marginLeft: 'auto',
     maxWidth: 160,
@@ -2417,14 +2552,14 @@ const s = {
     margin: '0 0 12px',
     padding: '10px 8px',
     borderRadius: 12,
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    background: 'rgba(var(--tint-rgb), 0.04)',
+    border: '1px solid rgba(var(--tint-rgb), 0.08)',
   },
   queueZonePickerTitle: {
     fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.45)', margin: '0 4px 6px',
+    color: 'rgba(var(--tint-rgb), 0.45)', margin: '0 4px 6px',
   },
-  queueZoneEmpty: { fontSize: 11, color: 'rgba(255,255,255,0.4)', textAlign: 'center', padding: '8px 0' },
+  queueZoneEmpty: { fontSize: 11, color: 'rgba(var(--tint-rgb), 0.4)', textAlign: 'center', padding: '8px 0' },
   queueZoneRow: {
     display: 'grid', gridTemplateColumns: '18px 1fr auto auto', alignItems: 'center',
     gap: 8, padding: '7px 8px',
@@ -2433,27 +2568,27 @@ const s = {
   },
   queueZoneRowActive: { background: 'var(--accent-dim)' },
   queueZoneRowName: {
-    fontSize: 13, color: 'rgba(255,255,255,0.92)',
+    fontSize: 13, color: 'rgba(var(--tint-rgb), 0.92)',
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
   },
   queueZoneRowProto: {
     fontSize: 9, fontFamily: 'var(--font-mono)',
-    color: 'rgba(255,255,255,0.35)', letterSpacing: '1px',
+    color: 'rgba(var(--tint-rgb), 0.35)', letterSpacing: '1px',
   },
-  queueEmpty: { paddingTop: 60, textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 13 },
+  queueEmpty: { paddingTop: 60, textAlign: 'center', color: 'rgba(var(--tint-rgb), 0.3)', fontSize: 13 },
   queueRow: { display: 'grid', gridTemplateColumns: '32px 1fr 44px', alignItems: 'center', gap: 8, padding: '10px 8px', width: '100%', border: 'none', cursor: 'pointer', borderRadius: 8, textAlign: 'left' },
   queueNum: { fontSize: 12, fontFamily: 'var(--font-mono)', textAlign: 'right' },
   queueInfo: { display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' },
   queueTitle: { fontSize: 13, fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  queueArtist: { fontSize: 11, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  queueDur: { fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-mono)', textAlign: 'right' },
+  queueArtist: { fontSize: 11, color: 'rgba(var(--tint-rgb), 0.35)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  queueDur: { fontSize: 11, color: 'rgba(var(--tint-rgb), 0.3)', fontFamily: 'var(--font-mono)', textAlign: 'right' },
   queueEditCtrls: { display: 'flex', alignItems: 'center', gap: 4 },
   queueIconBtn: {
     width: 28, height: 28,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: 'rgba(255,255,255,0.08)',
-    color: 'rgba(255,255,255,0.7)',
-    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'rgba(var(--tint-rgb), 0.08)',
+    color: 'rgba(var(--tint-rgb), 0.7)',
+    border: '1px solid rgba(var(--tint-rgb), 0.12)',
     borderRadius: 6,
     cursor: 'pointer', padding: 0,
   },

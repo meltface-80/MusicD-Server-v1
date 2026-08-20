@@ -604,7 +604,7 @@ const s = {
     boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
   },
   tile2Img: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
-  tile2Empty: { fontSize: 24, color: 'rgba(255,255,255,0.2)' },
+  tile2Empty: { fontSize: 24, color: 'rgba(var(--tint-rgb), 0.2)' },
   tile2Sub: {
     fontSize: 9, color: 'var(--text-tertiary)',
     marginBottom: 2,
@@ -647,12 +647,12 @@ const s = {
     width: 32, height: 32, flexShrink: 0,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     color: 'var(--accent)',
-    background: 'rgba(255,255,255,0.04)',
+    background: 'rgba(var(--tint-rgb), 0.04)',
     borderRadius: 8,
   },
   bannerSpinner: {
     width: 18, height: 18,
-    border: '2px solid rgba(255,255,255,0.2)',
+    border: '2px solid rgba(var(--tint-rgb), 0.2)',
     borderTopColor: 'var(--accent)',
     borderRadius: '50%', animation: 'spin 0.8s linear infinite',
   },
@@ -670,7 +670,7 @@ const s = {
   },
   bannerBtn: {
     padding: '6px 12px',
-    background: 'var(--accent)', color: '#fff',
+    background: 'var(--accent)', color: 'var(--on-accent)',
     border: 'none', borderRadius: 6,
     fontSize: 11, fontWeight: 600, cursor: 'pointer',
     whiteSpace: 'nowrap',

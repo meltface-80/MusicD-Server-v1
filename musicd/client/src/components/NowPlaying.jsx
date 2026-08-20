@@ -235,7 +235,7 @@ const s = {
   progressStrip: {
     position: 'absolute', top: 0, left: 0, right: 0,
     height: 2,
-    background: 'rgba(255,255,255,0.06)',
+    background: 'rgba(var(--tint-rgb), 0.06)',
     overflow: 'hidden',
     pointerEvents: 'none',
   },
@@ -257,18 +257,18 @@ const s = {
     cursor: 'pointer',
   },
   coverImg: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
-  coverEmpty: { fontSize: 30, color: 'rgba(255,255,255,0.18)' },
+  coverEmpty: { fontSize: 30, color: 'rgba(var(--tint-rgb), 0.18)' },
   // Play button scaled 48→64 to match the bar growth. Same white
   // circle, same JPLAY-flat treatment, just larger to remain the
   // visual focal point of the bar.
   playBtn: {
     width: 64, height: 64, borderRadius: '50%',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: 'var(--jp-accent)', color: '#000', border: 'none',
+    background: 'var(--jp-accent)', color: 'var(--jp-bg)', border: 'none',
     cursor: 'pointer', flexShrink: 0,
     padding: 0,
   },
-  spinner: { width: 22, height: 22, border: '2px solid rgba(0,0,0,0.2)', borderTopColor: '#000', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
+  spinner: { width: 22, height: 22, border: '2px solid rgba(0,0,0,0.2)', borderTopColor: 'var(--jp-bg)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
 
   // Tappable text column — flex 1 minWidth 0 so it truncates cleanly when
   // names are long instead of pushing the right cluster off-screen.
@@ -304,7 +304,7 @@ const s = {
   iconBtn: {
     width: 38, height: 38,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: 'rgba(255,255,255,0.04)',
+    background: 'rgba(var(--tint-rgb), 0.04)',
     color: 'var(--jp-text-2)',
     border: '1px solid transparent',
     borderRadius: 6,
@@ -322,7 +322,7 @@ const s = {
     minWidth: 18, height: 18,
     padding: '0 4px',
     background: 'var(--accent)',
-    color: '#fff',
+    color: 'var(--on-accent)',
     borderRadius: 9,
     fontSize: 10, fontWeight: 700,
     display: 'flex', alignItems: 'center', justifyContent: 'center',

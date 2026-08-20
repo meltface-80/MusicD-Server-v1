@@ -424,6 +424,35 @@ export const useStore = create((set, get) => ({
     try { await api.post('/player/queue/reorder', { from, to }) } catch {}
   },
 
+  // v1.1.24.0 — move a whole selection to just after the currently-playing
+  // track. Backs "Play next" on the queue screen's multi-select, and "Play
+  // now" via moveSelectionNext() followed by playNext().
+  //
+  // The index math below MUST match server/src/playerState.js's
+  // moveSelectionNext() — the server's broadcast lands a moment later and any
+  // mismatch shows as a visible jump in the queue UI. If you change one side,
+  // change the other. Same standing rule as reorderQueue above, and the same
+  // three sanitising steps in the same order: dedupe, drop the playing track,
+  // sort ascending so the moved block keeps the queue's own order.
+  moveSelectionNext: async (indices) => {
+    const { queue, queueIndex } = get()
+    if (!Array.isArray(indices) || indices.length === 0) return
+    const picked = [...new Set(indices.map(i => parseInt(i, 10)))]
+      .filter(i => Number.isFinite(i) && i >= 0 && i < queue.length && i !== queueIndex)
+      .sort((a, b) => a - b)
+    if (picked.length === 0) return
+    const pickedSet = new Set(picked)
+    const moved = picked.map(i => queue[i])
+    const rest = queue.filter((_, i) => !pickedSet.has(i))
+    // Only the entries BEFORE the playing track shift it. The playing track is
+    // never in `picked`, so it is always still in `rest`.
+    const removedBefore = picked.filter(i => i < queueIndex).length
+    const newIdx = queueIndex - removedBefore
+    rest.splice(newIdx + 1, 0, ...moved)
+    set({ queue: rest, queueIndex: newIdx })
+    try { await api.post('/player/queue/move-next', { indices: picked }) } catch {}
+  },
+
   // Remove a single track from the queue (cannot remove the currently-playing one).
   removeFromQueue: async (index) => {
     const { queue, queueIndex } = get()

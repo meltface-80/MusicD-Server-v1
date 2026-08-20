@@ -201,8 +201,8 @@ const s = {
   toggle: {
     position: 'relative', flexShrink: 0,
     width: 44, height: 26, borderRadius: 999,
-    background: 'rgba(255,255,255,0.12)',
-    border: '1px solid rgba(255,255,255,0.10)',
+    background: 'rgba(var(--tint-rgb), 0.12)',
+    border: '1px solid rgba(var(--tint-rgb), 0.10)',
     cursor: 'pointer', padding: 0,
     transition: 'background 0.16s ease',
   },

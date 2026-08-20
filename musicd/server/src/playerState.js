@@ -1197,6 +1197,74 @@ async function reorderQueue(from, to, rendererId) {
   return { queue: zone.queue.slice(), queueIndex: zone.queueIndex };
 }
 
+// Move a whole SELECTION to just after the currently-playing track, keeping
+// the selected tracks in the order they already had (v1.1.24.0).
+//
+// This is the primitive behind both "Play now" and "Play next" on the queue
+// screen's multi-select: Play next is this alone, Play now is this followed by
+// next(), because after the move the first selected track IS queueIndex + 1.
+// One primitive for both means the two cannot drift apart.
+//
+// A MOVE, not a copy. insertNextInQueue() above splices ids in and leaves the
+// originals where they are, which is right for "queue this album next" and
+// wrong here — every track in the selection is already in this queue, and
+// copying would leave the user with two of each.
+//
+// Doing it in one pass server-side rather than as N reorderQueue() calls from
+// the client is not tidiness: every single-move shifts the indices of the
+// moves that have not happened yet, and the client would have to re-derive
+// them between round-trips against a queue the server is also broadcasting.
+// Here the whole selection is resolved against one snapshot.
+async function moveSelectionNext(indices, rendererId) {
+  const zone = resolveZone(rendererId);
+  if (!zone) return null;
+  const len = zone.queue.length;
+
+  // Sanitised once, here, so the maths below can trust its input:
+  //   - de-duplicated, because a Set arriving as an array twice would splice
+  //     the same entry in twice and lose the second one;
+  //   - in range;
+  //   - never the currently-playing entry. "Move the playing track to just
+  //     after itself" has no meaning, and letting it through would make
+  //     newIndex depend on a track that is also being moved.
+  //   - sorted ascending, which is what preserves the queue's own order
+  //     within the moved block rather than the order they were tapped in.
+  const picked = [...new Set((Array.isArray(indices) ? indices : [])
+    .map(i => parseInt(i, 10)))]
+    .filter(i => Number.isInteger(i) && i >= 0 && i < len && i !== zone.queueIndex)
+    .sort((a, b) => a - b);
+  if (picked.length === 0) return null;
+
+  const prevNextId = zone.queue[zone.queueIndex + 1] || null;
+
+  const pickedSet = new Set(picked);
+  const moved = picked.map(i => zone.queue[i]);
+  const rest = zone.queue.filter((_, i) => !pickedSet.has(i));
+
+  // Where the playing track lands once the picked entries are lifted out.
+  // Only the ones BEFORE it shift it; the ones after do not. The playing
+  // track itself is never in `picked`, so it is always still in `rest`.
+  const removedBefore = picked.filter(i => i < zone.queueIndex).length;
+  const newIndex = zone.queueIndex - removedBefore;
+
+  rest.splice(newIndex + 1, 0, ...moved);
+  zone.queue = rest;
+  zone.queueIndex = newIndex;
+
+  const newNextId = zone.queue[zone.queueIndex + 1] || null;
+  if (prevNextId !== newNextId) {
+    // The pre-queued NextURI is not the next track any more. Clearing it is
+    // the whole point of "play next" — without this the renderer plays the
+    // track it had already been handed and the move appears to do nothing
+    // until the one after.
+    await Promise.all(zone.rendererIds.map(rid => renderers.clearNext(rid).catch(() => {})));
+    zone.gaplessQueued = false;
+  }
+
+  broadcastFullState();
+  return { queue: zone.queue.slice(), queueIndex: zone.queueIndex, moved: moved.length };
+}
+
 // Remove a single track from the queue. Refuses to remove the currently-
 // playing track (the user has to use Stop or Next for that). Returns the
 // updated queue/queueIndex on success, null on invalid argument.
@@ -2109,7 +2177,7 @@ module.exports = {
   getActiveZone, setActiveZone, ensureZone,
   restorePersistedQueue,
   // Queue mutation (#21/#22) and radio mode (#14)
-  reorderQueue, removeFromQueue, setRadio,
+  reorderQueue, moveSelectionNext, removeFromQueue, setRadio,
   // v1.1.0.55 — batch queue operations
   removeFromQueueBatch,
   // v1.1.0.56 — play-next (album header dropdown / track ⋯ menu)

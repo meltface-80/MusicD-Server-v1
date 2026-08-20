@@ -29,50 +29,50 @@
   ],
   "manifestVersion": 1,
   "schema_version": 1,
-  "version": "1.1.23.0",
-  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-23-0.tar",
-  "tarSha256": "021ff9229cefdb43e8e9c028c001a05b21fd256db3e624a1e8ca7aa8c29ee013",
-  "releasedAt": "2026-08-21T01:20:00Z",
-  "releaseNotes": "Touch-and-hold no longer selects text or raises the OS Copy / Look Up / Translate bar anywhere in the app - it was suppressed for images and buttons only, so settings labels, album titles and track names still highlighted. The share card still takes a long press, and text inputs keep the caret and the Paste menu. The albums/tracks count line is removed from the library screen, along with the stats request it was the only consumer of.",
-  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-23-0.tar",
-  "tarball_sha256": "021ff9229cefdb43e8e9c028c001a05b21fd256db3e624a1e8ca7aa8c29ee013",
-  "released_at": "2026-08-21T01:20:00Z",
+  "version": "1.1.24.0",
+  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-24-0.tar",
+  "tarSha256": "512a0c0f1df8d4d931e785f19a10d68ac89e63129c529c7a14e8aeee1ee66b50",
+  "releasedAt": "2026-08-21T02:40:00Z",
+  "releaseNotes": "Four themes - Dark, Light, Copper and Brass - with a new Settings > Appearance picker below Backup; the choice is stored per device. The queue screen's overflow menu now acts on a multi-selection with Play now, Play next and Clear selected from queue, and no longer shows the album links or Suggestions that belong to the Now Playing menu.",
+  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-24-0.tar",
+  "tarball_sha256": "512a0c0f1df8d4d931e785f19a10d68ac89e63129c529c7a14e8aeee1ee66b50",
+  "released_at": "2026-08-21T02:40:00Z",
   "release_notes_url": "https://github.com/meltface-80/MusicD-Server-v1/blob/main/musicd/CHANGELOG.md",
   "channels": {
     "stable": {
-      "version": "1.1.23.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-23-0.tar",
-      "tarSha256": "021ff9229cefdb43e8e9c028c001a05b21fd256db3e624a1e8ca7aa8c29ee013",
-      "releasedAt": "2026-08-21T01:20:00Z",
-      "releaseNotes": "Touch-and-hold no longer selects text or raises the OS Copy / Look Up / Translate bar anywhere in the app - it was suppressed for images and buttons only, so settings labels, album titles and track names still highlighted. The share card still takes a long press, and text inputs keep the caret and the Paste menu. The albums/tracks count line is removed from the library screen, along with the stats request it was the only consumer of."
+      "version": "1.1.24.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-24-0.tar",
+      "tarSha256": "512a0c0f1df8d4d931e785f19a10d68ac89e63129c529c7a14e8aeee1ee66b50",
+      "releasedAt": "2026-08-21T02:40:00Z",
+      "releaseNotes": "Four themes - Dark, Light, Copper and Brass - with a new Settings > Appearance picker below Backup; the choice is stored per device. The queue screen's overflow menu now acts on a multi-selection with Play now, Play next and Clear selected from queue, and no longer shows the album links or Suggestions that belong to the Now Playing menu."
     },
     "earlyAccess": {
-      "version": "1.1.23.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-23-0.tar",
-      "tarSha256": "021ff9229cefdb43e8e9c028c001a05b21fd256db3e624a1e8ca7aa8c29ee013",
-      "releasedAt": "2026-08-21T01:20:00Z",
-      "releaseNotes": "Touch-and-hold no longer selects text or raises the OS Copy / Look Up / Translate bar anywhere in the app - it was suppressed for images and buttons only, so settings labels, album titles and track names still highlighted. The share card still takes a long press, and text inputs keep the caret and the Paste menu. The albums/tracks count line is removed from the library screen, along with the stats request it was the only consumer of."
+      "version": "1.1.24.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-24-0.tar",
+      "tarSha256": "512a0c0f1df8d4d931e785f19a10d68ac89e63129c529c7a14e8aeee1ee66b50",
+      "releasedAt": "2026-08-21T02:40:00Z",
+      "releaseNotes": "Four themes - Dark, Light, Copper and Brass - with a new Settings > Appearance picker below Backup; the choice is stored per device. The queue screen's overflow menu now acts on a multi-selection with Play now, Play next and Clear selected from queue, and no longer shows the album links or Suggestions that belong to the Now Playing menu."
     },
     "beta": {
-      "version": "1.1.23.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-23-0.tar",
-      "tarSha256": "021ff9229cefdb43e8e9c028c001a05b21fd256db3e624a1e8ca7aa8c29ee013",
-      "releasedAt": "2026-08-21T01:20:00Z",
-      "releaseNotes": "Touch-and-hold no longer selects text or raises the OS Copy / Look Up / Translate bar anywhere in the app - it was suppressed for images and buttons only, so settings labels, album titles and track names still highlighted. The share card still takes a long press, and text inputs keep the caret and the Paste menu. The albums/tracks count line is removed from the library screen, along with the stats request it was the only consumer of."
+      "version": "1.1.24.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-24-0.tar",
+      "tarSha256": "512a0c0f1df8d4d931e785f19a10d68ac89e63129c529c7a14e8aeee1ee66b50",
+      "releasedAt": "2026-08-21T02:40:00Z",
+      "releaseNotes": "Four themes - Dark, Light, Copper and Brass - with a new Settings > Appearance picker below Backup; the choice is stored per device. The queue screen's overflow menu now acts on a multi-selection with Play now, Play next and Clear selected from queue, and no longer shows the album links or Suggestions that belong to the Now Playing menu."
     },
     "alpha": {
-      "version": "1.1.23.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-23-0.tar",
-      "tarSha256": "021ff9229cefdb43e8e9c028c001a05b21fd256db3e624a1e8ca7aa8c29ee013",
-      "releasedAt": "2026-08-21T01:20:00Z",
-      "releaseNotes": "Touch-and-hold no longer selects text or raises the OS Copy / Look Up / Translate bar anywhere in the app - it was suppressed for images and buttons only, so settings labels, album titles and track names still highlighted. The share card still takes a long press, and text inputs keep the caret and the Paste menu. The albums/tracks count line is removed from the library screen, along with the stats request it was the only consumer of."
+      "version": "1.1.24.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-24-0.tar",
+      "tarSha256": "512a0c0f1df8d4d931e785f19a10d68ac89e63129c529c7a14e8aeee1ee66b50",
+      "releasedAt": "2026-08-21T02:40:00Z",
+      "releaseNotes": "Four themes - Dark, Light, Copper and Brass - with a new Settings > Appearance picker below Backup; the choice is stored per device. The queue screen's overflow menu now acts on a multi-selection with Play now, Play next and Clear selected from queue, and no longer shows the album links or Suggestions that belong to the Now Playing menu."
     },
     "legacy": {
-      "version": "1.1.23.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-23-0.tar",
-      "tarSha256": "021ff9229cefdb43e8e9c028c001a05b21fd256db3e624a1e8ca7aa8c29ee013",
-      "releasedAt": "2026-08-21T01:20:00Z",
-      "releaseNotes": "Touch-and-hold no longer selects text or raises the OS Copy / Look Up / Translate bar anywhere in the app - it was suppressed for images and buttons only, so settings labels, album titles and track names still highlighted. The share card still takes a long press, and text inputs keep the caret and the Paste menu. The albums/tracks count line is removed from the library screen, along with the stats request it was the only consumer of."
+      "version": "1.1.24.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-24-0.tar",
+      "tarSha256": "512a0c0f1df8d4d931e785f19a10d68ac89e63129c529c7a14e8aeee1ee66b50",
+      "releasedAt": "2026-08-21T02:40:00Z",
+      "releaseNotes": "Four themes - Dark, Light, Copper and Brass - with a new Settings > Appearance picker below Backup; the choice is stored per device. The queue screen's overflow menu now acts on a multi-selection with Play now, Play next and Clear selected from queue, and no longer shows the album links or Suggestions that belong to the Now Playing menu."
     }
   },
   "channelMetadata": {

@@ -261,7 +261,7 @@ export default function FocusLibraryScreen() {
                   padding: '7px 14px',
                   background: 'var(--jp-accent)',
                   border: 'none', borderRadius: 6,
-                  color: '#0a0a0c', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  color: 'var(--jp-bg)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
                   opacity: (renameModal.busy || !renameModal.name.trim()) ? 0.5 : 1,
                 }}
               >
@@ -485,7 +485,7 @@ const S = {
   tickboxOn: {
     background: 'var(--jp-accent)',
     borderColor: 'var(--jp-accent)',
-    color: '#0a0a0c',
+    color: 'var(--jp-bg)',
   },
   // v1.1.0.83 — pencil button for rename. Same corner as the
   // tickbox (only one of the two ever renders at once: tickbox in

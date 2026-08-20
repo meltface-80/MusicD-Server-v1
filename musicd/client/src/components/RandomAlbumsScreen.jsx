@@ -148,7 +148,7 @@ const s = {
     boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
   },
   artSkeleton: { background: 'var(--bg-elevated)' },
-  artEmpty: { fontSize: 24, color: 'rgba(255,255,255,0.2)' },
+  artEmpty: { fontSize: 24, color: 'rgba(var(--tint-rgb), 0.2)' },
   img: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
   title: {
     fontSize: 11, fontWeight: 700, color: 'var(--text-primary)',
