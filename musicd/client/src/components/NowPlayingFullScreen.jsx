@@ -3,6 +3,8 @@ import { useStore } from '../store'
 import { api } from '../api'
 import { ChevronLeft, Play, Pause, SkipBack, SkipForward, ChevronUp, ChevronDown, Trash2, Speaker, Check, Music, ListMusic, Sliders, Cast, Settings, X, Plus, Minus, Volume2, Share2, MoreHorizontal, Heart, Disc, User, Tag, Bookmark, Star, Sparkles, SkipForward as SkipIcon, ChevronRight } from 'lucide-react'
 import RendererModal from './RendererModal'
+import TagPicker from './TagPicker'
+import AddToPlaylistSheet from './AddToPlaylistSheet'
 import { foldSkippedRuns, playNextTarget } from '../queueFold'
 import { cornerRect, isLightSample } from '../artLuminance'
 // v56: pull these in at module load instead of via dynamic require()
@@ -210,34 +212,6 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
     }
   }
 
-  const handleShareSend = async () => {
-    if (!shareCard) return
-    const name = `${currentTrack?.title || 'now-playing'}.png`
-    const file = new File([shareCard.blob], name, { type: 'image/png' })
-    // Phone path: Web Share with a File attachment opens the native
-    // iOS share sheet. canShare is checked against the real payload —
-    // some browsers expose share() but reject files outright.
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({
-          files: [file],
-          title: currentTrack?.title || 'Now Playing',
-          text: `${currentTrack?.title || ''} — ${currentTrack?.artist || ''}`,
-        })
-      } catch (e) {
-        // Dismissing the iOS share sheet throws AbortError. That's the
-        // user saying "no", not a failure worth surfacing.
-        if (e.name !== 'AbortError') console.error('Share failed:', e)
-      }
-    } else {
-      // Desktop fallback: download the PNG.
-      const a = document.createElement('a')
-      a.href = shareCard.url
-      a.download = name
-      a.click()
-    }
-  }
-
   const handleShareClose = () => {
     if (shareCard) URL.revokeObjectURL(shareCard.url)
     setShareCard(null)
@@ -371,10 +345,8 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
                 real thing to want, and the callout is the only way to it.
                 See the artwork rules in index.css. */}
             <img src={shareCard.url} alt="Share card" style={s.sharePreview} className="allow-callout" />
-            <button style={s.shareBtn} onClick={handleShareSend}>
-              <Share2 size={15} />
-              {navigator.canShare ? 'Share…' : 'Download'}
-            </button>
+            {/* v1.1.19.0 — no Download button; see the note on shareOverlay. */}
+            <div style={s.shareHint}>Touch and hold the card to save or share it</div>
           </div>
         </div>
       )}
@@ -1310,7 +1282,16 @@ function DeviceSettingsOverlay({ rendererId, renderer, onClose }) {
 // being functional.
 function TrackOverflowMenu({ track, onClose, onCloseScreen, onArtistClick, onAlbumClick, onGenreClick }) {
   const ref = useRef(null)
-  const { setTrackFavorite, setTrackRating } = useStore()
+  const { setTrackFavorite, setTrackRating, toggleTrackSaved } = useStore()
+  // v1.1.19.0 — the three rows below the favourites that shipped disabled in
+  // v57 with "v60"/"v61" badges. Two of them were waiting on nothing: the
+  // save-for-later route and the tag endpoints both already existed and were
+  // already wired for albums. Playlists needed a backing store, which now
+  // exists (routes/playlists.js).
+  const [showPlaylistSheet, setShowPlaylistSheet] = useState(false)
+  const [showTagPicker, setShowTagPicker] = useState(false)
+  const [isSaved, setIsSaved] = useState(!!track?.is_saved_for_later)
+  const [savedBusy, setSavedBusy] = useState(false)
   const [isFav, setIsFav] = useState(false)
   const [favBusy, setFavBusy] = useState(false)
   const albumIdRef = useRef(null)
@@ -1415,6 +1396,20 @@ function TrackOverflowMenu({ track, onClose, onCloseScreen, onArtistClick, onAlb
       onGenreClick(track.genre)
     }
   }
+  // Optimistic, with a revert on failure — the same shape as the favourite
+  // toggles above it, so a tap feels immediate and a server refusal is not
+  // silently swallowed into a wrong-looking icon.
+  const toggleSaved = async () => {
+    if (!track?.id || savedBusy) return
+    setSavedBusy(true)
+    const next = !isSaved
+    setIsSaved(next)
+    const got = await toggleTrackSaved(track.id, next)
+    if (got === null) setIsSaved(!next)
+    else setIsSaved(got)
+    setSavedBusy(false)
+  }
+
   const toggleFav = async () => {
     if (!albumIdRef.current || favBusy) return
     setFavBusy(true)
@@ -1543,32 +1538,76 @@ function TrackOverflowMenu({ track, onClose, onCloseScreen, onArtistClick, onAlb
           </span>
         </button>
 
-        {/* v60+ placeholders. Render disabled so the user sees the
-            shape of the menu without being misled into expecting them
-            to work. Each gets a small label in the trailing slot. */}
-        <button style={s.overflowItemDisabled} disabled aria-disabled="true">
+        {/* v1.1.19.0 — these three now do what they say. */}
+        <button
+          style={s.overflowItem}
+          onClick={() => setShowPlaylistSheet(true)}
+          disabled={!track?.id}
+        >
           <ListMusic size={16} style={s.overflowItemIcon} />
-          <span>Add to Playlist</span>
-          <span style={s.overflowSoon}>v60</span>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Add to Playlist</span>
         </button>
-        <button style={s.overflowItemDisabled} disabled aria-disabled="true">
+        <button
+          style={s.overflowItem}
+          onClick={() => setShowTagPicker(true)}
+          disabled={!track?.id}
+        >
           <Tag size={16} style={s.overflowItemIcon} />
-          <span>Add to Tag</span>
-          <span style={s.overflowSoon}>v61</span>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Add to Tag</span>
         </button>
-        <button style={s.overflowItemDisabled} disabled aria-disabled="true">
-          <Bookmark size={16} style={s.overflowItemIcon} />
-          <span>Save for later</span>
-          <span style={s.overflowSoon}>v61</span>
+        <button
+          style={s.overflowItem}
+          onClick={toggleSaved}
+          disabled={!track?.id || savedBusy}
+        >
+          <Bookmark
+            size={16}
+            style={{ ...s.overflowItemIcon, opacity: 0.7 }}
+            fill={isSaved ? 'currentColor' : 'none'}
+          />
+          <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
+            {isSaved ? 'Remove from Saved for later' : 'Save for later'}
+          </span>
         </button>
+
+        {/* Suggestions stays disabled deliberately. Unlike the three above it
+            there is nothing behind it and no single obvious meaning — "more
+            from this artist", "same genre", "things you have not played" and
+            "similar-sounding" are four different features. Guessing which one
+            the badge promised would be inventing a spec, so it keeps its
+            honest placeholder until that is decided. */}
         <button style={s.overflowItemDisabled} disabled aria-disabled="true">
           <Sparkles size={16} style={s.overflowItemIcon} />
           <span>Suggestions</span>
-          <span style={s.overflowSoon}>v62+</span>
+          <span style={s.overflowSoon}>soon</span>
         </button>
 
         <button style={s.overflowClose} onClick={onClose}>Close</button>
       </div>
+
+      {/* Rendered inside the menu's own overlay, and stopping propagation, so
+          a tap inside either sheet does not fall through to the backdrop and
+          close the menu underneath them. */}
+      {showPlaylistSheet && track?.id && (
+        <div onClick={e => e.stopPropagation()}>
+          <AddToPlaylistSheet
+            trackIds={[track.id]}
+            title={track.title}
+            onClose={() => setShowPlaylistSheet(false)}
+          />
+        </div>
+      )}
+      {showTagPicker && track?.id && (
+        <div style={s.tagSheetBackdrop} onClick={() => setShowTagPicker(false)}>
+          <div style={s.tagSheet} onClick={e => e.stopPropagation()}>
+            <TagPicker
+              entityKind="track"
+              entityId={track.id}
+              onClose={() => setShowTagPicker(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1919,21 +1958,31 @@ const s = {
   // v1.1.3.8 — share-card sheet. Same bottom-sheet geometry as the
   // ⋯ overflow box so the two read as siblings. Sits above every
   // other overlay on this screen (overflowSheet is 720).
+  // v1.1.19.0 — centred, not a bottom sheet.
+  //
+  // This was alignItems:'flex-end', which put the card at the bottom of the
+  // screen where the mini transport bar sits on top of it — the card's own
+  // Download button ended up underneath the player. Centring it clears the
+  // bar entirely and gives the preview the room it deserves.
   shareOverlay: {
     position: 'absolute', inset: 0, zIndex: 730,
     background: 'rgba(0,0,0,0.55)',
-    display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: 20,
+    paddingTop: 'calc(20px + var(--safe-top))',
+    paddingBottom: 'calc(20px + var(--safe-bot))',
     animation: 'fadeIn 0.18s ease',
   },
   shareSheet: {
-    width: '100%', maxWidth: 480,
+    width: 'min(100%, 420px)', maxHeight: '100%',
+    overflowY: 'auto',
     background: '#1a1a24',
     border: '1px solid rgba(255,255,255,0.10)',
-    borderRadius: '20px 20px 0 0',
-    boxShadow: '0 -10px 40px rgba(0,0,0,0.5)',
-    // The 32 this replaces is folded into the calc; declaring it twice let
-    // the later plain value win and silently dropped the inset.
-    paddingBottom: 'calc(32px + var(--safe-bot))',
+    borderRadius: 20,
+    boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+    // The overlay carries the safe-area padding now that the card is
+    // centred, so this no longer reserves the home-indicator inset itself.
+    paddingBottom: 16,
   },
   shareHeader: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -1953,13 +2002,28 @@ const s = {
     borderRadius: 10, display: 'block',
     boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
   },
-  shareBtn: {
-    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-    margin: '0 16px', width: 'calc(100% - 32px)',
-    padding: '14px', borderRadius: 12,
-    background: 'var(--accent)', color: '#fff',
-    fontSize: 15, fontWeight: 700,
-    border: 'none', cursor: 'pointer',
+  shareHint: {
+    padding: '0 16px', fontSize: 12,
+    color: 'var(--jp-text-3)', textAlign: 'center',
+  },
+
+  // v1.1.19.0 — host for the shared TagPicker, opened from the track menu.
+  // Centred rather than bottom-anchored for the same reason the share card
+  // is: the mini transport bar owns the bottom of the screen.
+  tagSheetBackdrop: {
+    position: 'fixed', inset: 0, zIndex: 800,
+    background: 'rgba(0,0,0,0.6)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: 20,
+    paddingTop: 'calc(20px + var(--safe-top))',
+    paddingBottom: 'calc(20px + var(--safe-bot))',
+  },
+  tagSheet: {
+    width: 'min(100%, 420px)', maxHeight: '100%', overflowY: 'auto',
+    background: 'var(--jp-bg-elevated)',
+    border: '1px solid var(--jp-border)',
+    borderRadius: 16,
+    boxShadow: '0 20px 60px rgba(0,0,0,0.55)',
   },
 
   // v54: volume popover icon row + fixed-output label + slider tweaks.

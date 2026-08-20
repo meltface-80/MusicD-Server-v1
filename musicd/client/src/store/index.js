@@ -620,6 +620,79 @@ export const useStore = create((set, get) => ({
     }
   },
 
+  // ── Playlists (v1.1.19.0) ─────────────────────────────────────────
+  //
+  // Same shape as the tag actions above: every one swallows its error, logs
+  // it, and returns a value the caller can branch on without a try/catch at
+  // every call site. A failed "add to playlist" must not take a menu down.
+  loadPlaylists: async () => {
+    try {
+      const r = await api.get('/playlists')
+      return Array.isArray(r?.playlists) ? r.playlists : []
+    } catch (e) { console.warn('loadPlaylists failed:', e); return [] }
+  },
+  getPlaylist: async (id) => {
+    if (!id) return null
+    try { return await api.get(`/playlists/${encodeURIComponent(id)}`) }
+    catch (e) { console.warn('getPlaylist failed:', e); return null }
+  },
+  // `trackIds` is optional — passing it creates and fills in one round trip,
+  // which is what "New playlist" from the add sheet needs.
+  createPlaylist: async (name, trackIds = []) => {
+    if (!name?.trim()) return null
+    try {
+      const r = await api.post('/playlists', { name: name.trim(), trackIds })
+      return r?.playlist || null
+    } catch (e) { console.warn('createPlaylist failed:', e); return null }
+  },
+  renamePlaylist: async (id, name) => {
+    if (!id || !name?.trim()) return false
+    try { await api.patch(`/playlists/${encodeURIComponent(id)}`, { name: name.trim() }); return true }
+    catch (e) { console.warn('renamePlaylist failed:', e); return false }
+  },
+  deletePlaylist: async (id) => {
+    if (!id) return false
+    try { await api.del(`/playlists/${encodeURIComponent(id)}`); return true }
+    catch (e) { console.warn('deletePlaylist failed:', e); return false }
+  },
+  // Returns { added, requested } so the caller can tell "added 3" from
+  // "all 3 were already in it" — both are successes, and saying which is the
+  // difference between useful feedback and a shrug.
+  addToPlaylist: async (id, trackIds) => {
+    const ids = Array.isArray(trackIds) ? trackIds : [trackIds]
+    if (!id || ids.length === 0) return null
+    try { return await api.post(`/playlists/${encodeURIComponent(id)}/tracks`, { trackIds: ids }) }
+    catch (e) { console.warn('addToPlaylist failed:', e); return null }
+  },
+  removeFromPlaylist: async (id, trackId) => {
+    if (!id || !trackId) return false
+    try {
+      await api.del(`/playlists/${encodeURIComponent(id)}/tracks/${encodeURIComponent(trackId)}`)
+      return true
+    } catch (e) { console.warn('removeFromPlaylist failed:', e); return false }
+  },
+  // Which playlists already hold this track, so the add sheet can tick them
+  // rather than offering an action that would do nothing.
+  playlistsForTrack: async (trackId) => {
+    if (!trackId) return []
+    try {
+      const r = await api.get(`/playlists/for-track/${encodeURIComponent(trackId)}`)
+      return Array.isArray(r?.playlistIds) ? r.playlistIds : []
+    } catch (e) { console.warn('playlistsForTrack failed:', e); return [] }
+  },
+
+  // Save-for-later on a single track (v1.1.19.0). The album equivalent has
+  // been wired since v1.1.0.67; the track menu's row was left disabled even
+  // though the route it needed already existed.
+  toggleTrackSaved: async (trackId, value) => {
+    if (!trackId) return null
+    try {
+      const body = (typeof value === 'boolean') ? { value } : {}
+      const r = await api.post(`/library/tracks/${encodeURIComponent(trackId)}/save-for-later`, body)
+      return !!r?.is_saved_for_later
+    } catch (e) { console.warn('toggleTrackSaved failed:', e); return null }
+  },
+
   // MusicD Radio toggle (#14). Persisted server-side; we mirror the value here
   // for the UI but the canonical state comes back via WebSocket on the next
   // full-state broadcast.

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useStore } from '../store'
 import { api } from '../api'
-import { ArrowLeft, Play, Plus, Clock, Share2, X, Download, Heart, Copy, ExternalLink, Check, BookOpen, ChevronDown, Shuffle, ListMusic, Star, MoreHorizontal, Tag, Bookmark, Layers } from 'lucide-react'
+import { ArrowLeft, Play, Plus, Clock, Share2, X, Heart, Copy, ExternalLink, Check, BookOpen, ChevronDown, Shuffle, ListMusic, Star, MoreHorizontal, Tag, Bookmark, Layers } from 'lucide-react'
 import BioModal from './BioModal'
 import TagPicker from './TagPicker'
 
@@ -329,28 +329,6 @@ export default function AlbumDetail({ albumId, onArtistClick, onGenreClick, onBa
     }
   }
 
-  const handleShareSend = async () => {
-    if (!shareCardUrl) return
-    const file = new File([shareCardUrl.blob], `${album.title}.png`, { type: 'image/png' })
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({
-          files: [file],
-          title: album.title,
-          text: `${album.title} — ${album.album_artist || album.artist}`,
-        })
-      } catch (e) {
-        if (e.name !== 'AbortError') console.error('Share failed:', e)
-      }
-    } else {
-      // Desktop fallback: download the file
-      const a = document.createElement('a')
-      a.href = shareCardUrl.url
-      a.download = `${album.title}.png`
-      a.click()
-    }
-  }
-
   const handleShareClose = () => {
     if (shareCardUrl) URL.revokeObjectURL(shareCardUrl.url)
     setShareCardUrl(null)
@@ -627,10 +605,11 @@ export default function AlbumDetail({ albumId, onArtistClick, onGenreClick, onBa
                   a real thing to want, and the callout is the only way to
                   it. See the artwork rules in index.css. */}
               <img src={shareCardUrl.url} alt="Share card" style={s.sharePreview} className="allow-callout" />
-              <button style={s.shareBtn} onClick={handleShareSend}>
-                <Share2 size={15} />
-                {navigator.canShare ? 'Share…' : 'Download'}
-              </button>
+              {/* v1.1.19.0 — no Download button. On a plain-HTTP LAN install
+                  navigator.canShare is undefined, so this only ever offered a
+                  blob download; touch-and-hold on the image gives the OS share
+                  and save sheet, which is what .allow-callout is here for. */}
+              <div style={s.shareHint}>Touch and hold the card to save or share it</div>
             </div>
           </div>
         )}
@@ -2020,13 +1999,36 @@ const s = {
   // removed in v63 — replaced by the long-press TrackOverflowSheet
   // and the inline ★ chip rendered into trackSpec when rating>0.)
   btnSpinner: { width: 15, height: 15, border: '2px solid rgba(255,255,255,0.2)', borderTopColor: 'rgba(255,255,255,0.7)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' },
-  shareOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-end', zIndex: 300 },
-  shareSheet: { width: '100%', background: 'var(--bg-surface)', borderRadius: '20px 20px 0 0', border: '1px solid var(--border-bright)', padding: '0 0 32px', boxShadow: '0 -8px 40px rgba(0,0,0,0.5)' },
+  // v1.1.19.0 — centred, not a bottom sheet.
+  //
+  // This was alignItems:'flex-end', which put the card at the bottom of the
+  // screen where the mini transport bar sits on top of it — the card's own
+  // Download button ended up underneath the player. Centring it clears the
+  // bar entirely and gives the preview the room it deserves.
+  shareOverlay: {
+    position: 'fixed', inset: 0, zIndex: 300,
+    background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: 20,
+    // The screen is full-bleed under viewport-fit=cover, so the overlay
+    // clears the status bar and home indicator itself.
+    paddingTop: 'calc(20px + var(--safe-top))',
+    paddingBottom: 'calc(20px + var(--safe-bot))',
+  },
+  shareSheet: {
+    width: 'min(100%, 420px)', maxHeight: '100%',
+    overflowY: 'auto',
+    background: 'var(--bg-surface)',
+    borderRadius: 20,
+    border: '1px solid var(--border-bright)',
+    padding: '0 0 16px',
+    boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+  },
   shareHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 14px' },
   shareTitle: { fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' },
   shareClose: { width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-sm)', background: 'var(--bg-elevated)', color: 'var(--text-tertiary)', border: 'none', cursor: 'pointer' },
   sharePreview: { width: 'calc(100% - 32px)', margin: '0 16px 16px', borderRadius: 10, display: 'block', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' },
-  shareBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '0 16px', width: 'calc(100% - 32px)', padding: '14px', borderRadius: 12, background: 'var(--accent)', color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer' },
+  shareHint: { padding: '0 16px', fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' },
 }
 
 // v1.1.0.57 — named exports so NowPlaying's About panel can use the
