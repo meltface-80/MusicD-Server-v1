@@ -12,6 +12,54 @@ Categories used per release:
 
 ---
 
+## v1.1.23.0 — 2026-08-21 — NO LONG-PRESS ANYWHERE BUT THE SHARE CARD
+
+### Removed
+
+- **The "5233 albums · 68237 tracks" line on the library screen.** With it go
+  the two pieces of state behind it and the `/library/stats` request AlbumGrid
+  made on every mount and every rescan — that line was its only consumer, and
+  it was the second half of a `Promise.all` wrapped around the first page
+  fetch. The Home screen's counter tiles are a separate consumer and are
+  untouched. So is the Favourites screen's own count.
+
+### Fixed
+
+- **Touch-and-hold no longer selects text anywhere in the app.** A hold on a
+  settings-row label, an album title or a track name highlighted it in blue
+  and raised the OS Copy / Look Up / Translate bar. This was suppressed for
+  `img` and `button` only, and the labels are neither — an opt-out written per
+  element type covers only the elements somebody remembered. It is now set on
+  `html` and inherited by everything, on every screen and every display size.
+
+### Changed
+
+- **Two deliberate exceptions.** The share-card previews still take a long
+  press: holding one to add it to Photos is a real thing to want, and the
+  callout is the only route to it. Text inputs keep selection, the caret and
+  the Paste / Select All menu — suppressing the gesture inside a field is not
+  "no long-press", it is a search box you cannot correct a typo in.
+- `.allow-callout` now opts back in with `user-select: text`, **not** `auto`.
+  The used value of `auto` is `none` whenever the parent's used value is
+  `none`, so under the new root rule `auto` is a no-op and the share card
+  would have silently stopped being holdable — the one thing the class exists
+  to protect. It read `auto` for three releases and worked only because the
+  root had not said `none` yet.
+
+### Tests
+
+- `library-counts.test.js` — 8 assertions. The line, the state and the request
+  are all gone, and the three things that must not have gone with them (the
+  Favourites count, the shared `statsRow` style key, the Home screen's own
+  `/library/stats` call and its four counter tiles) are all still there.
+- `artwork-longpress.test.js` — its "text selection is NOT disabled app-wide"
+  case is **inverted**: that assertion encoded the old decision, and the owner
+  asked for the opposite. It now pins the root rule, the input carve-out, and
+  the `text`-not-`auto` trap above.
+- Nine mutations proven red-then-green across both files.
+
+---
+
 ## v1.1.22.0 — 2026-08-20 — THE ABOUT-THE-TRACK PANEL IS GONE
 
 ### Removed

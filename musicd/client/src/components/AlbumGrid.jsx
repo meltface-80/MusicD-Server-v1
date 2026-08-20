@@ -163,8 +163,6 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
   // refetched rather than shown.
   const [restoredView] = useState(() => readAlbumPagesCache(cacheKey, mountViewKey(cacheKey, sortView)))
   const [albums, setAlbums] = useState(() => restoredView ? restoredView.albums : [])
-  const [totalAlbums, setTotalAlbums] = useState(0)
-  const [totalTracks, setTotalTracks] = useState(0)
   // A spinner has no height. Hydrating straight into the restored list is
   // what lets the container be tall enough for the scroll restore to land.
   const [loading, setLoading] = useState(!restoredView)
@@ -449,10 +447,7 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
       setOffset(0)
       setHasMore(true)
     }
-    Promise.all([
-      fetchPage(sortView, 0, false, rehydrate || PAGE_SIZE),
-      api.get('/library/stats'),
-    ]).then(([count, stats]) => {
+    fetchPage(sortView, 0, false, rehydrate || PAGE_SIZE).then((count) => {
       setOffset(count)
       if (rehydrate) {
         // fetchPage set hasMore from `count === limit`, which is not the
@@ -461,8 +456,6 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
         // result means albums were removed while we were away.
         setHasMore(count === rehydrate ? restoredView.hasMore : false)
       }
-      setTotalAlbums(stats.total_albums || 0)
-      setTotalTracks(stats.total_tracks || 0)
       hasLoadedOnce.current = true
     }).finally(() => { setLoading(false); setReloading(false) })
   }, [sortView, showOnlyFavorites, savedOnly, tagFilter, fetchPage])
@@ -541,13 +534,8 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
     setReloading(true)
     setOffset(0)
     setHasMore(true)
-    Promise.all([
-      fetchPage(sortView, 0, false),
-      api.get('/library/stats'),
-    ]).then(([count, stats]) => {
+    fetchPage(sortView, 0, false).then((count) => {
       setOffset(count)
-      setTotalAlbums(stats.total_albums || 0)
-      setTotalTracks(stats.total_tracks || 0)
     }).finally(() => setReloading(false))
   }, [libraryStatus?.phase, sortView, fetchPage, cacheKey])
 
@@ -829,9 +817,6 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
               )
             })}
           </div>
-        )}
-        {(totalAlbums > 0) && !showOnlyFavorites && (
-          <div style={s.statsRow}>{totalAlbums} albums · {totalTracks} tracks</div>
         )}
         {showOnlyFavorites && (
           <div style={s.statsRow}>{albums.length} favourite{albums.length !== 1 ? 's' : ''}</div>
