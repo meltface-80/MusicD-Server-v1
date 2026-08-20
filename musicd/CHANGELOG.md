@@ -12,7 +12,7 @@ Categories used per release:
 
 ---
 
-## v1.1.18.0 — 2026-08-20 — EVERY BANDCAMP RELEASE HAD THE SAME COVER
+## v1.1.18.0 — 2026-08-20 — BANDCAMP RELEASES NOW COME FROM THE ALBUM PAGE
 
 ### Fixed
 
@@ -64,6 +64,46 @@ Categories used per release:
   one-album-per-container rule would only cost cards, and the hero-image leak
   came from a `closest()` fallback that parser never had.
 
+- **Bandcamp releases are now read from the album's own page, not scraped
+  from the article.** Running the fixed parser against the live site is what
+  settled this. On the article behind the report —
+  `daily.bandcamp.com/lists/queer-country-album-guide` — 15 album links gave:
+
+  | title | artist |
+  |---|---|
+  | self-titled 1973 album | Lavendercountry |
+  | final album | Lavendercountry |
+  | Rhinestone Tomboy | Myabyrne |
+  | `,` | Casaamarela |
+
+  The titles are whatever prose the link happened to sit on; the artists are
+  the subdomain with a capital letter — "Cleopatrarecords" for a Patsy Cline
+  record, because that link points at a label. And with the article hero
+  correctly refused, **no card had a cover at all**.
+
+  None of it is recoverable from the article, because the article does not
+  contain it. The album page does: `og:image` is the real cover and the JSON-LD
+  block carries the real title and artist. Same article, after:
+
+  | title | artist |
+  |---|---|
+  | Lavender Country | Lavender Country |
+  | Blackberry Rose | Lavender Country |
+  | Rhinestone Tomboy | Mya Byrne |
+  | Walkin' After Midnight | Patsy Cline |
+
+  **24 releases, 24 distinct covers, in 5.9 seconds.**
+
+  The original code rejected per-album fetches to "keep the network footprint
+  tight". Right instinct, wrong trade — it bought a row of wrong covers and
+  prose fragments. The footprint is bounded instead: deduplicated, capped at 24
+  album pages per refresh, four at a time, and cached across refreshes (an
+  album's title and cover do not change). Failures are cached too, so a dead
+  link is not retried every half hour, and one bad album costs only its own
+  card.
+
+  Albums that will not resolve are dropped rather than published with guesses.
+
 - **A release with no trustworthy cover is still listed.** It used to be
   discarded. The client already draws a disc placeholder for a null
   `image_url`, so keeping the card costs nothing, and dropping it would quietly
@@ -85,15 +125,23 @@ Categories used per release:
   the over-broad `closest()` returns to either parser — it was written that way
   after the Qobuz sites turned up in exactly that sweep.
 
-  Suite is 18 files and 352 assertions. Five mutations run, each red then
+  A further 17 cover the album-page resolver: the JSON-LD and `og:title`
+  paths, an album whose name contains a comma, the fetch cap, the concurrency
+  limit, the positive and negative caches, and one failure not taking the
+  refresh down. One names a trap that was avoided — JSON-LD carries
+  `datePublished`, and using a 1973 reissue's date as `published_at` would put
+  it past `pruneOld`'s 30-day cutoff and delete it on the next sweep.
+
+  Suite is 18 files and 369 assertions. Twelve mutations run, each red then
   green, including the shipped code restored verbatim.
 
-### Unverified against the live site
+### Verified against the live site
 
-- Bandcamp Daily's real HTML cannot be fetched from this environment. The
-  fixtures are modelled on the shapes the parser already handles; the
-  duplicate-cover backstop exists precisely because a layout may not match any
-  of them.
+- The whole pipeline was run against daily.bandcamp.com — homepage, five
+  articles, album resolution — and produced 24 releases with 24 distinct
+  covers and correct titles and artists. That run is what found the deeper
+  problem: the first fix stopped the wrong cover but left every card with no
+  cover, because the information was never in the article.
 
 ---
 

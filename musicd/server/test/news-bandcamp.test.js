@@ -182,3 +182,170 @@ test('the old chain is gone from every parser, not merely bypassed', () => {
   assert.match(code, /imgSrc\(\$a\.find\('img'\)\.first\(\)\)/,
     'the Qobuz parser is no longer picking its cover in written order');
 });
+
+// ── The album page is the source of truth ─────────────────────────────
+//
+// Running the parser against the live site is what settled this. On the
+// article behind the report — daily.bandcamp.com/lists/queer-country-album-guide
+// — 15 album links yielded titles that were the prose the link sat on
+// ("self-titled 1973 album", "final album", ","), artists that were the
+// subdomain with a capital letter ("Myabyrne", "Cleopatrarecords" for a Patsy
+// Cline record, because the link points at a label), and no usable cover at
+// all once the article hero was correctly refused.
+//
+// None of that is in the article to be scraped. It is on the album's page, so
+// that is where it now comes from.
+
+const resolverSrc = SRC.slice(SRC.indexOf('const BC_RESOLVE_MAX'),
+                              SRC.indexOf('async function fetchBandcamp'));
+
+function loadResolver(httpGet, log) {
+  return new Function('cheerio', 'httpGet', 'console',
+    resolverSrc + '; return { parseBandcampAlbumPage, resolveBandcampAlbum, ' +
+    'resolveBandcampAlbums, BC_RESOLVE_MAX, BC_RESOLVE_CONCURRENCY };'
+  )(cheerio, httpGet, log || { warn() {}, log() {} });
+}
+
+const albumPage = ({ ld = true, og = true, image = true, badLd = false } = {}) => `
+  <html><head>
+    ${image ? '<meta property="og:image" content="https://f4.bcbits.com/img/a123_5.jpg">' : ''}
+    ${og ? '<meta property="og:title" content="Rhinestone Tomboy, by Mya Byrne">' : ''}
+    ${ld ? `<script type="application/ld+json">${badLd ? '{not json' :
+        JSON.stringify({ name: 'Rhinestone Tomboy', byArtist: { name: 'Mya Byrne' },
+                         datePublished: '28 Apr 2023 00:00:00 GMT' })}</script>` : ''}
+  </head><body></body></html>`;
+
+test('an album page yields the real title, artist and cover', async (t) => {
+  const { parseBandcampAlbumPage } = loadResolver(async () => null);
+
+  await t.test('from JSON-LD', () => {
+    assert.deepEqual(parseBandcampAlbumPage(albumPage()), {
+      title: 'Rhinestone Tomboy',
+      artist: 'Mya Byrne',
+      image: 'https://f4.bcbits.com/img/a123_5.jpg',
+    });
+  });
+
+  await t.test('from og:title when JSON-LD is absent', () => {
+    // "Album Title, by Artist Name" is Bandcamp's og:title format.
+    assert.deepEqual(parseBandcampAlbumPage(albumPage({ ld: false })), {
+      title: 'Rhinestone Tomboy',
+      artist: 'Mya Byrne',
+      image: 'https://f4.bcbits.com/img/a123_5.jpg',
+    });
+  });
+
+  await t.test('malformed JSON-LD falls through rather than throwing', () => {
+    const got = parseBandcampAlbumPage(albumPage({ badLd: true }));
+    assert.equal(got.title, 'Rhinestone Tomboy');
+    assert.equal(got.artist, 'Mya Byrne');
+  });
+
+  await t.test('an album with a comma in its name still splits correctly', () => {
+    // The og:title split must take the LAST ", by ", not the first.
+    const html = '<meta property="og:image" content="i.jpg">' +
+                 '<meta property="og:title" content="Hello, Goodbye, by The Band">';
+    assert.deepEqual(parseBandcampAlbumPage(html),
+      { title: 'Hello, Goodbye', artist: 'The Band', image: 'i.jpg' });
+  });
+
+  await t.test('no cover means no card', () => {
+    // A release row exists to show artwork; a card without it is the thing
+    // being fixed, not a partial success.
+    assert.equal(parseBandcampAlbumPage(albumPage({ image: false })), null);
+  });
+
+  await t.test('no title means no card', () => {
+    assert.equal(parseBandcampAlbumPage(albumPage({ ld: false, og: false })), null);
+  });
+});
+
+test('resolving album pages stays within a bounded footprint', async (t) => {
+  await t.test('it never fetches more than the cap', async () => {
+    // An article list can mention dozens of albums; this runs every 30
+    // minutes against one host.
+    let fetches = 0;
+    const { resolveBandcampAlbums, BC_RESOLVE_MAX } =
+      loadResolver(async () => { fetches++; return albumPage(); });
+    const urls = Array.from({ length: 100 }, (_, i) => `https://a${i}.bandcamp.com/album/x`);
+    const out = await resolveBandcampAlbums(urls);
+    assert.equal(fetches, BC_RESOLVE_MAX, `fetched ${fetches} pages`);
+    assert.equal(out.size, BC_RESOLVE_MAX);
+  });
+
+  await t.test('it does not open every socket at once', async () => {
+    let inFlight = 0, peak = 0;
+    const { resolveBandcampAlbums, BC_RESOLVE_CONCURRENCY } = loadResolver(async () => {
+      inFlight++; peak = Math.max(peak, inFlight);
+      await new Promise(r => setTimeout(r, 5));
+      inFlight--;
+      return albumPage();
+    });
+    await resolveBandcampAlbums(
+      Array.from({ length: 20 }, (_, i) => `https://a${i}.bandcamp.com/album/x`));
+    assert.ok(peak <= BC_RESOLVE_CONCURRENCY,
+      `${peak} concurrent requests to one host, limit is ${BC_RESOLVE_CONCURRENCY}`);
+  });
+
+  await t.test('a resolved album is not fetched again', async () => {
+    // Titles and covers do not change; re-fetching them every refresh would
+    // be the whole footprint concern for nothing.
+    let fetches = 0;
+    const { resolveBandcampAlbums } = loadResolver(async () => { fetches++; return albumPage(); });
+    const urls = ['https://a.bandcamp.com/album/x'];
+    await resolveBandcampAlbums(urls);
+    await resolveBandcampAlbums(urls);
+    await resolveBandcampAlbums(urls);
+    assert.equal(fetches, 1, `re-fetched a cached album ${fetches} times`);
+  });
+
+  await t.test('a dead link is not retried every refresh either', async () => {
+    let fetches = 0;
+    const { resolveBandcampAlbums } = loadResolver(async () => { fetches++; throw new Error('404'); });
+    const urls = ['https://gone.bandcamp.com/album/x'];
+    assert.equal((await resolveBandcampAlbums(urls)).size, 0);
+    await resolveBandcampAlbums(urls);
+    assert.equal(fetches, 1, 'a failing album is re-fetched on every refresh');
+  });
+
+  await t.test('one bad album does not take the refresh down', async () => {
+    let n = 0;
+    const { resolveBandcampAlbums } = loadResolver(async () => {
+      if (++n === 2) throw new Error('boom');
+      return albumPage();
+    });
+    const out = await resolveBandcampAlbums(
+      ['https://a.bandcamp.com/album/1', 'https://b.bandcamp.com/album/2',
+       'https://c.bandcamp.com/album/3']);
+    assert.equal(out.size, 2, 'a single failure lost more than its own card');
+  });
+});
+
+test('the release row publishes only what it could describe', async (t) => {
+  const fetchSrc = SRC.slice(SRC.indexOf('async function fetchBandcamp'),
+                             SRC.indexOf('function bandcampArticleAsTile'));
+
+  await t.test('unresolved albums are dropped, not published with guesses', () => {
+    assert.match(fetchSrc, /const meta = resolved\.get\(r\.url\);\s*\n\s*if \(!meta\) continue;/,
+      'an album that would not resolve is still being published');
+  });
+
+  await t.test('the album page overrides the article-derived fields', () => {
+    // Keeping the scraped title would leave "final album" on the card.
+    assert.match(fetchSrc,
+      /title: meta\.title, artist: meta\.artist, image_url: meta\.image/,
+      'the article-scraped title/artist/cover are still winning');
+  });
+
+  await t.test("the album's own release date is NOT used as published_at", () => {
+    // A trap worth naming: JSON-LD carries datePublished, and a 1973 reissue
+    // or a 2014 album would be older than pruneOld's 30-day cutoff and be
+    // deleted on the very next sweep. published_at means "when we saw it".
+    assert.ok(!/datePublished/.test(fetchSrc),
+      'the album release date is reaching the item — pruneOld would bin it');
+    const parseSrc = SRC.slice(SRC.indexOf('function parseBandcampAlbumPage'),
+                               SRC.indexOf('async function resolveBandcampAlbum'));
+    assert.ok(!/datePublished/.test(parseSrc.replace(/\/\/.*$/gm, '')),
+      'datePublished is being extracted, which invites exactly that mistake');
+  });
+});

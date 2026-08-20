@@ -572,6 +572,112 @@ function qobuzArticleAsTile(url, html) {
 //     to resolve the iframe's album_id to a public URL) and rely on
 //     plain anchor links + cover images. Loses some cards but keeps
 //     the network footprint tight.
+
+// ── Resolving a Bandcamp album from its own page ──────────────────────
+//
+// v1.1.18.0. Scraping the article body for covers, titles and artists does
+// not work on Bandcamp Daily, and running the parser against the live site
+// is what showed how badly. On the "queer country album guide" list — the
+// article behind the report — 15 album links produced:
+//
+//   title "self-titled 1973 album", artist "Lavendercountry"
+//   title "final album",            artist "Lavendercountry"
+//   title "Rhinestone Tomboy",      artist "Myabyrne"
+//   title ",",                      artist "Casaamarela"
+//
+// The titles are the prose the link happens to sit on, and the artists are
+// the subdomain with a capital letter — "Cleopatrarecords" for a Patsy Cline
+// record, because the link points at a label's page. The covers were the
+// article's hero image on every card, which is the reported symptom.
+//
+// None of that is recoverable from the article, because the article does not
+// contain it. The album page does: og:image is the real cover, and the
+// JSON-LD block carries the real album title and artist name. So resolve each
+// album from its own page and publish only what resolves.
+//
+// The original comment here rejected per-album fetches to "keep the network
+// footprint tight". That was the right instinct and the wrong trade: it
+// bought a row of wrong covers and prose fragments. The footprint is bounded
+// instead — deduplicated, capped, concurrency-limited, and cached across
+// refreshes, since an album's title and cover do not change.
+const BC_RESOLVE_MAX = 24;      // album pages per refresh, after dedupe
+const BC_RESOLVE_CONCURRENCY = 4;
+const _bcAlbumCache = new Map(); // url -> { title, artist, image } | null
+const BC_CACHE_MAX = 500;
+
+function parseBandcampAlbumPage(html) {
+  const $ = cheerio.load(html);
+  const image = $('meta[property="og:image"]').attr('content') || null;
+
+  let title = null;
+  let artist = null;
+  // JSON-LD is the authoritative pair. Bandcamp emits a MusicAlbum object
+  // with name + byArtist.name.
+  const ld = $('script[type="application/ld+json"]').first().html();
+  if (ld) {
+    try {
+      const j = JSON.parse(ld);
+      if (j && typeof j.name === 'string') title = j.name.trim() || null;
+      if (j && j.byArtist && typeof j.byArtist.name === 'string') {
+        artist = j.byArtist.name.trim() || null;
+      }
+    } catch (e) {
+      // Malformed or unexpected JSON-LD. og:title below still gets us there.
+    }
+  }
+  // Fallback: og:title is "Album Title, by Artist Name".
+  if (!title || !artist) {
+    const og = $('meta[property="og:title"]').attr('content') || '';
+    const m = og.match(/^(.*),\s+by\s+(.+)$/);
+    if (m) {
+      if (!title) title = m[1].trim() || null;
+      if (!artist) artist = m[2].trim() || null;
+    } else if (!title && og.trim()) {
+      title = og.trim();
+    }
+  }
+  if (!title || !image) return null;   // no usable card without both
+  return { title, artist: artist || null, image };
+}
+
+async function resolveBandcampAlbum(url) {
+  if (_bcAlbumCache.has(url)) return _bcAlbumCache.get(url);
+  let meta = null;
+  try {
+    const html = await httpGet(url);
+    if (html) meta = parseBandcampAlbumPage(html);
+  } catch (e) {
+    // A single album that will not load must not take the refresh down.
+    console.warn(`[news] bandcamp album resolve failed: ${url}: ${e.message}`);
+  }
+  // Negative results are cached too, so a dead link is not re-fetched every
+  // half hour. The map is bounded; oldest insertions go first.
+  if (_bcAlbumCache.size >= BC_CACHE_MAX) {
+    _bcAlbumCache.delete(_bcAlbumCache.keys().next().value);
+  }
+  _bcAlbumCache.set(url, meta);
+  return meta;
+}
+
+// Resolve many, a few at a time. Not Promise.all over the whole list: that
+// would open two dozen sockets to one host at once, which is the kind of
+// thing that gets a feed reader blocked.
+async function resolveBandcampAlbums(urls) {
+  const out = new Map();
+  const queue = urls.slice(0, BC_RESOLVE_MAX);
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < queue.length) {
+      const url = queue[cursor++];
+      const meta = await resolveBandcampAlbum(url);
+      if (meta) out.set(url, meta);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(BC_RESOLVE_CONCURRENCY, queue.length) }, worker));
+  return out;
+}
+
 async function fetchBandcamp(feed) {
   const listingHtml = await httpGet(feed.url);
   if (!listingHtml) {
@@ -606,9 +712,10 @@ async function fetchBandcamp(feed) {
   for (const { url: articleUrl, html } of bodies) {
     if (!html) continue;
 
-    // Extract release cards from this article's body.
-    const cards = extractBandcampReleaseCards(html, articleUrl);
-    for (const c of cards) {
+    // Collect the album links this article mentions. The article body is used
+    // only to find WHICH albums; everything shown about them comes from the
+    // album's own page — see resolveBandcampAlbum.
+    for (const c of extractBandcampReleaseCards(html, articleUrl)) {
       if (seenReleases.has(c.url)) continue;
       seenReleases.add(c.url);
       releases.push(c);
@@ -621,8 +728,22 @@ async function fetchBandcamp(feed) {
     if (tile) articles.push(tile);
   }
 
-  console.log(`[news] bandcamp: ${releases.length} release cards + ${articles.length} articles`);
-  return [...releases, ...articles];
+  // Replace the article-derived guesses with what each album says about
+  // itself, and drop anything that would not resolve. A card we cannot
+  // describe correctly is worse than no card: the row exists to show what is
+  // out, and "final album by Lavendercountry" over the wrong sleeve is not
+  // that.
+  const resolved = await resolveBandcampAlbums(releases.map(r => r.url));
+  const finalReleases = [];
+  for (const r of releases) {
+    const meta = resolved.get(r.url);
+    if (!meta) continue;
+    finalReleases.push({ ...r, title: meta.title, artist: meta.artist, image_url: meta.image });
+  }
+
+  console.log(`[news] bandcamp: ${releases.length} album links → ` +
+    `${finalReleases.length} resolved releases + ${articles.length} articles`);
+  return [...finalReleases, ...articles];
 }
 
 // Find Bandcamp Daily article URLs on the homepage. Articles live under
