@@ -29,50 +29,50 @@
   ],
   "manifestVersion": 1,
   "schema_version": 1,
-  "version": "1.1.17.0",
-  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-17-0.tar",
-  "tarSha256": "33dd7e5918ebae48b60685423d97fe690ab57d9fd35f2b2191c5dc9272ec149d",
-  "releasedAt": "2026-08-20T00:25:00Z",
-  "releaseNotes": "Bug reports: a Save report file button puts the .json straight onto the device (Files > Downloads on iOS) so it can be attached to the email, instead of telling you to find it on the server. The screen also stops blaming the browser for what is a plain-HTTP restriction, and Copy as text works again.",
-  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-17-0.tar",
-  "tarball_sha256": "33dd7e5918ebae48b60685423d97fe690ab57d9fd35f2b2191c5dc9272ec149d",
-  "released_at": "2026-08-20T00:25:00Z",
+  "version": "1.1.18.0",
+  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-18-0.tar",
+  "tarSha256": "a8c3f1701dbf9801a11ea52cc463dd0faa435e909db4e974dac2e4b22a499de0",
+  "releasedAt": "2026-08-20T07:55:00Z",
+  "releaseNotes": "Bandcamp new releases all showed the same cover, and their titles and artists were prose fragments and subdomains. Each release is now read from its own Bandcamp album page — real cover, real title, real artist — verified against the live site at 24 releases with 24 distinct covers.",
+  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-18-0.tar",
+  "tarball_sha256": "a8c3f1701dbf9801a11ea52cc463dd0faa435e909db4e974dac2e4b22a499de0",
+  "released_at": "2026-08-20T07:55:00Z",
   "release_notes_url": "https://github.com/meltface-80/MusicD-Server-v1/blob/main/musicd/CHANGELOG.md",
   "channels": {
     "stable": {
-      "version": "1.1.17.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-17-0.tar",
-      "tarSha256": "33dd7e5918ebae48b60685423d97fe690ab57d9fd35f2b2191c5dc9272ec149d",
-      "releasedAt": "2026-08-20T00:25:00Z",
-      "releaseNotes": "Bug reports: a Save report file button puts the .json straight onto the device (Files > Downloads on iOS) so it can be attached to the email, instead of telling you to find it on the server. The screen also stops blaming the browser for what is a plain-HTTP restriction, and Copy as text works again."
+      "version": "1.1.18.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-18-0.tar",
+      "tarSha256": "a8c3f1701dbf9801a11ea52cc463dd0faa435e909db4e974dac2e4b22a499de0",
+      "releasedAt": "2026-08-20T07:55:00Z",
+      "releaseNotes": "Bandcamp new releases all showed the same cover, and their titles and artists were prose fragments and subdomains. Each release is now read from its own Bandcamp album page — real cover, real title, real artist — verified against the live site at 24 releases with 24 distinct covers."
     },
     "earlyAccess": {
-      "version": "1.1.17.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-17-0.tar",
-      "tarSha256": "33dd7e5918ebae48b60685423d97fe690ab57d9fd35f2b2191c5dc9272ec149d",
-      "releasedAt": "2026-08-20T00:25:00Z",
-      "releaseNotes": "Bug reports: a Save report file button puts the .json straight onto the device (Files > Downloads on iOS) so it can be attached to the email, instead of telling you to find it on the server. The screen also stops blaming the browser for what is a plain-HTTP restriction, and Copy as text works again."
+      "version": "1.1.18.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-18-0.tar",
+      "tarSha256": "a8c3f1701dbf9801a11ea52cc463dd0faa435e909db4e974dac2e4b22a499de0",
+      "releasedAt": "2026-08-20T07:55:00Z",
+      "releaseNotes": "Bandcamp new releases all showed the same cover, and their titles and artists were prose fragments and subdomains. Each release is now read from its own Bandcamp album page — real cover, real title, real artist — verified against the live site at 24 releases with 24 distinct covers."
     },
     "beta": {
-      "version": "1.1.17.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-17-0.tar",
-      "tarSha256": "33dd7e5918ebae48b60685423d97fe690ab57d9fd35f2b2191c5dc9272ec149d",
-      "releasedAt": "2026-08-20T00:25:00Z",
-      "releaseNotes": "Bug reports: a Save report file button puts the .json straight onto the device (Files > Downloads on iOS) so it can be attached to the email, instead of telling you to find it on the server. The screen also stops blaming the browser for what is a plain-HTTP restriction, and Copy as text works again."
+      "version": "1.1.18.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-18-0.tar",
+      "tarSha256": "a8c3f1701dbf9801a11ea52cc463dd0faa435e909db4e974dac2e4b22a499de0",
+      "releasedAt": "2026-08-20T07:55:00Z",
+      "releaseNotes": "Bandcamp new releases all showed the same cover, and their titles and artists were prose fragments and subdomains. Each release is now read from its own Bandcamp album page — real cover, real title, real artist — verified against the live site at 24 releases with 24 distinct covers."
     },
     "alpha": {
-      "version": "1.1.17.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-17-0.tar",
-      "tarSha256": "33dd7e5918ebae48b60685423d97fe690ab57d9fd35f2b2191c5dc9272ec149d",
-      "releasedAt": "2026-08-20T00:25:00Z",
-      "releaseNotes": "Bug reports: a Save report file button puts the .json straight onto the device (Files > Downloads on iOS) so it can be attached to the email, instead of telling you to find it on the server. The screen also stops blaming the browser for what is a plain-HTTP restriction, and Copy as text works again."
+      "version": "1.1.18.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-18-0.tar",
+      "tarSha256": "a8c3f1701dbf9801a11ea52cc463dd0faa435e909db4e974dac2e4b22a499de0",
+      "releasedAt": "2026-08-20T07:55:00Z",
+      "releaseNotes": "Bandcamp new releases all showed the same cover, and their titles and artists were prose fragments and subdomains. Each release is now read from its own Bandcamp album page — real cover, real title, real artist — verified against the live site at 24 releases with 24 distinct covers."
     },
     "legacy": {
-      "version": "1.1.17.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-17-0.tar",
-      "tarSha256": "33dd7e5918ebae48b60685423d97fe690ab57d9fd35f2b2191c5dc9272ec149d",
-      "releasedAt": "2026-08-20T00:25:00Z",
-      "releaseNotes": "Bug reports: a Save report file button puts the .json straight onto the device (Files > Downloads on iOS) so it can be attached to the email, instead of telling you to find it on the server. The screen also stops blaming the browser for what is a plain-HTTP restriction, and Copy as text works again."
+      "version": "1.1.18.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-18-0.tar",
+      "tarSha256": "a8c3f1701dbf9801a11ea52cc463dd0faa435e909db4e974dac2e4b22a499de0",
+      "releasedAt": "2026-08-20T07:55:00Z",
+      "releaseNotes": "Bandcamp new releases all showed the same cover, and their titles and artists were prose fragments and subdomains. Each release is now read from its own Bandcamp album page — real cover, real title, real artist — verified against the live site at 24 releases with 24 distinct covers."
     }
   },
   "channelMetadata": {
