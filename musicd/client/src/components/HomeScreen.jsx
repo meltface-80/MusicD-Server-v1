@@ -1,15 +1,20 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useStore } from '../store'
 import { api } from '../api'
-import { Mic2, Disc3, Music2, Tag, Download, AlertTriangle, X } from 'lucide-react'
+import { Mic2, Disc3, Music2, Tag, Download, AlertTriangle, X, ChevronRight } from 'lucide-react'
 import NewsSection from './NewsSection'
 
-// Roon-style Home screen (#28.5 / #29.8 / #30).
+// Roon-style Home screen (#28.5 / #29.8 / #30 / v1.1.21.0).
 // Top: greeting + 4 stats tiles.
-// Then: "Recent activity" with PLAYED/ADDED tabs and a horizontal scroller of
-// album tiles.
+// Then: up to three album carousels — Recently added, Recently played and
+// Random albums — each switchable in Settings -> Home Screen.
 // Then: "Music News" — Pitchfork-sourced headlines, full implementation in
 // NewsSection.jsx (#30).
+//
+// v1.1.21.0: "Recent activity" used to be ONE row with PLAYED/ADDED tabs, so
+// seeing both meant tapping between them and losing the other. They are two
+// rows now, and the tabs are gone. Random albums joins them, and its heading
+// is a button: tapping it opens the full wall (sidebar section 'random').
 //
 // As of #29.8 the screen is vertically scrollable (was fixed-height in 28.5).
 // The recent-activity row still scrolls horizontally inside its own panel.
@@ -17,12 +22,28 @@ import NewsSection from './NewsSection'
 // Update notifications appear as a top banner when /api/update/check returns
 // an availableVersion. Tapping triggers a two-step confirmation flow before
 // posting /api/update/run.
+// Random albums are held at module scope for five minutes. Opening an album
+// unmounts this screen, so without this every Back tap would reshuffle the row
+// the user was looking at. MusicD-Remote holds its Home rows the same way and
+// for the same reason. The wall behind the row's title has a Refresh button
+// for when a new roll IS what you want.
+//
+// Declared above the component, not below it: const is not hoisted, and this
+// is read during the very first render.
+const RANDOM_TTL_MS = 5 * 60 * 1000
+let randomCache = { albums: null, at: 0 }
+
 export default function HomeScreen({ onAlbumSelect, onSidebarSection }) {
   const [stats, setStats] = useState({ total_artists: 0, total_albums: 0, total_tracks: 0 })
   const [genreCount, setGenreCount] = useState(0)
-  const [tab, setTab] = useState('added')
-  const [albums, setAlbums] = useState([])
-  const [loadingRecent, setLoadingRecent] = useState(true)
+  // Which carousels the user wants. null while we ask — see the effect below.
+  const [prefs, setPrefs] = useState(null)
+  const [added, setAdded] = useState({ albums: [], loading: true })
+  const [played, setPlayed] = useState({ albums: [], loading: true })
+  const [random, setRandom] = useState({
+    albums: randomCache.albums || [],
+    loading: !randomCache.albums,
+  })
   // Update banner state. We poll /api/update/check on mount and every 60s
   // thereafter — the SettingsScreen polls every 3s but home doesn't need
   // that frequency, the update check just scans a directory.
@@ -38,14 +59,68 @@ export default function HomeScreen({ onAlbumSelect, onSidebarSection }) {
     api.get('/library/genres').then(g => setGenreCount(Array.isArray(g) ? g.length : 0)).catch(() => {})
   }, [])
 
-  // Recent activity — refetch when tab changes.
+  // Which rows to show. Asked for once, before any row fetches, so a row the
+  // user has switched off never issues its request at all — and so the screen
+  // does not paint three carousels and then take two away a tick later.
   useEffect(() => {
-    setLoadingRecent(true)
-    api.get(`/library/albums/recent?type=${tab}&limit=12`)
-      .then(setAlbums)
-      .catch(() => setAlbums([]))
-      .finally(() => setLoadingRecent(false))
-  }, [tab])
+    let cancelled = false
+    api.get('/home/prefs')
+      .then(r => { if (!cancelled) setPrefs(r?.prefs || {}) })
+      // A settings read that fails must not cost the user their Home screen.
+      // Fall back to what the server ships as defaults: everything on. These
+      // rows only read the local library, so showing one unasked-for costs a
+      // query, where hiding one the user wanted looks like data loss.
+      .catch(() => {
+        if (!cancelled) setPrefs({ recentlyAdded: true, recentlyPlayed: true, randomAlbums: true })
+      })
+    return () => { cancelled = true }
+  }, [])
+
+  // One effect per row rather than one shared by all three: each is a separate
+  // endpoint with its own failure, and a row that is off must not fetch.
+  useEffect(() => {
+    if (!prefs || !prefs.recentlyAdded) return
+    let cancelled = false
+    setAdded(r => ({ albums: r.albums, loading: true }))
+    api.get('/library/albums/recent?type=added&limit=12')
+      .then(a => { if (!cancelled) setAdded({ albums: a || [], loading: false }) })
+      .catch(() => { if (!cancelled) setAdded({ albums: [], loading: false }) })
+    return () => { cancelled = true }
+  }, [prefs && prefs.recentlyAdded])
+
+  useEffect(() => {
+    if (!prefs || !prefs.recentlyPlayed) return
+    let cancelled = false
+    setPlayed(r => ({ albums: r.albums, loading: true }))
+    api.get('/library/albums/recent?type=played&limit=12')
+      .then(a => { if (!cancelled) setPlayed({ albums: a || [], loading: false }) })
+      .catch(() => { if (!cancelled) setPlayed({ albums: [], loading: false }) })
+    return () => { cancelled = true }
+  }, [prefs && prefs.recentlyPlayed])
+
+  // Random albums, served from the module cache while it is fresh. Opening an
+  // album unmounts this screen, so without the cache every Back tap would
+  // reshuffle the row the user was looking at.
+  useEffect(() => {
+    if (!prefs || !prefs.randomAlbums) return
+    if (randomCache.albums && Date.now() - randomCache.at < RANDOM_TTL_MS) {
+      setRandom({ albums: randomCache.albums, loading: false })
+      return
+    }
+    let cancelled = false
+    setRandom(r => ({ albums: r.albums, loading: r.albums.length === 0 }))
+    api.get('/library/albums/random-set?limit=20')
+      .then(a => {
+        if (cancelled) return
+        const albums = a || []
+        // Only a non-empty roll is worth keeping: caching an empty one would
+        // pin "No albums" on the row for the next five minutes.
+        if (albums.length) randomCache = { albums, at: Date.now() }
+        setRandom({ albums, loading: false })
+      })
+      .catch(() => { if (!cancelled) setRandom(r => ({ albums: r.albums, loading: false })) })
+    return () => { cancelled = true }
+  }, [prefs && prefs.randomAlbums])
 
   // Update check — poll periodically. 60s is enough; the user usually
   // notices a new tar within a fresh visit to the home screen.
@@ -102,40 +177,49 @@ export default function HomeScreen({ onAlbumSelect, onSidebarSection }) {
         />
       </div>
 
-      {/* Recent activity panel. Distinct background tint so it reads as a
-          separate region (matches the Roon reference). #29.8: no longer
-          flex: 1 — sized to its content, with margin below for the gap
-          before Music News. */}
-      <div style={s.recentPanel}>
-        <div style={s.recentHeader}>
-          <div style={s.recentTitle}>Recent activity</div>
-        </div>
-        <div style={s.tabs}>
-          <button
-            style={{ ...s.tabBtn, ...(tab === 'played' ? s.tabBtnActive : {}) }}
-            onClick={() => setTab('played')}
-            aria-pressed={tab === 'played'}
-          >
-            PLAYED
-            {tab === 'played' && <div style={s.tabUnderline} />}
-          </button>
-          <button
-            style={{ ...s.tabBtn, ...(tab === 'added' ? s.tabBtnActive : {}) }}
-            onClick={() => setTab('added')}
-            aria-pressed={tab === 'added'}
-          >
-            ADDED
-            {tab === 'added' && <div style={s.tabUnderline} />}
-          </button>
-        </div>
+      {/* The album carousels. Each is its own tinted panel so the rows read
+          as separate regions, and each is rendered only when its switch in
+          Settings -> Home Screen is on. */}
+      {prefs && prefs.recentlyAdded && (
+        <Carousel title="Recently added">
+          <AlbumRow
+            albums={added.albums}
+            loading={added.loading}
+            empty="No recently-added albums."
+            subline={a => `Added ${relTime(a.activity_at)}`}
+            onAlbumSelect={onAlbumSelect}
+          />
+        </Carousel>
+      )}
 
-        <RecentRow
-          albums={albums}
-          loading={loadingRecent}
-          tab={tab}
-          onAlbumSelect={onAlbumSelect}
-        />
-      </div>
+      {prefs && prefs.recentlyPlayed && (
+        <Carousel title="Recently played">
+          <AlbumRow
+            albums={played.albums}
+            loading={played.loading}
+            empty="No recent plays yet — anything you play here will show up."
+            subline={a => `Played ${relTime(a.activity_at)}`}
+            onAlbumSelect={onAlbumSelect}
+          />
+        </Carousel>
+      )}
+
+      {/* Random albums. The heading is a button: it opens the full 3-across
+          wall, which has its own Refresh for a new roll. */}
+      {prefs && prefs.randomAlbums && (
+        <Carousel
+          title="Random albums"
+          onTitleClick={() => onSidebarSection && onSidebarSection('random')}
+        >
+          <AlbumRow
+            albums={random.albums}
+            loading={random.loading}
+            empty="No albums in the library yet."
+            subline={a => (a.year ? String(a.year) : '\u00a0')}
+            onAlbumSelect={onAlbumSelect}
+          />
+        </Carousel>
+      )}
 
       {/* Music News — pulls cached Pitchfork headlines from /api/news/feed.
           See NewsSection.jsx for the rendering and refresh logic. The
@@ -274,23 +358,50 @@ function UpdateBanner({ info, onDismiss }) {
   )
 }
 
-function RecentRow({ albums, loading, tab, onAlbumSelect }) {
+// One Home-screen row: a heading, then whatever the caller puts under it.
+//
+// Passing onTitleClick turns the heading into a button with a chevron — the
+// affordance MusicD-Remote uses for "there is a full screen behind this row".
+// Rows without one keep a plain heading, so the chevron always means
+// something.
+function Carousel({ title, onTitleClick, children }) {
+  const Heading = onTitleClick ? 'button' : 'div'
+  return (
+    <div style={s.recentPanel}>
+      <div style={s.recentHeader}>
+        <Heading
+          style={{ ...s.recentTitle, ...(onTitleClick ? s.recentTitleLink : {}) }}
+          onClick={onTitleClick || undefined}
+          aria-label={onTitleClick ? `${title} — show more` : undefined}
+        >
+          {title}
+          {onTitleClick && <ChevronRight size={16} style={s.recentTitleChevron} />}
+        </Heading>
+      </div>
+      {children}
+    </div>
+  )
+}
+
+// The horizontal scroller of album tiles. `subline` is a function of the
+// album rather than a mode flag, so a new row brings its own second line
+// instead of adding another branch here.
+function AlbumRow({ albums, loading, empty, subline, onAlbumSelect }) {
   if (loading) {
     return <div style={s.recentLoading}><div style={s.spinner} /></div>
   }
   if (!albums || albums.length === 0) {
-    return (
-      <div style={s.recentEmpty}>
-        {tab === 'played'
-          ? 'No recent plays yet — anything you play here will show up.'
-          : 'No recently-added albums.'}
-      </div>
-    )
+    return <div style={s.recentEmpty}>{empty}</div>
   }
   return (
     <div style={s.recentScroll}>
       {albums.map(a => (
-        <RecentTile key={a.id} album={a} tab={tab} onClick={() => onAlbumSelect && onAlbumSelect(a.id)} />
+        <RecentTile
+          key={a.id}
+          album={a}
+          subline={subline(a)}
+          onClick={() => onAlbumSelect && onAlbumSelect(a.id)}
+        />
       ))}
     </div>
   )
@@ -328,7 +439,7 @@ function formatTag(album) {
   return f.toUpperCase()
 }
 
-function RecentTile({ album, tab, onClick }) {
+function RecentTile({ album, subline, onClick }) {
   const [imgErr, setImgErr] = useState(false)
   const tileRef = useRef(null)
   const [src, setSrc] = useState(null)
@@ -346,7 +457,6 @@ function RecentTile({ album, tab, onClick }) {
   }, [album.cover_art])
 
   const fmt = formatTag(album)
-  const subline = tab === 'played' ? `Played ${relTime(album.activity_at)}` : `Added ${relTime(album.activity_at)}`
 
   return (
     <button ref={tileRef} style={s.tile2} onClick={onClick}>
@@ -429,26 +539,27 @@ const s = {
     background: 'var(--accent-dim)',
     padding: '10px 0 10px',
     display: 'flex', flexDirection: 'column',
-    marginBottom: 20,
+    // 20 when there was one panel; three stacked read as one block of noise
+    // at that spacing, and as three rows at this one.
+    marginBottom: 14,
   },
   recentHeader: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '0 16px 2px',
+    // Bottom padding was 2px when a tab strip sat between this and the tiles
+    // and supplied the rest of the gap. The tabs are gone (v1.1.21.0), so the
+    // heading carries the whole gap itself.
+    padding: '0 16px 8px',
   },
-  recentTitle: { fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' },
-
-  tabs: { display: 'flex', gap: 18, padding: '4px 16px 8px' },
-  tabBtn: {
-    background: 'none', border: 'none', cursor: 'pointer',
-    padding: '3px 0', position: 'relative',
-    fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
-    color: 'var(--text-tertiary)',
+  recentTitle: {
+    fontSize: 14, fontWeight: 700, color: 'var(--text-primary)',
+    // Shared by the plain <div> heading and the <button> one, so the button
+    // has to be told it is not a button.
+    background: 'none', border: 'none', padding: 0, margin: 0,
+    textAlign: 'left', fontFamily: 'inherit',
+    display: 'flex', alignItems: 'center', gap: 4,
   },
-  tabBtnActive: { color: 'var(--text-primary)' },
-  tabUnderline: {
-    position: 'absolute', bottom: -1, left: 0, right: 0,
-    height: 2, background: 'var(--accent)', borderRadius: 1,
-  },
+  recentTitleLink: { cursor: 'pointer' },
+  recentTitleChevron: { color: 'var(--text-tertiary)', flexShrink: 0 },
 
   recentLoading: { display: 'flex', justifyContent: 'center', padding: '20px 0' },
   recentEmpty: {

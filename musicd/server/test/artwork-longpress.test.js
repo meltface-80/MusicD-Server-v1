@@ -118,6 +118,7 @@ test('the OS image callout is suppressed wherever art is drawn', async (t) => {
       'AlbumGrid.jsx', 'AlbumDetail.jsx', 'ArtistAlbums.jsx', 'ArtistList.jsx',
       'GenreScreen.jsx', 'HomeScreen.jsx', 'SearchResults.jsx',
       'NowPlaying.jsx', 'NowPlayingFullScreen.jsx', 'UnmatchedScreen.jsx',
+      'RandomAlbumsScreen.jsx',
     ];
     const missing = surfaces.filter(f => !/draggable=\{false\}/.test(readRaw('components', f)));
     assert.deepEqual(missing, [],
