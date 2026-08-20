@@ -77,36 +77,234 @@ input[type="range"] {
   .album-grid { grid-template-columns: repeat(6, 1fr); gap: 12px; }
 }
 
-:root {
-  /* Theme nudged lighter in #v1.1.0.30 -- backgrounds shifted up a
-     step (less black, more charcoal), text brought closer to true
-     white where it carries information. Borders slightly more
-     visible so card edges read clearly without ringing. The palette
-     stays dark on purpose -- this is a tuning, not a redesign. */
-  --bg-base:       #16161a;   /* was #111113 -- lifted ~3 levels */
-  --bg-surface:    #1d1d24;   /* was #18181c */
-  --bg-elevated:   #25252e;   /* was #1e1e24 */
-  --bg-overlay:    #2d2d38;   /* was #26262e */
-  --bg-hover:      #353542;   /* was #2a2a34 */
-  --border:        rgba(255,255,255,0.10);   /* was 0.07 -- more visible edges */
-  --border-bright: rgba(255,255,255,0.18);   /* was 0.14 */
+/* ═══════════════════════════════════════════════════════════════════════
+   THEMES (v1.1.24.0)
+   ═══════════════════════════════════════════════════════════════════════
+   Four palettes, brought across from MusicD-Remote, which is where the
+   selector shape comes from too:
 
-  /* Text contrast bumped (#v1.1.0.30). Primary is brighter, secondary
-     lifted out of the muddy mid-grey so labels and metadata read
-     easily on the lighter surfaces. Tertiary stays restrained for
-     truly auxiliary content. */
-  --text-primary:  #f5f5f8;   /* was #f0f0f2 */
-  --text-secondary:#b0b0c0;   /* was #9090a0 -- much more readable */
-  --text-tertiary: #7a7a8c;   /* was #5a5a6a */
-  --text-muted:    #4a4a5a;   /* was #3a3a4a */
+     data-theme   = dark | light      the FAMILY
+     data-palette = classic | copper  the COLOURS
 
-  /* Accent slightly brighter for subtle additional pop (#v1.1.0.30). */
-  --accent:        #6b8aff;   /* was #5b7fff */
-  --accent-dim:    rgba(107,138,255,0.20);
-  --accent-hover:  #88a0ff;   /* was #7090ff */
+   Both attributes together, because two tokens are family-dependent and a
+   palette-only selector would give the brass theme the copper theme's dark
+   on-accent. Specificity (0,2,0) beats the bare :root (0,1,0) below.
+
+   The selectors are NOT written `:root[...]`. Any element can carry the
+   attributes, which is what lets the Appearance picker's swatches preview
+   their own palette rather than the applied one — the same trick the remote
+   uses. `:root` is listed alongside dark+classic so an app that has never
+   been themed (no attributes on <html> yet) still has a full token set.
+
+   TWO tokens do work that no fixed colour can:
+
+     --tint-rgb   the "one step away from the surface" channel, as bare rgb
+                  components for rgba(). Every hairline, hover wash and
+                  overlay in the client was a literal rgba(255,255,255,α) —
+                  fine on a dark ground, invisible on a light one. All 154 of
+                  them now read rgba(var(--tint-rgb), α), so they lighten on
+                  the dark palettes and darken on the light ones, and each
+                  palette can tint them: copper's is warm white, brass's is
+                  warm brown, matching the remote's --panel-hairline.
+
+     --on-accent  what is printed ON an accent fill. It was a bare '#fff' at
+                  two dozen sites, three of which had no light story at all.
+
+   Shadows and modal scrims stay rgba(0,0,0,α) in every palette: a light
+   theme's shadow is still a shadow. The remote does the same.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Dark · classic ── the palette this app has always shipped. Values are
+   unchanged from v1.1.0.30; only their home moved. */
+:root,
+[data-theme="dark"][data-palette="classic"] {
+  --tint-rgb: 255, 255, 255;
+  --jp-dim:   0.55;
+  --jp-faint: 0.38;
+
+  --bg-base:       #16161a;
+  --bg-surface:    #1d1d24;
+  --bg-elevated:   #25252e;
+  --bg-overlay:    #2d2d38;
+  --bg-hover:      #353542;
+
+  --text-primary:  #f5f5f8;
+  --text-secondary:#b0b0c0;
+  --text-tertiary: #7a7a8c;
+  --text-muted:    #4a4a5a;
+
+  --accent:        #6b8aff;
+  --accent-dim:    rgba(107, 138, 255, 0.20);
+  --accent-hover:  #88a0ff;
+  --on-accent:     #ffffff;
+
   --green:         #4caf82;
   --amber:         #e8a44a;
   --red:           #e05555;
+
+  /* JPLAY-style tokens (v1.1.0.62). Deliberately deeper than the app
+     surfaces above — the Now Playing screen is a darker room than the rest
+     of the app — and the accent here is MONOCHROME by design: JPLAY almost
+     never puts a chromatic accent on its surfaces. Every palette below keeps
+     that intent, which is why --jp-accent tracks the text colour rather than
+     --accent. */
+  --jp-bg:           #0a0a0c;
+  --jp-bg-elevated:  #14141a;
+  --jp-bg-surface:   #1a1a22;
+  --jp-accent:       #e6e6ea;
+  --jp-hot:          #ff3b5c;
+}
+
+/* ── Light · classic ── the remote's light theme, mapped onto this app's
+   deeper tier ladder. Elevation runs the same direction it does there:
+   elevated is LIGHTER than the page, so existing depth cues still read. The
+   one that inverts is --bg-overlay, which is the well behind a missing
+   cover: on a dark ground a well is lighter, on a light ground it is
+   darker, or the placeholder stops looking like a hole. */
+[data-theme="light"][data-palette="classic"] {
+  --tint-rgb: 0, 0, 0;
+  --jp-dim:   0.55;
+  --jp-faint: 0.45;
+
+  --bg-base:       #f2f1ec;
+  --bg-surface:    #f9f8f4;
+  --bg-elevated:   #ffffff;
+  --bg-overlay:    #e6e3da;
+  --bg-hover:      #ded9cf;
+
+  --text-primary:  #1a1c1f;
+  --text-secondary:#4f545b;
+  --text-tertiary: #6f747c;
+  --text-muted:    #9aa0a8;
+
+  --accent:        #1b7099;
+  --accent-dim:    rgba(27, 112, 153, 0.12);
+  --accent-hover:  #155a7c;
+  --on-accent:     #ffffff;
+
+  --green:         #2c7d51;
+  --amber:         #9a6510;
+  --red:           #c0392b;
+
+  --jp-bg:           #f2f1ec;
+  --jp-bg-elevated:  #ffffff;
+  --jp-bg-surface:   #f9f8f4;
+  --jp-accent:       #1a1c1f;
+  --jp-hot:          #d0264a;
+}
+
+/* ── Copper · dark ── the MusicD site's palette. The site splits its copper
+   into a fill colour (#c47f4a) and a lighter text colour (#d99a66) because
+   the fill measures 4.27:1 as text and fails. This app reads --accent as
+   BOTH at 113 sites, so it takes the lighter value for both rather than
+   carrying a split every one of those sites would have to know about; a
+   fractionally lighter fill costs nothing, and --on-accent is dark here so
+   text on the fill is unaffected. */
+[data-theme="dark"][data-palette="copper"] {
+  /* Warm white, not neutral: a neutral hairline reads faintly blue against
+     charcoal. The remote's --panel-hairline, generalised. */
+  --tint-rgb: 235, 228, 220;
+  --jp-dim:   0.55;
+  --jp-faint: 0.38;
+
+  --bg-base:       #1b1d1f;
+  --bg-surface:    #232628;
+  --bg-elevated:   #2a2d30;
+  --bg-overlay:    #33373a;
+  --bg-hover:      #3b3f43;
+
+  --text-primary:  #e8e6e3;
+  --text-secondary:#a8a49e;
+  --text-tertiary: #8d8880;
+  --text-muted:    #6b665e;
+
+  --accent:        #d99a66;
+  --accent-dim:    rgba(196, 127, 74, 0.18);
+  --accent-hover:  #e6ab7a;
+  /* Warm near-black rather than the cool #0b1418, so a copper fill does not
+     read blue-shadowed. */
+  --on-accent:     #17120d;
+
+  --green:         #5fb98a;
+  --amber:         #d9a441;
+  /* Hue 3 degrees against copper's 26, light enough to clear 4.5:1 on every
+     surface including the deepest. */
+  --red:           #e8776f;
+
+  --jp-bg:           #141618;
+  --jp-bg-elevated:  #1e2123;
+  --jp-bg-surface:   #262a2c;
+  --jp-accent:       #e8e6e3;
+  --jp-hot:          #e8776f;
+}
+
+/* ── Brass · light ── designed, because the site has no light mode. The
+   restraint is in the CHROMA, not the hue: the neutrals sit a few points of
+   yellow above grey, which reads as paper rather than a yellow wash, and all
+   the colour weight lives in the accent. */
+[data-theme="light"][data-palette="copper"] {
+  /* Warm brown rather than neutral black, or the hairlines grey the
+     parchment. */
+  --tint-rgb: 58, 44, 26;
+  --jp-dim:   0.70;
+  --jp-faint: 0.55;
+
+  --bg-base:       #f4f0e7;
+  --bg-surface:    #faf7f0;
+  --bg-elevated:   #fffdf8;
+  --bg-overlay:    #e7e0d1;
+  --bg-hover:      #ded5c3;
+
+  --text-primary:  #1e1b16;
+  --text-secondary:#544d43;
+  --text-tertiary: #6f6759;
+  --text-muted:    #97907f;
+
+  /* The site's own --copper-dim. One value serves both roles here: it clears
+     4.5:1 as text and again under --on-accent, so this palette needs no
+     split. */
+  --accent:        #8a5a35;
+  --accent-dim:    rgba(138, 90, 53, 0.12);
+  --accent-hover:  #6f4829;
+  --on-accent:     #fffdf8;
+
+  --green:         #3f7d4f;
+  --amber:         #8a6510;
+  --red:           #b3271d;
+
+  --jp-bg:           #f4f0e7;
+  --jp-bg-elevated:  #fffdf8;
+  --jp-bg-surface:   #faf7f0;
+  --jp-accent:       #1e1b16;
+  --jp-hot:          #b3271d;
+}
+
+/* Everything derived from the palette above, written once. Because var() is
+   resolved where it is USED and not where it is declared, these follow
+   whichever palette is applied — so a new theme defines the dozen-odd tokens
+   above and gets the rest for free. */
+:root {
+  --border:        rgba(var(--tint-rgb), 0.10);
+  --border-bright: rgba(var(--tint-rgb), 0.18);
+  /* --border-soft and --border-faint were used at nine sites and defined
+     nowhere: an undefined var makes the whole declaration invalid, so those
+     borders were simply not being drawn. Named here now. */
+  --border-soft:   rgba(var(--tint-rgb), 0.06);
+  --border-faint:  rgba(var(--tint-rgb), 0.06);
+
+  --jp-text:       rgba(var(--tint-rgb), 0.92);
+  /* The alphas are per-palette (--jp-dim / --jp-faint above); only the
+     channel and the meaning are shared. */
+  --jp-text-2:     rgba(var(--tint-rgb), var(--jp-dim));
+  --jp-text-3:     rgba(var(--tint-rgb), var(--jp-faint));
+  --jp-border:     rgba(var(--tint-rgb), 0.08);
+  --jp-border-hot: rgba(var(--tint-rgb), 0.20);
+
+  /* Aliases for names a handful of components reached for that had never
+     been declared. Same reason as --border-soft above. */
+  --text:      var(--text-primary);
+  --bg:        var(--bg-base);
+  --bg-input:  var(--bg-elevated);
 
   --sidebar-w:     220px;
   /* v1.1.0.91 — was 90px. User wanted "half as much again" — 135px.
@@ -120,48 +318,9 @@ input[type="range"] {
 
   --radius-sm: 4px;
   --radius:    8px;
+  --radius-md: 8px;
   --radius-lg: 14px;
 
-  /* ─────────────────────────────────────────────────────────────────
-   * v1.1.0.62 — JPLAY-style theme tokens (proof-of-concept).
-   * ─────────────────────────────────────────────────────────────────
-   * Existing tokens above stay as-is so legacy screens keep working
-   * while we migrate. New components opt in by reading these `--jp-*`
-   * variables. Once every screen has migrated we can either alias the
-   * old names to the new values, or delete the old set entirely.
-   *
-   * The aesthetic targets:
-   *   - Pure dark backgrounds (no charcoal blue tint)
-   *   - Near-monochrome accent (a very pale white-ish accent for state
-   *     and active items) — JPLAY almost never uses chromatic accent
-   *     on its surfaces; only the favourite heart is hot
-   *   - Two-step text contrast plus a tertiary; no muddy mid-greys
-   *   - Borders are barely-there at 6% white; mostly we use whitespace
-   *     and content density to do the work that borders did
-   *   - Generous spacing scale (16/24/32) — the 12/16 mix on legacy
-   *     screens reads as cluttered next to JPLAY's airier layouts
-   *   - Three font weights (400/500/600). No 700, no italics.
-   *
-   * v1.1.0.69 — lifted the floor off pure #000.  Pure black on OLED
-   * panels causes harsh edge contrast on bright artwork and visible
-   * smearing on motion (e.g. progress fill, scrolling lists).  The
-   * JPLAY iOS app itself doesn't use true black — it uses an
-   * imperceptibly-tinted near-black around #0a0a0c.  The lift is
-   * below the contrast-perception threshold for text (92% white on
-   * #0a0a0c reads the same as on #000) but above the threshold for
-   * "is this smearing or am I imagining it".  Elevated tiers were
-   * lifted proportionally; borders unchanged.
-   */
-  --jp-bg:           #0a0a0c;
-  --jp-bg-elevated:  #14141a;   /* sheets, modals, mini-player */
-  --jp-bg-surface:   #1a1a22;   /* the rare element that needs lift */
-  --jp-text:         rgba(255,255,255,0.92);
-  --jp-text-2:       rgba(255,255,255,0.55);
-  --jp-text-3:       rgba(255,255,255,0.32);
-  --jp-border:       rgba(255,255,255,0.06);
-  --jp-border-hot:   rgba(255,255,255,0.16);   /* hover/focus only */
-  --jp-accent:       #e6e6ea;                  /* near-white, monochrome */
-  --jp-hot:          #ff3b5c;                  /* favourite heart only */
   --jp-gap:          12px;
   --jp-pad:          16px;
   --jp-section-gap:  24px;
@@ -209,8 +368,8 @@ html, body, #root {
   background-color: var(--bg-overlay);
   background-image: repeating-linear-gradient(
     to bottom,
-    rgba(255, 255, 255, 0.10) 0px,
-    rgba(255, 255, 255, 0.10) 1px,
+    rgba(var(--tint-rgb),  0.10) 0px,
+    rgba(var(--tint-rgb),  0.10) 1px,
     transparent 1px,
     transparent 4px
   );

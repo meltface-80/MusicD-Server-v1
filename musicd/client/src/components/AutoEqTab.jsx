@@ -449,7 +449,7 @@ const s = {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '7px 14px',
     background: 'var(--accent)',
-    color: '#fff', border: 'none',
+    color: 'var(--on-accent)', border: 'none',
     borderRadius: 'var(--radius-sm)',
     fontSize: 12, fontWeight: 600,
     cursor: 'pointer',

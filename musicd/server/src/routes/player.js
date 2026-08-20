@@ -107,6 +107,27 @@ router.post('/queue/reorder', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// v1.1.24.0 — move a whole selection to just after the currently-playing
+// track. Body: { indices: [Int], rendererId? }
+//
+// Backs both "Play now" and "Play next" on the queue screen's multi-select;
+// "Play now" is this followed by POST /player/next, because after the move the
+// first selected track is queueIndex + 1. Indices matching the currently-
+// playing track are ignored rather than failing the batch, the same way
+// /queue/remove-batch treats them.
+router.post('/queue/move-next', async (req, res) => {
+  try {
+    const indices = Array.isArray(req.body?.indices) ? req.body.indices : null;
+    const rendererId = req.body?.rendererId;
+    if (!indices || indices.length === 0) {
+      return res.status(400).json({ error: 'indices array required' });
+    }
+    const result = await playerState.moveSelectionNext(indices, rendererId);
+    if (!result) return res.status(400).json({ error: 'Move failed (nothing movable, or no active queue)' });
+    res.json({ ok: true, queue: result.queue, queueIndex: result.queueIndex, moved: result.moved });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // #21 — Remove a single track from the queue (cannot remove the currently-playing one).
 router.post('/queue/remove', async (req, res) => {
   try {

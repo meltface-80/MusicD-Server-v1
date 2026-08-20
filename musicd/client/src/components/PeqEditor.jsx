@@ -343,15 +343,15 @@ function FrequencyResponseGraph({ curve, filters }) {
     <div ref={ref} style={s.graphWrap} className="peq-graph">
       <svg width={width} height={HEIGHT} style={s.graphSvg}>
         {/* Background */}
-        <rect x={PAD_L} y={PAD_T} width={plotW} height={plotH} fill="rgba(255,255,255,0.02)" />
+        <rect x={PAD_L} y={PAD_T} width={plotW} height={plotH} fill="rgba(var(--tint-rgb), 0.02)" />
 
         {/* Vertical gridlines (frequencies) */}
         {gridFreqs.map(f => (
           <g key={f}>
             <line x1={xOf(f)} y1={PAD_T} x2={xOf(f)} y2={PAD_T + plotH}
-              stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
+              stroke="rgba(var(--tint-rgb), 0.06)" strokeWidth={1} />
             <text x={xOf(f)} y={HEIGHT - 6} textAnchor="middle"
-              fontSize="9" fill="rgba(255,255,255,0.4)" fontFamily="monospace">
+              fontSize="9" fill="rgba(var(--tint-rgb), 0.4)" fontFamily="monospace">
               {fmtFreq(f)}
             </text>
           </g>
@@ -361,10 +361,10 @@ function FrequencyResponseGraph({ curve, filters }) {
         {gridDbs.map(db => (
           <g key={db}>
             <line x1={PAD_L} y1={yOf(db)} x2={PAD_L + plotW} y2={yOf(db)}
-              stroke={db === 0 ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.06)'}
+              stroke={db === 0 ? 'rgba(var(--tint-rgb), 0.18)' : 'rgba(var(--tint-rgb), 0.06)'}
               strokeWidth={1} />
             <text x={PAD_L - 4} y={yOf(db) + 3} textAnchor="end"
-              fontSize="9" fill="rgba(255,255,255,0.4)" fontFamily="monospace">
+              fontSize="9" fill="rgba(var(--tint-rgb), 0.4)" fontFamily="monospace">
               {db > 0 ? '+' : ''}{db}
             </text>
           </g>
@@ -394,7 +394,7 @@ function FrequencyResponseGraph({ curve, filters }) {
 
         {/* Frame */}
         <rect x={PAD_L} y={PAD_T} width={plotW} height={plotH}
-          fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth={1} />
+          fill="none" stroke="rgba(var(--tint-rgb), 0.12)" strokeWidth={1} />
       </svg>
     </div>
   )
@@ -557,7 +557,7 @@ const s = {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '7px 14px',
     background: 'var(--accent)',
-    color: '#fff', border: 'none',
+    color: 'var(--on-accent)', border: 'none',
     borderRadius: 'var(--radius-sm)',
     fontSize: 12, fontWeight: 600, cursor: 'pointer',
   },

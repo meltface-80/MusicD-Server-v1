@@ -12,6 +12,88 @@ Categories used per release:
 
 ---
 
+## v1.1.24.0 — 2026-08-21 — FOUR THEMES, AND A QUEUE MENU OF ITS OWN
+
+### New
+
+- **Four themes, and Settings → Appearance to pick between them**, directly
+  below Backup. Dark and Light (the app's own palette), Copper (the MusicD
+  site's colours) and Brass (copper in daylight) — the same four MusicD-Remote
+  ships, including its `data-theme` / `data-palette` split. Each row in the
+  picker previews its **own** palette rather than the applied one. Tapping
+  applies immediately; the choice is stored per device, not on the server,
+  because a phone at night and a desktop in daylight want different answers
+  and one shared setting would force them to agree.
+- **The queue screen's ⋯ menu acts on the selection.** With one or more rows
+  ticked it offers **Play now**, **Play next** and **Clear selected from
+  queue**, in the slot the album/artist/genre links used to hold.
+- **`POST /api/player/queue/move-next`** — moves a whole selection to just
+  after the playing track in one pass, preserving the queue's own order within
+  the moved block. A move, not a copy: every selected track is already in the
+  queue. Play now is this followed by `POST /player/next`, because after the
+  move the first selected track *is* `queueIndex + 1` — one primitive for
+  both, so the two cannot drift apart. Doing it server-side in one pass is not
+  tidiness: each single move shifts the indices of the moves that have not
+  happened yet.
+
+### Changed
+
+- **The two overflow menus are no longer the same menu.** On the queue screen
+  the Album / Artist / Genre block is gone — it describes the album that
+  happens to be playing, which is not what that screen is about — and so is
+  **Suggestions**, which still has nothing behind it. Everything below the
+  divider is unchanged and is still one shared block, not a fork. The Now
+  Playing menu is untouched.
+- **154 hard-coded `rgba(255,255,255,α)` literals became
+  `rgba(var(--tint-rgb), α)`.** They were every hairline, hover wash and
+  overlay in the client: correct on a dark ground, invisible on a light one.
+  Each palette now names its own channel, so copper's hairlines are warm white
+  and brass's are warm brown. Another two dozen bare `'#fff'` labels became
+  `var(--on-accent)`, and the near-white "Play" pills became
+  `var(--jp-accent)` / `var(--jp-bg)` — an inversion, not a colour.
+- **`--jp-text-3`'s alpha is now per palette** (0.38 / 0.45 / 0.38 / 0.55).
+  One alpha cannot serve all four: compositing toward black on a light ground
+  yields far less contrast than toward white on a dark one, and brass's tint
+  is a mid-brown, so `rgba(58,44,26,.38)` on parchment measures **2.13:1**.
+  The dark palette's own value moves 0.32 → 0.38, which takes it from 2.80:1
+  to 3.51:1 — the only visible change to the existing theme, and it is a
+  contrast fix.
+- The iOS status-bar tint (`theme-color`) now follows the applied palette
+  instead of sitting at a fixed black, which framed the light themes in a dark
+  band.
+
+### Fixed
+
+- **`--border-soft` and `--border-faint` were used at nine sites and declared
+  nowhere.** An undefined `var()` makes the whole declaration invalid, so
+  those borders were simply not being drawn. Same for `--text`, `--bg`,
+  `--bg-input` and `--radius-md`. All are named now.
+
+### Tests
+
+- `queue-selection.test.js` — 42 assertions. Both implementations of the move
+  are lifted out of the shipping source and run on the same inputs, so the
+  client's optimistic update and the server's broadcast are proven to agree —
+  when they don't, the queue visibly jumps. The index maths is run against
+  real arrays for a selection entirely before the playhead, entirely after,
+  and straddling it; plus de-duplication, the playing track being dropped, and
+  order preservation (queue order, not tap order).
+- `themes.test.js` — 34 assertions. Every contrast ratio is computed from the
+  real tokens, including the alpha-composited ones, and asserted against WCAG:
+  4.5:1 for body text, 3:1 for the auxiliary tiers. The contrast maths carries
+  its own self-test. One ratio genuinely falls short — white on the classic
+  dark accent, at 3.13:1 — and is **pinned at what it measures with the reason
+  named**, because both available fixes change a theme nobody asked to change.
+- Both new files were verified against a real Chromium: `rgba(var(--tint-rgb),
+  α)` resolves in all four palettes, and a nested `data-theme`/`data-palette`
+  element previews its own palette, which is what the picker's swatches need.
+- Twenty-five mutations proven red-then-green. Two did not bite on the first
+  pass and were rewritten: a route-validation check satisfied by an identical
+  message in a neighbouring route, and a contrast self-test asserting the
+  wrong number.
+
+---
+
 ## v1.1.23.0 — 2026-08-21 — NO LONG-PRESS ANYWHERE BUT THE SHARE CARD
 
 ### Removed

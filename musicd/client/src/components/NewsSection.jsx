@@ -198,7 +198,7 @@ function ReleaseCard({ release }) {
           />
         ) : (
           <div style={s.releaseImgFallback}>
-            <Disc3 size={32} style={{ color: 'rgba(255,255,255,0.2)' }} />
+            <Disc3 size={32} style={{ color: 'rgba(var(--tint-rgb), 0.2)' }} />
           </div>
         )}
       </div>
@@ -494,7 +494,7 @@ const s = {
   errorRetry: {
     marginLeft: 'auto',
     padding: '4px 10px',
-    background: 'rgba(255,255,255,0.05)',
+    background: 'rgba(var(--tint-rgb), 0.05)',
     color: '#ff8888',
     border: '1px solid rgba(255,90,90,0.3)',
     borderRadius: 4,

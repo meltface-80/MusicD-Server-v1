@@ -881,7 +881,7 @@ const S = {
     paddingLeft: 4, paddingRight: 4,
     height: 26,
     borderRadius: 13,
-    background: 'rgba(255,255,255,0.07)',
+    background: 'rgba(var(--tint-rgb), 0.07)',
     border: '1px solid var(--jp-border)',
     fontSize: 12,
     color: 'var(--jp-text)',
@@ -896,7 +896,7 @@ const S = {
   pillSignBtn: {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     width: 18, height: 18, padding: 0,
-    background: 'rgba(255,255,255,0.08)',
+    background: 'rgba(var(--tint-rgb), 0.08)',
     border: 'none', borderRadius: 9,
     color: 'inherit',
     cursor: 'pointer',
@@ -981,7 +981,7 @@ const S = {
   },
   barSaveBtnPrimary: {
     background: 'var(--jp-accent)',
-    color: '#0a0a0c',
+    color: 'var(--jp-bg)',
     borderColor: 'var(--jp-accent)',
     fontWeight: 600,
   },
@@ -1055,7 +1055,7 @@ const S = {
     cursor: 'pointer',
   },
   columnItemInclude: {
-    background: 'rgba(255,255,255,0.06)',
+    background: 'rgba(var(--tint-rgb), 0.06)',
     color: 'var(--jp-text)',
   },
   columnItemExclude: {

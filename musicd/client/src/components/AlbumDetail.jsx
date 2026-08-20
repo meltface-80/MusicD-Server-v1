@@ -928,7 +928,7 @@ const relStyles = {
   wrap: {
     marginTop: 32,
     paddingTop: 20,
-    borderTop: '1px solid rgba(255,255,255,0.06)',
+    borderTop: '1px solid rgba(var(--tint-rgb), 0.06)',
   },
   section: {
     marginBottom: 28,
@@ -938,7 +938,7 @@ const relStyles = {
     fontWeight: 600,
     letterSpacing: '0.06em',
     textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.45)',
+    color: 'rgba(var(--tint-rgb), 0.45)',
     marginBottom: 12,
   },
   tilesRow: {
@@ -977,7 +977,7 @@ const relStyles = {
   },
   tileArtEmpty: {
     fontSize: 22,
-    color: 'rgba(255,255,255,0.18)',
+    color: 'rgba(var(--tint-rgb), 0.18)',
   },
   tileTitle: {
     fontSize: 12,
@@ -1003,7 +1003,7 @@ const relStyles = {
     // it feel like a card. Just a left rule — same idiom blogs use
     // for blockquotes.
     paddingLeft: 12,
-    borderLeft: '2px solid rgba(255,255,255,0.08)',
+    borderLeft: '2px solid rgba(var(--tint-rgb), 0.08)',
   },
   bioSource: {
     display: 'inline-block',
@@ -1501,8 +1501,8 @@ const s = {
   bgDim: { display: 'none' },
   content: { position: 'relative', zIndex: 2, padding: '20px 16px 120px' },
   loadWrap: { display: 'flex', justifyContent: 'center', paddingTop: 80, background: 'var(--jp-bg)', minHeight: '100%' },
-  spinner: { width: 24, height: 24, border: '2px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
-  back: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer' },
+  spinner: { width: 24, height: 24, border: '2px solid rgba(var(--tint-rgb), 0.1)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
+  back: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(var(--tint-rgb), 0.4)', background: 'none', border: 'none', cursor: 'pointer' },
 
   // v1.1.0.61: top nav row — back arrow on the left, ⋯ overflow on
   // the right. Replaces the old single-line back button at the top
@@ -1529,7 +1529,7 @@ const s = {
     width: 24, height: 24,
     background: 'transparent',
     border: 'none',
-    color: 'rgba(255,255,255,0.7)',
+    color: 'rgba(var(--tint-rgb), 0.7)',
     cursor: 'pointer',
     padding: 0,
   },
@@ -1553,7 +1553,7 @@ const s = {
   },
   sheetGrabber: {
     width: 38, height: 4,
-    background: 'rgba(255,255,255,0.18)',
+    background: 'rgba(var(--tint-rgb), 0.18)',
     borderRadius: 2,
     margin: '4px auto 14px',
   },
@@ -1574,7 +1574,7 @@ const s = {
     padding: '14px 22px',
     background: 'transparent',
     border: 'none',
-    color: 'rgba(255,255,255,0.35)',
+    color: 'rgba(var(--tint-rgb), 0.35)',
     fontSize: 15, fontWeight: 500,
     textAlign: 'left',
     cursor: 'default',
@@ -1583,13 +1583,13 @@ const s = {
   sheetSoon: {
     marginLeft: 'auto',
     fontSize: 11, fontWeight: 600,
-    color: 'rgba(255,255,255,0.4)',
+    color: 'rgba(var(--tint-rgb), 0.4)',
     fontFamily: 'var(--font-mono)',
     letterSpacing: '0.05em',
   },
   sheetDivider: {
     height: 1,
-    background: 'rgba(255,255,255,0.06)',
+    background: 'rgba(var(--tint-rgb), 0.06)',
     margin: '4px 22px',
   },
   sheetClose: {
@@ -1597,7 +1597,7 @@ const s = {
     margin: '14px 22px 0',
     padding: '14px 0',
     background: 'transparent',
-    border: '1px solid rgba(255,255,255,0.12)',
+    border: '1px solid rgba(var(--tint-rgb), 0.12)',
     borderRadius: 999,
     color: 'var(--text-primary)',
     fontSize: 14, fontWeight: 600,
@@ -1609,7 +1609,7 @@ const s = {
   // on. 14/600 title, 12/400 artist; tucked above the action items.
   sheetTrackHeader: {
     padding: '0 22px 12px',
-    borderBottom: '1px solid rgba(255,255,255,0.06)',
+    borderBottom: '1px solid rgba(var(--tint-rgb), 0.06)',
     marginBottom: 6,
   },
   sheetTrackTitle: {
@@ -1634,7 +1634,7 @@ const s = {
     width: 36, height: 36,
     background: 'transparent',
     border: 'none',
-    color: 'rgba(255,255,255,0.35)',
+    color: 'rgba(var(--tint-rgb), 0.35)',
     cursor: 'pointer',
     borderRadius: 6,
     padding: 0,
@@ -1657,8 +1657,8 @@ const s = {
     zIndex: 200,
     padding: '10px 22px',
     borderRadius: 24,
-    background: '#fff',
-    color: '#1a1a1f',
+    background: 'var(--jp-accent)',
+    color: 'var(--jp-bg)',
     fontSize: 18,
     fontWeight: 600,
     letterSpacing: '-0.2px',
@@ -1681,7 +1681,7 @@ const s = {
   hero: { display: 'flex', gap: 16, marginTop: 4, marginBottom: 22, alignItems: 'flex-start' },
   artWrap: { width: 144, height: 144, flexShrink: 0, borderRadius: 4, overflow: 'hidden', background: 'var(--jp-bg-surface)' },
   art: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
-  artFallback: { width: '100%', height: '100%', background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, color: 'rgba(255,255,255,0.15)' },
+  artFallback: { width: '100%', height: '100%', background: 'rgba(var(--tint-rgb), 0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, color: 'rgba(var(--tint-rgb), 0.15)' },
   heroInfo: { flex: 1, minWidth: 0, paddingTop: 4 },
   // 22/600 (was 18/700). Reads as "section heading" not "headline".
   heroTitle: { fontSize: 22, fontWeight: 600, color: 'var(--jp-text)', letterSpacing: '-0.3px', lineHeight: 1.2, marginBottom: 4, wordBreak: 'break-word' },
@@ -1695,12 +1695,12 @@ const s = {
   // underline on hover). 11/400 mono in --jp-text-3 — quiet
   // metadata, not foreground content.
   heroMeta: { display: 'flex', gap: 6, fontSize: 11, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' },
-  heroMetaSep: { color: 'rgba(255,255,255,0.18)', userSelect: 'none' },
+  heroMetaSep: { color: 'rgba(var(--tint-rgb), 0.18)', userSelect: 'none' },
   heroMetaGenre: {
     background: 'none', border: 'none', padding: 0,
     color: 'var(--jp-text-2)', cursor: 'pointer', fontSize: 11,
     fontFamily: 'var(--font-mono)',
-    textDecoration: 'underline', textDecorationColor: 'rgba(255,255,255,0.15)',
+    textDecoration: 'underline', textDecorationColor: 'rgba(var(--tint-rgb), 0.15)',
     textUnderlineOffset: 3,
   },
   // Kept defined for any leftover callers but no longer rendered
@@ -1738,9 +1738,9 @@ const s = {
   notMatchedChip: {
     display: 'inline-flex', alignItems: 'center',
     padding: '5px 12px',
-    background: 'rgba(255,255,255,0.04)',
-    color: 'rgba(255,255,255,0.45)',
-    border: '1px dashed rgba(255,255,255,0.15)',
+    background: 'rgba(var(--tint-rgb), 0.04)',
+    color: 'rgba(var(--tint-rgb), 0.45)',
+    border: '1px dashed rgba(var(--tint-rgb), 0.15)',
     borderRadius: 12,
     fontSize: 11, fontWeight: 500,
     fontStyle: 'italic',
@@ -1757,21 +1757,21 @@ const s = {
     alignItems: 'center',
     gap: 4,
     padding: '4px 10px',
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'rgba(var(--tint-rgb), 0.06)',
+    border: '1px solid rgba(var(--tint-rgb), 0.12)',
     borderRadius: 11,
     fontSize: 10,
     fontFamily: 'var(--font-mono)',
-    color: 'rgba(255,255,255,0.7)',
+    color: 'rgba(var(--tint-rgb), 0.7)',
     width: 'fit-content',
   },
-  mbidLabel: { color: 'rgba(255,255,255,0.45)', letterSpacing: '0.04em' },
-  mbidValue: { color: 'rgba(255,255,255,0.85)' },
+  mbidLabel: { color: 'rgba(var(--tint-rgb), 0.45)', letterSpacing: '0.04em' },
+  mbidValue: { color: 'rgba(var(--tint-rgb), 0.85)' },
   mbidIconBtn: {
     width: 18, height: 18,
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     background: 'transparent',
-    color: 'rgba(255,255,255,0.6)',
+    color: 'rgba(var(--tint-rgb), 0.6)',
     border: 'none',
     borderRadius: 4,
     cursor: 'pointer',
@@ -1786,9 +1786,9 @@ const s = {
     alignItems: 'center',
     gap: 5,
     padding: '5px 12px',
-    background: 'rgba(255,255,255,0.06)',
-    color: 'rgba(255,255,255,0.85)',
-    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'rgba(var(--tint-rgb), 0.06)',
+    color: 'rgba(var(--tint-rgb), 0.85)',
+    border: '1px solid rgba(var(--tint-rgb), 0.12)',
     borderRadius: 12,
     fontSize: 11,
     fontWeight: 500,
@@ -1797,8 +1797,8 @@ const s = {
   // Play and Queue pills -- padding tightened in #v1.1.0.33 so all
   // four action buttons (Play / Queue / Heart / Share) fit
   // comfortably on a single row at iPhone widths.
-  playBtn: { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 20, background: '#fff', color: '#000', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer' },
-  appendBtn: { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 20, background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 600, border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer' },
+  playBtn: { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 20, background: 'var(--jp-accent)', color: 'var(--jp-bg)', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer' },
+  appendBtn: { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 20, background: 'rgba(var(--tint-rgb), 0.1)', color: 'rgba(var(--tint-rgb), 0.7)', fontSize: 13, fontWeight: 600, border: '1px solid rgba(var(--tint-rgb), 0.15)', cursor: 'pointer' },
 
   // v56: Play split-button. Two halves of one visual pill — the left
   // half (label "Play") triggers Play Now directly; the right half
@@ -1808,14 +1808,14 @@ const s = {
   playSplitWrap: {
     position: 'relative',
     display: 'inline-flex', alignItems: 'stretch',
-    background: '#fff', color: '#000',
+    background: 'var(--jp-accent)', color: 'var(--jp-bg)',
     borderRadius: 20,
     overflow: 'visible',
   },
   playBtnSplit: {
     display: 'inline-flex', alignItems: 'center', gap: 5,
     padding: '8px 12px 8px 14px',
-    background: 'transparent', color: '#000',
+    background: 'transparent', color: 'var(--jp-bg)',
     fontSize: 13, fontWeight: 700,
     border: 'none', cursor: 'pointer',
     borderRadius: '20px 0 0 20px',
@@ -1824,7 +1824,7 @@ const s = {
   playSplitChevron: {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     padding: '0 10px',
-    background: 'transparent', color: '#000',
+    background: 'transparent', color: 'var(--jp-bg)',
     border: 'none', cursor: 'pointer',
     borderRadius: '0 20px 20px 0',
   },
@@ -1836,7 +1836,7 @@ const s = {
     background: 'rgba(28, 28, 36, 0.96)',
     backdropFilter: 'blur(18px)',
     WebkitBackdropFilter: 'blur(18px)',
-    border: '1px solid rgba(255,255,255,0.12)',
+    border: '1px solid rgba(var(--tint-rgb), 0.12)',
     borderRadius: 10,
     boxShadow: '0 12px 32px rgba(0,0,0,0.55)',
     padding: 4,
@@ -1849,13 +1849,13 @@ const s = {
     background: 'transparent',
     border: 'none',
     textAlign: 'left',
-    color: '#fff',
+    color: 'var(--jp-text)',
     fontSize: 14, fontWeight: 500,
     cursor: 'pointer',
     borderRadius: 6,
     width: '100%',
   },
-  playMenuIcon: { color: 'rgba(255,255,255,0.7)', flexShrink: 0 },
+  playMenuIcon: { color: 'rgba(var(--tint-rgb), 0.7)', flexShrink: 0 },
   // The heart sits above the pill; both align as a small vertical pair on the right of the action row.
   shareCol: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginLeft: 'auto' },
   // Heart and share buttons -- height matched to Play/Queue pills
@@ -1864,9 +1864,9 @@ const s = {
   heartBtn: {
     width: 44, height: 34,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: 'rgba(255,255,255,0.05)',
-    color: 'rgba(255,255,255,0.55)',
-    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'rgba(var(--tint-rgb), 0.05)',
+    color: 'rgba(var(--tint-rgb), 0.55)',
+    border: '1px solid rgba(var(--tint-rgb), 0.12)',
     borderRadius: 17,
     cursor: 'pointer',
     padding: 0,
@@ -1880,16 +1880,16 @@ const s = {
   shareBtnPill: {
     width: 44, height: 34,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: 'rgba(255,255,255,0.08)',
-    color: 'rgba(255,255,255,0.75)',
-    border: '1px solid rgba(255,255,255,0.15)',
+    background: 'rgba(var(--tint-rgb), 0.08)',
+    color: 'rgba(var(--tint-rgb), 0.75)',
+    border: '1px solid rgba(var(--tint-rgb), 0.15)',
     borderRadius: 17,
     cursor: 'pointer',
     padding: 0,
   },
-  tracklist: { borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 6 },
-  discHeader: { fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', padding: '14px 8px 4px' },
-  trackHeader: { display: 'grid', gridTemplateColumns: '32px 1fr 52px', padding: '4px 8px', fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: 2 },
+  tracklist: { borderTop: '1px solid rgba(var(--tint-rgb), 0.08)', paddingTop: 6 },
+  discHeader: { fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(var(--tint-rgb), 0.3)', padding: '14px 8px 4px' },
+  trackHeader: { display: 'grid', gridTemplateColumns: '32px 1fr 52px', padding: '4px 8px', fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(var(--tint-rgb), 0.25)', borderBottom: '1px solid rgba(var(--tint-rgb), 0.06)', marginBottom: 2 },
   thNum: { textAlign: 'right', paddingRight: 10 },
   // v1.1.0.63 — JPLAY-style track row. Was a 4-column grid (num /
   // info / dur / actions) where the actions column held the
@@ -1901,7 +1901,7 @@ const s = {
   // half what the old "0.06" was — JPLAY's active highlights are
   // restrained.
   trackRow: { display: 'grid', gridTemplateColumns: '32px 1fr 52px', alignItems: 'center', gap: 4, padding: '10px 8px', borderRadius: 6, width: '100%', cursor: 'pointer', background: 'none', border: 'none', textAlign: 'left', transition: 'background 0.1s' },
-  trackRowActive: { background: 'rgba(255,255,255,0.04)' },
+  trackRowActive: { background: 'rgba(var(--tint-rgb), 0.04)' },
   trackNum: { textAlign: 'right', paddingRight: 10, fontSize: 12, fontFamily: 'var(--font-mono)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', minHeight: 14 },
   trackInfo: { display: 'flex', flexDirection: 'column', gap: 4, overflow: 'hidden' },
   // 14/500 (was 13/400). JPLAY's track title weight is the
@@ -1934,7 +1934,7 @@ const s = {
     fontSize: 9,
     fontWeight: 600,
     fontFamily: 'var(--font-mono)',
-    background: 'rgba(255,255,255,0.05)',
+    background: 'rgba(var(--tint-rgb), 0.05)',
     color: 'var(--jp-text-2)',
     border: '1px solid var(--jp-border)',
     whiteSpace: 'nowrap',
@@ -1998,7 +1998,7 @@ const s = {
   // (v58 trackActions / trackActionBtn / trackRatingNum styles
   // removed in v63 — replaced by the long-press TrackOverflowSheet
   // and the inline ★ chip rendered into trackSpec when rating>0.)
-  btnSpinner: { width: 15, height: 15, border: '2px solid rgba(255,255,255,0.2)', borderTopColor: 'rgba(255,255,255,0.7)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' },
+  btnSpinner: { width: 15, height: 15, border: '2px solid rgba(var(--tint-rgb), 0.2)', borderTopColor: 'rgba(var(--tint-rgb), 0.7)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' },
   // v1.1.19.0 — centred, not a bottom sheet.
   //
   // This was alignItems:'flex-end', which put the card at the bottom of the

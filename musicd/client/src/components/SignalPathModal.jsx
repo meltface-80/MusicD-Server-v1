@@ -224,7 +224,7 @@ const s = {
   spineLine: { width: 2, flex: 1, minHeight: 12, margin: '2px 0' },
   nodeContent: { flex: 1, paddingBottom: 16, paddingTop: 6, transition: 'opacity 0.2s' },
   nodeTitle: { fontSize: 13, fontWeight: 700, marginBottom: 2, letterSpacing: '0.01em', display: 'flex', alignItems: 'center', gap: 8 },
-  bypassTag: { fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', padding: '1px 5px', borderRadius: 3, background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.55)' },
+  bypassTag: { fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', padding: '1px 5px', borderRadius: 3, background: 'rgba(var(--tint-rgb), 0.08)', color: 'rgba(var(--tint-rgb), 0.55)' },
   passTag: { fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', padding: '1px 5px', borderRadius: 3, background: 'rgba(63,208,122,0.15)', color: '#3fd07a' },
   warnNote: { fontSize: 11, color: '#f5c450', background: 'rgba(245,196,80,0.08)', border: '1px solid rgba(245,196,80,0.25)', borderRadius: 4, padding: '6px 8px', marginTop: 6, lineHeight: 1.4 },
   nodeDetail: { fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: 4 },

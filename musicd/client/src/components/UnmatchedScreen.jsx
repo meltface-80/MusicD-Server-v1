@@ -414,7 +414,7 @@ const s = {
   candMeta: { fontSize: 10, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: 'var(--font-mono)' },
   candActions: { display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 },
   iconBtn: { width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-sm)', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-tertiary)', textDecoration: 'none' },
-  confirmBtn: { padding: '6px 10px', fontSize: 11, fontWeight: 600, borderRadius: 'var(--radius-sm)', background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' },
+  confirmBtn: { padding: '6px 10px', fontSize: 11, fontWeight: 600, borderRadius: 'var(--radius-sm)', background: 'var(--accent)', color: 'var(--on-accent)', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' },
   rejectBtn: { width: '100%', padding: '10px 12px', fontSize: 12, fontWeight: 500, borderRadius: 'var(--radius-sm)', background: 'transparent', color: '#e85a7a', border: '1px solid #e85a7a', cursor: 'pointer' },
   btnBusy: { opacity: 0.6, cursor: 'wait' },
   // Manual search section (#v1.1.0.21). Sits between candidate list
@@ -425,7 +425,7 @@ const s = {
   searchOpenBtn: { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg-overlay)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', cursor: 'pointer' },
   searchRow: { display: 'flex', gap: 6, marginBottom: 8 },
   searchInput: { flex: 1, minWidth: 0, padding: '8px 10px', fontSize: 13, background: 'var(--bg-overlay)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', outline: 'none' },
-  searchBtn: { padding: '8px 12px', fontSize: 12, fontWeight: 600, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' },
+  searchBtn: { padding: '8px 12px', fontSize: 12, fontWeight: 600, background: 'var(--accent)', color: 'var(--on-accent)', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' },
   searchErr: { padding: '8px 12px', fontSize: 11, color: '#e85a7a' },
   searchEmpty: { padding: '8px 4px', fontSize: 11, color: 'var(--text-tertiary)' },
   searchResults: { paddingTop: 4 },

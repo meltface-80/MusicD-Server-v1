@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useStore } from '../store'
 import { api } from '../api'
-import { Volume2, Play, Square, Download, RefreshCw, ChevronRight, ChevronLeft, User, Sliders, Headphones, Folder, Save, Image as ImageIcon, Radio, LogOut, Cable, Key, Home, Power, Cpu } from 'lucide-react'
+import { Volume2, Play, Square, Download, RefreshCw, ChevronRight, ChevronLeft, User, Sliders, Headphones, Folder, Save, Image as ImageIcon, Radio, LogOut, Cable, Key, Home, Power, Cpu, Palette } from 'lucide-react'
 import DspTab from './DspTab'
 import AutoEqTab from './AutoEqTab'
 import LibraryScopeSection from './LibraryScopeSection'
@@ -11,6 +11,7 @@ import {
   SHARE_FILES, SHARE_INSECURE,
 } from '../bugReportShare'
 import BackupSection from './BackupSection'
+import AppearanceSection from './AppearanceSection'
 import HomeScreenSection from './HomeScreenSection'
 import AudioSection from './AudioSection'
 import CpuTweaksSection from './CpuTweaksSection'
@@ -548,6 +549,8 @@ export default function SettingsScreen({ onBack }) {
     { id: 'metadata',   title: 'Metadata',         icon: <User size={14} style={{ marginRight: 8 }} /> },
     { id: 'scrobbling', title: 'LastFM Scrobbler', icon: <Radio size={14} style={{ marginRight: 8 }} /> },
     { id: 'backup',     title: 'Backup',           icon: <Save size={14} style={{ marginRight: 8 }} /> },
+    // v1.1.24.0 — the four themes, directly below Backup as asked.
+    { id: 'appearance', title: 'Appearance',       icon: <Palette size={14} style={{ marginRight: 8 }} /> },
     { id: 'update',     title: 'Update',           icon: <Download size={14} style={{ marginRight: 8 }} /> },
     // v1.1.3.5 — CPU Tweaks. Sits at the bottom because most users
     // never need it; auto-detection picks reasonable defaults. Only
@@ -1195,6 +1198,10 @@ export default function SettingsScreen({ onBack }) {
 
       <Section id="backup" title="Backup" icon={<Save size={14} style={{ marginRight: 8 }} />} openSection={openSection} setOpenSection={setOpenSection}>
         <BackupSection />
+      </Section>
+
+      <Section id="appearance" title="Appearance" icon={<Palette size={14} style={{ marginRight: 8 }} />} openSection={openSection} setOpenSection={setOpenSection}>
+        <AppearanceSection />
       </Section>
 
       <Section id="update" title="Update" icon={<Download size={14} style={{ marginRight: 8 }} />} openSection={openSection} setOpenSection={setOpenSection}>
@@ -2013,7 +2020,7 @@ function BugReportPanel({ currentVersion }) {
                   width: '100%',
                   boxSizing: 'border-box',
                   padding: 10,
-                  background: 'var(--bg-input, rgba(255,255,255,0.04))',
+                  background: 'var(--bg-input, rgba(var(--tint-rgb), 0.04))',
                   border: '1px solid var(--border-soft)',
                   borderRadius: 6,
                   color: 'var(--text-primary)',
@@ -2030,7 +2037,7 @@ function BugReportPanel({ currentVersion }) {
                     padding: '7px 14px',
                     background: 'var(--accent)',
                     border: 'none', borderRadius: 6,
-                    color: '#fff',
+                    color: 'var(--on-accent)',
                     fontSize: 12, fontWeight: 600,
                     cursor: sending ? 'default' : 'pointer',
                     opacity: (sending || !note.trim()) ? 0.5 : 1,
@@ -2069,7 +2076,7 @@ function BugReportPanel({ currentVersion }) {
                       padding: '7px 14px',
                       background: 'var(--accent)',
                       border: 'none', borderRadius: 6,
-                      color: '#fff',
+                      color: 'var(--on-accent)',
                       fontSize: 12, fontWeight: 600,
                       cursor: 'pointer',
                     }}
@@ -2086,7 +2093,7 @@ function BugReportPanel({ currentVersion }) {
                       padding: '7px 14px',
                       background: 'var(--accent)',
                       border: 'none', borderRadius: 6,
-                      color: '#fff',
+                      color: 'var(--on-accent)',
                       fontSize: 12, fontWeight: 600,
                       cursor: 'pointer',
                     }}
@@ -2803,7 +2810,7 @@ const s = {
     color: 'var(--text-primary)',
     textDecoration: 'underline',
     textUnderlineOffset: 3,
-    textDecorationColor: 'var(--border-bright, rgba(255,255,255,0.18))',
+    textDecorationColor: 'var(--border-bright, rgba(var(--tint-rgb), 0.18))',
     cursor: 'pointer',
   },
   // Release-notes modal header. Shares the bottom-sheet body style
@@ -3015,7 +3022,7 @@ const s = {
     cursor: 'pointer',
   },
   brandWordmark: { fontSize: 14, fontWeight: 800, letterSpacing: '-0.3px', display: 'inline-flex', marginBottom: 2 },
-  brandMusic: { color: 'rgba(255,255,255,0.92)' },
+  brandMusic: { color: 'rgba(var(--tint-rgb), 0.92)' },
   brandD: { color: '#5b7fff' },
 
   // Section list (#30.26). The Settings index is now a tappable
@@ -3175,7 +3182,7 @@ const s = {
   updateBlock: { marginTop: 12, marginBottom: 10 },
   updateBtnIdle: { width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', background: 'var(--bg-overlay)', border: '1px solid var(--border)', cursor: 'pointer' },
   updateBtnAvailable: { width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, color: '#fff', background: '#5b7fff', border: '1px solid #5b7fff', cursor: 'pointer', boxShadow: '0 2px 12px rgba(91,127,255,0.3)' },
-  updateBtnDisabled: { width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)', background: 'rgba(91,127,255,0.4)', border: '1px solid rgba(91,127,255,0.4)', cursor: 'not-allowed' },
+  updateBtnDisabled: { width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, color: 'rgba(var(--tint-rgb), 0.7)', background: 'rgba(91,127,255,0.4)', border: '1px solid rgba(91,127,255,0.4)', cursor: 'not-allowed' },
   errorMsg: { padding: '8px 10px', borderRadius: 6, background: 'rgba(232,90,122,0.1)', border: '1px solid rgba(232,90,122,0.3)', color: '#e85a7a', fontSize: 11, marginBottom: 10 },
   logToggle: { fontSize: 10, color: 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', textDecoration: 'underline', fontFamily: 'var(--font-mono)' },
   logBox: { marginTop: 6, padding: '8px 10px', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text-secondary)', fontSize: 10, fontFamily: 'var(--font-mono)', whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 240, overflowY: 'auto', lineHeight: 1.4 },
@@ -3184,5 +3191,5 @@ const s = {
   link: { color: 'var(--accent)', textDecoration: 'none' },
   segControl: { display: 'flex', background: 'var(--bg-overlay)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', gap: 0 },
   segBtn: { padding: '5px 14px', fontSize: 12, fontWeight: 500, color: 'var(--text-tertiary)', background: 'transparent', border: 'none', cursor: 'pointer', borderRadius: 0 },
-  segBtnActive: { background: 'var(--accent)', color: '#fff', fontWeight: 700 },
+  segBtnActive: { background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 700 },
 }

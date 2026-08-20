@@ -215,7 +215,7 @@ const s = {
   },
   createBtn: {
     padding: '11px 14px', borderRadius: 10, border: 'none',
-    background: 'var(--jp-accent)', color: '#000',
+    background: 'var(--jp-accent)', color: 'var(--jp-bg)',
     fontSize: 13, fontWeight: 700, cursor: 'pointer',
   },
   note: { padding: '8px 10px 0', fontSize: 11, color: 'var(--jp-text-2)', textAlign: 'center' },

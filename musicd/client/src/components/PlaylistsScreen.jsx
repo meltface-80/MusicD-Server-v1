@@ -242,13 +242,13 @@ const s = {
   primaryBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '8px 14px', borderRadius: 999, border: 'none',
-    background: 'var(--jp-accent)', color: '#000', fontSize: 12, fontWeight: 700,
+    background: 'var(--jp-accent)', color: 'var(--jp-bg)', fontSize: 12, fontWeight: 700,
     cursor: 'pointer', whiteSpace: 'nowrap',
   },
   ghostBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '8px 14px', borderRadius: 999,
-    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)',
+    background: 'rgba(var(--tint-rgb), 0.06)', border: '1px solid rgba(var(--tint-rgb), 0.10)',
     color: 'var(--jp-text-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
     whiteSpace: 'nowrap',
   },

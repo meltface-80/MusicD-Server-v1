@@ -318,7 +318,7 @@ const s = {
   saveBtn: {
     padding: '8px 16px',
     background: 'var(--accent)',
-    color: '#ffffff',
+    color: 'var(--on-accent)',
     border: 'none',
     borderRadius: 8,
     fontSize: 13, fontWeight: 600,

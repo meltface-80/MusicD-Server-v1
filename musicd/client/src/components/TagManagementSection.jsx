@@ -288,7 +288,7 @@ function TagRow({ tag, isEditing, onEdit, onCancelEdit, onSaved, onDeleted }) {
   return (
     <div style={s.row}>
       <div style={s.colDot}>
-        <span style={{ ...s.colorDot, background: tag.color || 'var(--border-bright, rgba(255,255,255,0.18))' }} />
+        <span style={{ ...s.colorDot, background: tag.color || 'var(--border-bright, rgba(var(--tint-rgb), 0.18))' }} />
       </div>
       <div style={s.colName}>
         <div style={s.tagName}>{tag.name}</div>
@@ -336,7 +336,7 @@ const s = {
   colDot: { flexShrink: 0 },
   colorDot: {
     display: 'block', width: 14, height: 14, borderRadius: '50%',
-    border: '1px solid rgba(255,255,255,0.10)',
+    border: '1px solid rgba(var(--tint-rgb), 0.10)',
   },
   colName: { flex: 1, minWidth: 0 },
   tagName: { fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
@@ -356,7 +356,7 @@ const s = {
     width: 30, height: 30, borderRadius: 6,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     background: 'var(--accent, #7c3aed)',
-    color: '#fff',
+    color: 'var(--on-accent)',
     border: 'none',
     cursor: 'pointer',
   },
@@ -397,7 +397,7 @@ const s = {
     fontSize: 12, fontWeight: 500,
     background: 'transparent',
     color: 'var(--text-secondary)',
-    border: '1px dashed var(--border-bright, rgba(255,255,255,0.16))',
+    border: '1px dashed var(--border-bright, rgba(var(--tint-rgb), 0.16))',
     borderRadius: 999,
     cursor: 'pointer',
   },
@@ -416,7 +416,7 @@ const s = {
     padding: '8px 14px',
     fontSize: 12, fontWeight: 600,
     background: 'var(--accent, #7c3aed)',
-    color: '#fff',
+    color: 'var(--on-accent)',
     border: 'none',
     borderRadius: 999,
     cursor: 'pointer',

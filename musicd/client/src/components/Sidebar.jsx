@@ -213,7 +213,7 @@ const s = {
   // monochrome JPLAY pattern: white-fill bar with slightly
   // brighter text. No chromatic accent.
   navItem: { display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 12px', borderRadius: 6, fontSize: 14, fontWeight: 500, color: 'var(--jp-text-2)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' },
-  navItemActive: { background: 'rgba(255,255,255,0.06)', color: 'var(--jp-text)' },
+  navItemActive: { background: 'rgba(var(--tint-rgb), 0.06)', color: 'var(--jp-text)' },
   // Unmatched count badge — kept amber for the "needs attention"
   // identity, but slightly more restrained against the new black
   // ground.

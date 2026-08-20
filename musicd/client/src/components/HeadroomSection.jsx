@@ -246,7 +246,7 @@ const s = {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '7px 14px',
     background: 'var(--accent)',
-    color: '#fff',
+    color: 'var(--on-accent)',
     border: 'none', borderRadius: 6,
     fontSize: 12, fontWeight: 600,
     cursor: 'pointer',

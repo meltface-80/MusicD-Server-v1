@@ -276,7 +276,7 @@ export default function TagPicker({ entityKind, entityId, onClose, autoApply = f
 
 // Helper: convert "#rrggbb" + alpha to rgba(r,g,b,a) for chip backgrounds.
 function hexToRgba(hex, alpha) {
-  if (!hex || hex.length !== 7) return `rgba(255,255,255,${alpha})`
+  if (!hex || hex.length !== 7) return `rgba(var(--tint-rgb), ${alpha})`
   const r = parseInt(hex.slice(1, 3), 16)
   const g = parseInt(hex.slice(3, 5), 16)
   const b = parseInt(hex.slice(5, 7), 16)
@@ -326,7 +326,7 @@ const s = {
     cursor: 'pointer',
   },
   chipOn: {
-    background: 'rgba(255,255,255,0.10)',
+    background: 'rgba(var(--tint-rgb), 0.10)',
     borderColor: 'var(--jp-border-hot)',
     color: 'var(--jp-text)',
   },
@@ -382,7 +382,7 @@ const s = {
     padding: '7px 12px',
     fontSize: 12, fontWeight: 600,
     background: 'var(--jp-accent)',
-    color: '#000',
+    color: 'var(--jp-bg)',
     border: 'none',
     borderRadius: 999,
     cursor: 'pointer',
