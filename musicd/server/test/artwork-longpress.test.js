@@ -81,33 +81,65 @@ test('the OS image callout is suppressed wherever art is drawn', async (t) => {
     assert.equal(img['user-select'], 'none');
   });
 
-  await t.test('the tile itself suppresses it too', () => {
-    // An album tile is a <button> wrapping the <img>; a hold landing on the
-    // title line under the cover raised the same sheet.
-    assert.equal(declarationsFor(css, 'button')['-webkit-touch-callout'], 'none');
+  await t.test('the whole gesture is suppressed from the root', () => {
+    // v1.1.23.0 — this used to be an enumerated list: img and button. That
+    // shape is why a hold on a settings-row label still selected it and
+    // raised Copy / Look Up / Translate — the label is a <div>, and an
+    // opt-out written per element type only ever covers the ones somebody
+    // remembered. The root rule inherits down to everything instead, which
+    // is what the owner asked for: no long-press anywhere but the share card.
+    const html = declarationsFor(css, 'html');
+    assert.equal(html['-webkit-touch-callout'], 'none',
+      'the Copy / Look Up / Translate bar is back on every screen');
+    assert.equal(html['-webkit-user-select'], 'none');
+    assert.equal(html['user-select'], 'none',
+      'text still highlights on a long press');
+    // A <button> (an album tile) and a <div> (a settings label) are both
+    // covered by inheritance, so neither needs a rule of its own. Asserting
+    // the root instead of re-listing elements is the point of the change.
   });
 
-  await t.test('text selection is NOT disabled app-wide', () => {
-    // Only images are made unselectable. Killing selection on *, html, body
-    // or button would take copyable text and text inputs with it.
-    for (const sel of ['*', 'html', 'body', '#root', 'button', 'input']) {
+  await t.test('text inputs keep selection and the callout', () => {
+    // Suppressing the gesture inside a field is not "no long-press", it is a
+    // search box with no caret placement, no Select All and no Paste. These
+    // are the deliberate exception and must be spelled out: WebKit does not
+    // hand selection back once an ancestor has taken it away.
+    for (const sel of ['input', 'textarea', 'select', '[contenteditable="true"]']) {
       const d = declarationsFor(css, sel);
-      assert.notEqual(d['user-select'], 'none',
-        `${sel} { user-select: none } breaks selecting and copying text`);
-      assert.notEqual(d['-webkit-user-select'], 'none',
-        `${sel} { -webkit-user-select: none } breaks selecting and copying text`);
+      assert.equal(d['user-select'], 'text', `${sel} cannot be selected in`);
+      assert.equal(d['-webkit-user-select'], 'text', `${sel} cannot be selected in`);
+      assert.equal(d['-webkit-touch-callout'], 'default',
+        `${sel} has no Paste / Select All menu`);
     }
   });
 
   await t.test('the share-card preview keeps its callout', () => {
     // Holding that image to add it to Photos is a real thing to want, and
-    // the callout is the only route to it.
+    // the callout is the only route to it. It is now the ONLY thing in the
+    // app that a long press does anything on.
     assert.equal(declarationsFor(css, '.allow-callout img')['-webkit-touch-callout'],
       'default', '.allow-callout does not opt back in');
     for (const f of ['NowPlayingFullScreen.jsx', 'AlbumDetail.jsx']) {
       const src = readRaw('components', f);
       assert.match(src, /alt="Share card"[^>]*className="allow-callout"/,
         `${f}'s share card cannot be saved to Photos any more`);
+    }
+  });
+
+  await t.test('the share card opts back in with `text`, not `auto`', () => {
+    // The trap in inverting the root rule. The used value of
+    // `user-select: auto` is `none` whenever the parent's used value is
+    // `none` — so under a root that says none, `auto` is a no-op and this
+    // class silently protects nothing. It read `auto` for three releases and
+    // worked only because the root had not said none yet.
+    for (const sel of ['.allow-callout', '.allow-callout img']) {
+      const d = declarationsFor(css, sel);
+      assert.notEqual(d['user-select'], 'auto',
+        `${sel} { user-select: auto } resolves to none under the root rule`);
+      assert.notEqual(d['-webkit-user-select'], 'auto',
+        `${sel} { -webkit-user-select: auto } resolves to none under the root rule`);
+      assert.equal(d['user-select'], 'text');
+      assert.equal(d['-webkit-user-select'], 'text');
     }
   });
 

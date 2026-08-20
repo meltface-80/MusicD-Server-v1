@@ -29,50 +29,50 @@
   ],
   "manifestVersion": 1,
   "schema_version": 1,
-  "version": "1.1.22.0",
-  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-22-0.tar",
-  "tarSha256": "215c017fb4806686d7692ec374822d33ce52b0af948834f09446590120efff59",
-  "releasedAt": "2026-08-21T00:30:00Z",
-  "releaseNotes": "Removes the chevron at the bottom of the Now Playing screen and the About-the-Track panel it opened. The panel restated the title, album, duration, genre, artist and audio format already shown on the screen above it; the artist bio it also carried is still reachable from the album and artist screens.",
-  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-22-0.tar",
-  "tarball_sha256": "215c017fb4806686d7692ec374822d33ce52b0af948834f09446590120efff59",
-  "released_at": "2026-08-21T00:30:00Z",
+  "version": "1.1.23.0",
+  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-23-0.tar",
+  "tarSha256": "021ff9229cefdb43e8e9c028c001a05b21fd256db3e624a1e8ca7aa8c29ee013",
+  "releasedAt": "2026-08-21T01:20:00Z",
+  "releaseNotes": "Touch-and-hold no longer selects text or raises the OS Copy / Look Up / Translate bar anywhere in the app - it was suppressed for images and buttons only, so settings labels, album titles and track names still highlighted. The share card still takes a long press, and text inputs keep the caret and the Paste menu. The albums/tracks count line is removed from the library screen, along with the stats request it was the only consumer of.",
+  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-23-0.tar",
+  "tarball_sha256": "021ff9229cefdb43e8e9c028c001a05b21fd256db3e624a1e8ca7aa8c29ee013",
+  "released_at": "2026-08-21T01:20:00Z",
   "release_notes_url": "https://github.com/meltface-80/MusicD-Server-v1/blob/main/musicd/CHANGELOG.md",
   "channels": {
     "stable": {
-      "version": "1.1.22.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-22-0.tar",
-      "tarSha256": "215c017fb4806686d7692ec374822d33ce52b0af948834f09446590120efff59",
-      "releasedAt": "2026-08-21T00:30:00Z",
-      "releaseNotes": "Removes the chevron at the bottom of the Now Playing screen and the About-the-Track panel it opened. The panel restated the title, album, duration, genre, artist and audio format already shown on the screen above it; the artist bio it also carried is still reachable from the album and artist screens."
+      "version": "1.1.23.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-23-0.tar",
+      "tarSha256": "021ff9229cefdb43e8e9c028c001a05b21fd256db3e624a1e8ca7aa8c29ee013",
+      "releasedAt": "2026-08-21T01:20:00Z",
+      "releaseNotes": "Touch-and-hold no longer selects text or raises the OS Copy / Look Up / Translate bar anywhere in the app - it was suppressed for images and buttons only, so settings labels, album titles and track names still highlighted. The share card still takes a long press, and text inputs keep the caret and the Paste menu. The albums/tracks count line is removed from the library screen, along with the stats request it was the only consumer of."
     },
     "earlyAccess": {
-      "version": "1.1.22.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-22-0.tar",
-      "tarSha256": "215c017fb4806686d7692ec374822d33ce52b0af948834f09446590120efff59",
-      "releasedAt": "2026-08-21T00:30:00Z",
-      "releaseNotes": "Removes the chevron at the bottom of the Now Playing screen and the About-the-Track panel it opened. The panel restated the title, album, duration, genre, artist and audio format already shown on the screen above it; the artist bio it also carried is still reachable from the album and artist screens."
+      "version": "1.1.23.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-23-0.tar",
+      "tarSha256": "021ff9229cefdb43e8e9c028c001a05b21fd256db3e624a1e8ca7aa8c29ee013",
+      "releasedAt": "2026-08-21T01:20:00Z",
+      "releaseNotes": "Touch-and-hold no longer selects text or raises the OS Copy / Look Up / Translate bar anywhere in the app - it was suppressed for images and buttons only, so settings labels, album titles and track names still highlighted. The share card still takes a long press, and text inputs keep the caret and the Paste menu. The albums/tracks count line is removed from the library screen, along with the stats request it was the only consumer of."
     },
     "beta": {
-      "version": "1.1.22.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-22-0.tar",
-      "tarSha256": "215c017fb4806686d7692ec374822d33ce52b0af948834f09446590120efff59",
-      "releasedAt": "2026-08-21T00:30:00Z",
-      "releaseNotes": "Removes the chevron at the bottom of the Now Playing screen and the About-the-Track panel it opened. The panel restated the title, album, duration, genre, artist and audio format already shown on the screen above it; the artist bio it also carried is still reachable from the album and artist screens."
+      "version": "1.1.23.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-23-0.tar",
+      "tarSha256": "021ff9229cefdb43e8e9c028c001a05b21fd256db3e624a1e8ca7aa8c29ee013",
+      "releasedAt": "2026-08-21T01:20:00Z",
+      "releaseNotes": "Touch-and-hold no longer selects text or raises the OS Copy / Look Up / Translate bar anywhere in the app - it was suppressed for images and buttons only, so settings labels, album titles and track names still highlighted. The share card still takes a long press, and text inputs keep the caret and the Paste menu. The albums/tracks count line is removed from the library screen, along with the stats request it was the only consumer of."
     },
     "alpha": {
-      "version": "1.1.22.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-22-0.tar",
-      "tarSha256": "215c017fb4806686d7692ec374822d33ce52b0af948834f09446590120efff59",
-      "releasedAt": "2026-08-21T00:30:00Z",
-      "releaseNotes": "Removes the chevron at the bottom of the Now Playing screen and the About-the-Track panel it opened. The panel restated the title, album, duration, genre, artist and audio format already shown on the screen above it; the artist bio it also carried is still reachable from the album and artist screens."
+      "version": "1.1.23.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-23-0.tar",
+      "tarSha256": "021ff9229cefdb43e8e9c028c001a05b21fd256db3e624a1e8ca7aa8c29ee013",
+      "releasedAt": "2026-08-21T01:20:00Z",
+      "releaseNotes": "Touch-and-hold no longer selects text or raises the OS Copy / Look Up / Translate bar anywhere in the app - it was suppressed for images and buttons only, so settings labels, album titles and track names still highlighted. The share card still takes a long press, and text inputs keep the caret and the Paste menu. The albums/tracks count line is removed from the library screen, along with the stats request it was the only consumer of."
     },
     "legacy": {
-      "version": "1.1.22.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-22-0.tar",
-      "tarSha256": "215c017fb4806686d7692ec374822d33ce52b0af948834f09446590120efff59",
-      "releasedAt": "2026-08-21T00:30:00Z",
-      "releaseNotes": "Removes the chevron at the bottom of the Now Playing screen and the About-the-Track panel it opened. The panel restated the title, album, duration, genre, artist and audio format already shown on the screen above it; the artist bio it also carried is still reachable from the album and artist screens."
+      "version": "1.1.23.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-23-0.tar",
+      "tarSha256": "021ff9229cefdb43e8e9c028c001a05b21fd256db3e624a1e8ca7aa8c29ee013",
+      "releasedAt": "2026-08-21T01:20:00Z",
+      "releaseNotes": "Touch-and-hold no longer selects text or raises the OS Copy / Look Up / Translate bar anywhere in the app - it was suppressed for images and buttons only, so settings labels, album titles and track names still highlighted. The share card still takes a long press, and text inputs keep the caret and the Paste menu. The albums/tracks count line is removed from the library screen, along with the stats request it was the only consumer of."
     }
   },
   "channelMetadata": {

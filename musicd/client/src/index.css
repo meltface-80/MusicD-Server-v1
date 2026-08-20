@@ -231,45 +231,84 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 a { color: inherit; text-decoration: none; }
 input { font-family: inherit; }
 
-/* iOS long-press on artwork
-   ─────────────────────────
-   Touch-and-hold on an album cover raised Safari's own image callout — the
-   Copy / Share / Add to Photos sheet — and lifted the art into a drag
-   preview. Nothing in this app sits behind that gesture, so it reads as the
-   app misbehaving rather than as a browser feature.
+/* iOS long-press: nothing in this app sits behind it
+   ─────────────────────────────────────────────────
+   Touch-and-hold used to raise two different OS surfaces, on two different
+   kinds of element, and the app has a use for neither:
 
-   -webkit-touch-callout is the property that suppresses the sheet.
-   -webkit-user-drag stops the lift; React has no dependable camelCase style
-   property for it, which is why this is a stylesheet rule and not an inline
-   style. The user-select pair stops the selection shading that comes with
-   the hold. Every img in this app is cover art, an artist logo, an icon or
-   a share card, so one global rule beats repeating the set at each of the
-   dozen-plus components that draw artwork.
+     - on artwork, Safari's image callout — the Copy / Share / Add to Photos
+       sheet — plus a drag preview that lifted the cover off the page;
+     - on any run of text, the selection highlight and the Copy / Look Up /
+       Translate bar. A hold anywhere — a settings row label, an album title,
+       a track name — selected it and shaded it blue.
 
-   Buttons get the callout suppression as well: an album tile is a button
-   wrapping the img, and a hold landing on the title line under the cover
-   raised the same sheet. Text selection is deliberately NOT switched off
-   for buttons — only images are made unselectable — so every surface with
-   text worth copying still behaves as it did.
+   Both now read as the app misbehaving rather than as a browser feature, so
+   v1.1.23.0 suppresses the whole gesture from the root and inherits it down,
+   rather than from a list of element types. The list was the previous shape
+   of this rule (img and button only), and it is exactly why the settings
+   labels in a <div> still selected: an opt-out enumerated by element can
+   only ever cover the elements someone remembered.
 
-   .allow-callout opts back out. The share-card previews use it: holding
-   that image to add it to Photos is a real thing to want, and the callout
-   is the only route to it. */
-img {
+   Three properties, because they are three different behaviours:
+     -webkit-touch-callout  the Copy / Share / Look Up sheet
+     -webkit-user-drag      the drag preview (no dependable camelCase form in
+                            React, which is why this set lives in the
+                            stylesheet and not in a dozen inline style maps)
+     user-select            the highlight, and the selection bar that follows
+
+   TWO deliberate exceptions:
+
+     .allow-callout opts fully back out. The share-card previews use it, and
+     they are the only thing that does: holding that image to add it to
+     Photos is a real thing to want, and the callout is the only route to it.
+
+     Text INPUTS keep selection and the callout. Turning them off inside a
+     field is not "no long-press", it is a search box you cannot place a
+     caret in, a filename you cannot correct, and no Paste. The gesture the
+     owner asked to remove is the one that fires on the app's own chrome. */
+html {
   -webkit-touch-callout: none;
   -webkit-user-drag: none;
   -webkit-user-select: none;
   user-select: none;
 }
-button {
-  -webkit-touch-callout: none;
+
+/* Inheritance does not reach the shadow-DOM internals of a form control on
+   every engine, and WebKit's UA stylesheet does not put selection back once
+   an ancestor has taken it away. Both are named explicitly. */
+input,
+textarea,
+select,
+[contenteditable="true"] {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  user-select: text;
 }
+
+/* `text`, NOT `auto`. This is the trap in inverting the rule above: the used
+   value of `user-select: auto` is `none` whenever the PARENT's used value is
+   `none`, so under a root that says none, `auto` is a no-op and the share
+   card silently stops being holdable — the one thing this class exists to
+   protect. It read `auto` and worked only because the root did not say none
+   until v1.1.23.0. */
 .allow-callout,
 .allow-callout img {
   -webkit-touch-callout: default;
   -webkit-user-drag: auto;
-  -webkit-user-select: auto;
-  user-select: auto;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* img keeps its own copy of the set. It is redundant under the html rule
+   above and is kept on purpose: this is the rule that stops cover art
+   lifting into a drag preview, it is the one a future change is most likely
+   to reach for, and artwork-longpress.test.js reads it by name. A property
+   that matters is better stated twice than inherited invisibly. */
+img {
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* v1.1.0.65 — JPLAY-style artist grid breakpoints. Mirrors the
