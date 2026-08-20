@@ -12,6 +12,91 @@ Categories used per release:
 
 ---
 
+## v1.1.18.0 — 2026-08-20 — EVERY BANDCAMP RELEASE HAD THE SAME COVER
+
+### Fixed
+
+- **Bandcamp new releases all showed the same album art.** Two separate faults
+  in one expression, both reproducible, both pushing the same way.
+
+  The candidate chain was written as
+
+  ```js
+  $a.find('img').first()
+    .add($a.next('img'))
+    .add($a.parent().find('img').first())
+    .add($a.closest('figure, article, section, li, div').find('img').first())
+    .first()
+  ```
+
+  and read as "try these in order". **It is not.** Cheerio's `.add()`, like
+  jQuery's, returns the combined set in *document* order, so `.first()` yields
+  whichever candidate appears earliest in the page — not the first strategy
+  that matched. A badge or logo above the anchor beat the cover the anchor
+  itself wrapped.
+
+  And the widest fallback, `closest('figure, article, section, li, div')`,
+  matches the article body in a prose article — which is what Bandcamp Daily's
+  lists mostly are, paragraphs with bare album links. `.find('img').first()` on
+  the article body is the article's **hero image**, and every release on the
+  page resolved to it. That is the reported symptom exactly.
+
+  Both were confirmed by running the shipped expression against representative
+  markup before anything was changed, and the test restores it verbatim to
+  prove the fix is what fixes it.
+
+  The rule now: **a release card contains exactly one album link.** The search
+  walks out from the anchor only while the ancestor still holds just this one
+  album anchor; the moment an ancestor holds two, we have left the card and
+  anything found there belongs to the page. The same rule bounds the
+  adjacent-sibling check, because a banner directly above two album links is a
+  sibling of both and the cover of neither.
+
+- **The Qobuz parser had the same fault, twice.** It was not in the report —
+  the Bandcamp row is the one that shows it most starkly — but the identical
+  `.add()` expression picked its cover, and another picked the artist link.
+  Fixing only the reported site is the partial migration `CLAUDE.md` warns
+  about, so both were corrected: a "Hi-Res" badge sitting above an album link
+  was beating the cover the anchor wrapped.
+
+  Qobuz deliberately keeps its wider parent search and still drops cards with
+  no image. Its list pages carry a real cover for every album, so the
+  one-album-per-container rule would only cost cards, and the hero-image leak
+  came from a `closest()` fallback that parser never had.
+
+- **A release with no trustworthy cover is still listed.** It used to be
+  discarded. The client already draws a disc placeholder for a null
+  `image_url`, so keeping the card costs nothing, and dropping it would quietly
+  shrink New Releases on exactly the prose-style articles that carry the most
+  of them.
+
+- **A cover that lands on two releases is now published on neither.** A
+  backstop for layouts the walk does not anticipate: the parser detects an
+  image it used more than once, clears it from those cards — keeping the cards
+  — and says so in the log. No cover beats the same wrong cover on every row.
+
+### Tests
+
+- `news-bandcamp.test.js` — 16 assertions over real markup: the prose article
+  that caused the report, a badge above a cover, properly structured cards,
+  covers beside the link, `background-image` cards, a banner shared by two
+  albums, lazy-loading attributes, deep nesting, and a bare anchor. One
+  assertion sweeps the whole file, not one function, and fails if `.add()` or
+  the over-broad `closest()` returns to either parser — it was written that way
+  after the Qobuz sites turned up in exactly that sweep.
+
+  Suite is 18 files and 352 assertions. Five mutations run, each red then
+  green, including the shipped code restored verbatim.
+
+### Unverified against the live site
+
+- Bandcamp Daily's real HTML cannot be fetched from this environment. The
+  fixtures are modelled on the shapes the parser already handles; the
+  duplicate-cover backstop exists precisely because a layout may not match any
+  of them.
+
+---
+
 ## v1.1.17.0 — 2026-08-19 — GETTING THE BUG REPORT OFF THE PHONE
 
 ### Fixed

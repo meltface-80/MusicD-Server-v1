@@ -375,6 +375,68 @@ function extractQobuzArticleUrls(html) {
 // Items missing a cover image are dropped — for the visual row layout,
 // a card without art looks broken. Better to skip than to ship empty
 // squares.
+// ── Shared cover/attribute helpers for the HTML scrapers ──────────────
+//
+// v1.1.18.0. Both release parsers used to pick an image with
+//
+//   $a.find('img').first().add($a.next('img')).add(…).first()
+//
+// read as "try these in order". It is not: cheerio's .add(), like jQuery's,
+// returns the combined set in DOCUMENT order, so .first() yields whichever
+// candidate sits earliest in the page rather than the first strategy that
+// matched. An image above the anchor — a badge, a hi-res logo, a section
+// header — beat the cover the anchor itself wrapped.
+//
+// These helpers exist so both parsers try their candidates in the order they
+// are written, one at a time.
+
+const ALBUM_ANCHOR_SEL = 'a[href*=".bandcamp.com/album/"]';
+const MAX_CARD_DEPTH = 4;
+
+function imgSrc($img) {
+  if (!$img || !$img.length) return null;
+  return $img.attr('src')
+      || $img.attr('data-src')
+      || $img.attr('data-lazy-src')
+      || $img.attr('data-original')
+      || null;
+}
+
+function bgImage($el) {
+  if (!$el || !$el.length) return null;
+  const m = ($el.attr('style') || '')
+    .match(/background(?:-image)?\s*:\s*url\(['"]?([^'")]+)['"]?\)/i);
+  return (m && m[1]) ? m[1] : null;
+}
+
+function findCoverForAnchor($, $a) {
+  // 1. Inside the anchor. Unambiguous: an image wrapped by the album link is
+  //    that album's cover.
+  const inside = imgSrc($a.find('img').first()) || bgImage($a);
+  if (inside) return inside;
+
+  // 2. Immediately adjacent — but only where the anchor's parent is about
+  //    this one album. A banner sitting directly above two album links is a
+  //    sibling of both and belongs to neither, so the same shared-container
+  //    rule that bounds the walk below has to bound this too.
+  if ($a.parent().find(ALBUM_ANCHOR_SEL).length <= 1) {
+    const adjacent = imgSrc($a.next('img')) || imgSrc($a.prev('img'));
+    if (adjacent) return adjacent;
+  }
+
+  // 3. Up through the card, stopping the moment the ancestor stops being
+  //    about this one album.
+  let $el = $a.parent();
+  for (let depth = 0; depth < MAX_CARD_DEPTH && $el && $el.length; depth++) {
+    if ($el.find(ALBUM_ANCHOR_SEL).length > 1) break;   // shared container
+    const found = imgSrc($el.find('img').first()) || bgImage($el);
+    if (found) return found;
+    $el = $el.parent();
+  }
+  return null;
+}
+
+
 function extractQobuzReleaseCards(html, articleUrl) {
   const $ = cheerio.load(html);
   const out = [];
@@ -387,16 +449,18 @@ function extractQobuzReleaseCards(html, articleUrl) {
       ? href
       : new URL(href, 'https://www.qobuz.com').toString();
 
-    // Find a cover image. Could be inside the anchor, immediately after,
-    // or on a sibling element. We try a few common locations.
-    let img = null;
-    const imgEl = $a.find('img').first()
-      .add($a.next('img'))
-      .add($a.parent().find('img').first())
-      .first();
-    if (imgEl && imgEl.length) {
-      img = imgEl.attr('src') || imgEl.attr('data-src') || imgEl.attr('data-lazy-src') || null;
-    }
+    // Find a cover image: inside the anchor, then immediately after, then in
+    // the parent. Tried in that order — see the note above imgSrc.
+    //
+    // Unlike the Bandcamp parser this deliberately keeps searching the whole
+    // parent without the one-album-per-container rule, and keeps dropping
+    // cards it finds no image for. Qobuz list pages carry a real cover for
+    // every album, so the containment rule would only cost cards, and the
+    // hero-image leak the Bandcamp parser suffered came from a closest()
+    // fallback this parser never had.
+    let img = imgSrc($a.find('img').first())
+           || imgSrc($a.next('img'))
+           || imgSrc($a.parent().find('img').first());
     if (!img) return;   // no cover → skip; would render empty
     if (!/^https?:/.test(img)) {
       img = new URL(img, 'https://www.qobuz.com').toString();
@@ -415,12 +479,17 @@ function extractQobuzReleaseCards(html, articleUrl) {
 
     // Look for an /interpreter/ (artist) link next to this album link.
     // Qobuz format: <a href="/album/...">Album Title</a> by <a href="/interpreter/...">Artist</a>
-    const $artistLink = $a.parent().find('a[href*="/interpreter/"]').first()
-      .add($a.next('a[href*="/interpreter/"]'))
-      .add($a.siblings('a[href*="/interpreter/"]').first())
-      .first();
-    if ($artistLink && $artistLink.length) {
-      artist = stripHtml($artistLink.text());
+    // Same ordering fault as the cover chain: .add() would return whichever
+    // /interpreter/ link came first in the page, not the nearest one to this
+    // album. Take the adjacent link first, then a sibling, then anything in
+    // the parent — nearest outwards.
+    const INTERP = 'a[href*="/interpreter/"]';
+    for (const $cand of [$a.next(INTERP), $a.siblings(INTERP).first(),
+                         $a.parent().find(INTERP).first()]) {
+      if ($cand && $cand.length) {
+        const txt = stripHtml($cand.text());
+        if (txt) { artist = txt; break; }
+      }
     }
 
     // Sometimes the title text contains both: "Artist - Title" or
@@ -610,6 +679,31 @@ function extractBandcampArticleUrls(html) {
 // can see how many anchors were found vs how many were kept. If "found
 // >> kept", the cover-image search is the bottleneck and we know what
 // to widen.
+// Every album anchor's cover image, or null.
+//
+// v1.1.18.0 — this replaces a chain that gave every release on a page the SAME
+// cover. Two separate faults, both reproducible, both pushing the same way:
+//
+//   1. The old code built its candidates with
+//        $a.find('img').first().add($a.next('img')).add(…).first()
+//      and read that as "try these in order". It is not. Cheerio's .add(),
+//      like jQuery's, returns the combined set in DOCUMENT order, so .first()
+//      yields whichever candidate appears earliest in the page — not the
+//      first strategy that matched. A badge or logo sitting above the anchor
+//      inside the same card beat the anchor's own cover.
+//
+//   2. The widest fallback was $a.closest('figure, article, section, li, div').
+//      In a prose article — Bandcamp Daily's lists are mostly paragraphs with
+//      bare album links — the nearest matching ancestor is the article body,
+//      and .find('img').first() on that is the article's hero image. Every
+//      anchor on the page resolved to it. That is the reported symptom.
+//
+// The rule now: a release card contains exactly ONE album link. So walk up
+// from the anchor only while the ancestor still contains just this one album
+// anchor; the moment an ancestor holds two, we have left the card and
+// anything found there belongs to the page, not to this release. An anchor
+// with no image inside its own card gets null and is dropped, which is the
+// right answer — no cover at all beats the same wrong cover on every row.
 function extractBandcampReleaseCards(html, articleUrl) {
   const $ = cheerio.load(html);
   const out = [];
@@ -632,43 +726,18 @@ function extractBandcampReleaseCards(html, articleUrl) {
     const href = ($a.attr('href') || '').split('?')[0].split('#')[0];
     if (!ALBUM_HOST_RE.test(href)) return;
 
-    // Find a cover image. Search progressively wider until something
-    // matches:
-    //   1. <img> directly inside the anchor
-    //   2. <img> as immediate sibling
-    //   3. <img> inside the parent
-    //   4. <img> inside the closest figure/article/section ancestor
-    //   5. background-image CSS on the anchor or its ancestors (some
-    //      articles use a CSS-styled box rather than a real <img>)
-    let img = null;
-    const imgEl = $a.find('img').first()
-      .add($a.next('img'))
-      .add($a.parent().find('img').first())
-      .add($a.closest('figure, article, section, li, div').find('img').first())
-      .first();
-    if (imgEl && imgEl.length) {
-      img = imgEl.attr('src')
-         || imgEl.attr('data-src')
-         || imgEl.attr('data-lazy-src')
-         || imgEl.attr('data-original')
-         || null;
-    }
-    // Fallback: background-image CSS on the anchor or any ancestor up
-    // to the article container. Format: 'url("...")' or "url(...)".
-    if (!img) {
-      const candidates = [$a, $a.parent(), $a.closest('figure'), $a.closest('article')];
-      for (const $el of candidates) {
-        if (!$el || !$el.length) continue;
-        const style = $el.attr('style') || '';
-        const m = style.match(/background(?:-image)?\s*:\s*url\(['"]?([^'")]+)['"]?\)/i);
-        if (m && m[1]) { img = m[1]; break; }
+    // A release with no cover we can trust is still a release. The client
+    // draws a disc placeholder for a null image_url (NewsSection's
+    // releaseImgFallback), so keeping the card costs nothing and losing it
+    // would quietly shrink New Releases on exactly the prose-style articles
+    // that carry the most of them.
+    let img = findCoverForAnchor($, $a);
+    if (img) {
+      cWithImg++;
+      if (!/^https?:/.test(img)) {
+        try { img = new URL(img, articleUrl).toString(); }
+        catch { img = null; }   // malformed relative URL — no cover, keep card
       }
-    }
-    if (!img) return;
-    cWithImg++;
-
-    if (!/^https?:/.test(img)) {
-      img = new URL(img, articleUrl).toString();
     }
 
     // Extract title. Anchor text first, then nearby headings as fallback.
@@ -715,7 +784,7 @@ function extractBandcampReleaseCards(html, articleUrl) {
       artist:       artist || null,
       excerpt:      null,
       url:          href,
-      image_url:    img,
+      image_url:    img || null,
       published_at: Math.floor(Date.now() / 1000),
       fetched_at:   Math.floor(Date.now() / 1000),
     });
@@ -728,7 +797,29 @@ function extractBandcampReleaseCards(html, articleUrl) {
   // anchors-with-images-but-no-titles, or a healthy K kept count. cWithImg
   // is set only AFTER both the album-URL regex AND the image search
   // succeed, so the three counters tell three distinct stories.
-  console.log(`[news] bandcamp parse: ${cAnchors} album anchors → ${cWithImg} with image → ${cKept} kept`);
+  // Backstop. If a layout still lands the same URL on more than one release,
+  // that image is a page asset — a hero, a section banner, a logo — and not
+  // any one album's cover. That is the exact shape of the bug this function
+  // was rewritten for, so catch it by observation as well as by construction:
+  // clear those images rather than show a wall of identical covers. The cards
+  // stay; only the wrong art goes.
+  const seen = new Map();
+  for (const r of out) {
+    if (r.image_url) seen.set(r.image_url, (seen.get(r.image_url) || 0) + 1);
+  }
+  const shared = new Set([...seen.entries()].filter(([, n]) => n > 1).map(([u]) => u));
+  if (shared.size) {
+    let cleared = 0;
+    for (const r of out) {
+      if (r.image_url && shared.has(r.image_url)) { r.image_url = null; cleared++; }
+    }
+    console.warn(`[news] bandcamp parse: cleared ${cleared} duplicate cover(s) across ` +
+      `${shared.size} shared image(s) — page assets, not covers`);
+  }
+
+  const withCover = out.filter(r => r.image_url).length;
+  console.log(`[news] bandcamp parse: ${cAnchors} album anchors → ${cWithImg} with image → ` +
+    `${out.length} kept (${withCover} with a cover)`);
 
   return out;
 }
