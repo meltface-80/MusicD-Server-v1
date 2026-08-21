@@ -26,6 +26,8 @@ const bugReportRouter = require('./routes/bugReport');
 const tagsRouter = require('./routes/tags');
 const playlistsRouter = require('./routes/playlists');
 const homeRouter = require('./routes/home');
+// v1.1.33.0 — Qobuz + Tidal, merged into the one library
+const streamingRouter = require('./routes/streaming');
 
 process.on('uncaughtException', err => console.error('UNCAUGHT EXCEPTION:', err));
 process.on('unhandledRejection', (reason) => console.error('UNHANDLED REJECTION:', reason));
@@ -117,6 +119,11 @@ app.use('/api/bug-report', bugReportRouter);
 app.use('/api/tags', tagsRouter);
 app.use('/api/playlists', playlistsRouter);
 app.use('/api/home', homeRouter);
+// v1.1.33.0 — Qobuz / Tidal. Gated as a whole rather than at the login
+// call: with no credentials stored, every route under it would answer
+// 401, and a string of auth errors reads like a fault rather than a tier
+// limit. One 403 carrying upgradeRequired is the honest answer.
+app.use('/api/streaming', tierMiddleware.requireFeature('streaming_services'), streamingRouter);
 
 // SPA fallback: any non-API route returns index.html so client-side routing works
 app.get('*', (req, res, next) => {
@@ -147,6 +154,7 @@ function shutdown(sig) {
   console.log(`📦 ${sig} — shutting down...`);
   renderers.stopDiscovery();
   scanner.stopWatcher && scanner.stopWatcher();
+  try { require('./streamingLibrary').stopScheduledSync(); } catch (e) { /* never started */ }
   server.close(() => {
     db.close();
     process.exit(0);
@@ -231,6 +239,15 @@ server.listen(PORT, '0.0.0.0', async () => {
   try {
     require('./news').start();
   } catch (e) { console.warn('News refresh loop failed to start:', e.message); }
+
+  // v1.1.33.0 — reconcile Qobuz / Tidal favourites with the library.
+  // Once ~45s after boot, then daily. Without it, an album favourited
+  // from the Qobuz app on a phone never reaches this library until the
+  // user happens to open Settings and press Sync. No-op when neither
+  // service is signed in.
+  try {
+    require('./streamingLibrary').startScheduledSync();
+  } catch (e) { console.warn('Streaming favourites sync failed to start:', e.message); }
 
   // Start the remote update checker (#30.6). Polls the manifest URL once
   // a day; first check is deferred 30s after start. Idempotent — if no

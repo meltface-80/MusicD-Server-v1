@@ -12,6 +12,93 @@ Categories used per release:
 
 ---
 
+## v1.1.33.0 — 2026-08-21 — QOBUZ AND TIDAL, IN THE SAME LIBRARY
+
+Sign in to Qobuz or Tidal under **Settings → Services** and their albums
+join the library you already have. Not a second tab, not a separate
+browser — the same album wall, the same Focus filters, the same album
+page, the same queue, and the same DSP chain on the way out to your
+renderer.
+
+### New
+
+- **Settings → Services.** Sign in to Qobuz with your email and password;
+  sign in to Tidal with a code you approve at their site. Either can be
+  used alone or both together. Stream quality is per service, and each
+  has a Sync button for when you have just added something in their own
+  app.
+- **Your favourites are the library.** Whatever you have favourited at
+  Qobuz or Tidal appears in the album wall alongside your local albums —
+  sorted, filtered and searched with them, with no way to tell from the
+  outside which is which except a small marker in the corner of the tile.
+  Favourites reconcile when you sign in, once a day after that, and
+  whenever you press Sync.
+- **A ⊕ on every Qobuz and Tidal album page.** It adds the album to that
+  service's favourites — the same list their own app shows — which is
+  also what brings it into the library here. Tap it again to take it back
+  out. The heart beside it is unchanged and still means what it always
+  did: this app's own favourite, local, working the same on a streaming
+  album as on a local one. The two are deliberately separate, so
+  un-hearting something here can never quietly remove it from your Qobuz
+  account.
+- **Qobuz and Tidal in the side menu**, below Genres, and only while
+  signed in. They show the page types their own apps do: New Releases,
+  Favourites, Recent, and — for Qobuz — Browse, with all eight of their
+  editorial lists. Each has its own catalogue search.
+- **Search reaches the catalogues, not just what you own.** One search
+  box, one list of results: local albums and tracks first, then anything
+  matching in whichever services are signed in, each carrying a small
+  Qobuz or Tidal mark. Tapping a catalogue album opens it like any other
+  album page, with the ⊕ ready if you want to keep it.
+
+### How it plays
+
+- A streaming track is resolved to a signed URL at the moment it is
+  played, and then goes through **exactly the same pipeline as a local
+  file** — volume levelling, parametric EQ, convolution, your
+  renderer-aware downsample plan, dither, FLAC encoding. That is what
+  lets a Qobuz album play to a Sonos zone with your DSP on it.
+- **Quality is not capped.** Both services are asked for the tier you
+  chose, and anything a particular renderer cannot take is converted for
+  that zone only — so picking the highest costs your other zones nothing.
+- Region-locked releases are greyed out on the service screens rather
+  than failing when you press play.
+
+### Details worth knowing
+
+- **Browsing is not collecting.** Opening a catalogue album caches its
+  metadata so the page and the queue have something to read, but it does
+  not enter the library, turn up in search, or appear in Focus until you
+  press the ⊕. One flag, `excluded`, decides that — the same flag every
+  library query in this app already filtered on, which is why merging a
+  streaming catalogue in needed no change to any of them.
+- **Narrowing your local library no longer has to be dangerous.** The
+  library-scope pass rewrites that flag across the whole table from a
+  list of folders, and a Qobuz track lives under no folder — so an
+  unguarded pass would have emptied your entire streaming library the
+  moment you scoped your local one to a subfolder. Streaming rows are
+  exempt from it, and there is a test that fails if any statement in the
+  scope pass loses that exemption.
+- **Signing out removes that service's albums** from the library, because
+  leaving them would put things in the wall that cannot play. Nothing is
+  deleted at the service, and signing back in restores them.
+- Album artwork is fetched once, capped at 1000px and re-encoded, so a
+  few hundred favourites cost a few MB rather than the ~80 MB the
+  services' full-size covers would.
+- **Artists are still local-only in search.** This app's artist screen is
+  built out of local album rows, so a catalogue artist would open an
+  empty page. Their albums do show up, in the Albums section of the same
+  search.
+- Streaming services are not available on the demo tier.
+
+### Migrations
+
+- `albums.qobuz_favorited` and `albums.tidal_favorited`, both defaulting
+  to 0 with a partial index each. Nothing else changes, and an install
+  that never signs in to either service behaves exactly as it did.
+
+---
+
 ## v1.1.32.0 — 2026-08-22 — THE DSP PAGE, TIDIED, AND LEVELLING PER ZONE
 
 ### Changed

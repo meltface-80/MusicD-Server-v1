@@ -109,6 +109,14 @@ const DEMO_FEATURE_FLAGS = {
   fingerprint_match: false,
   manual_metadata_match: false,
 
+  // v1.1.33.0 — Qobuz / Tidal. Demo cannot log in to a streaming
+  // service. The gate is on the whole /api/streaming router rather
+  // than on the login call alone: with no credentials stored, every
+  // catalogue and favourites route under it would answer 401 anyway,
+  // and one 403 that says "upgrade required" is a better answer than
+  // a string of auth errors that read like something is broken.
+  streaming_services: false,
+
   // Quantity limits
   library_size_limit: 50,    // soft cap — server clamps album list to 50
 };

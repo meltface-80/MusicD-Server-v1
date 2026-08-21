@@ -778,6 +778,36 @@ function init() {
   // toggles don't need new columns.
   safeAddColumn('albums', 'scheduled_excluded', 'INTEGER DEFAULT 0');
 
+  // v1.1.33.0 — Qobuz / Tidal streaming albums in the unified library.
+  //
+  // A streaming album is an ordinary `albums` row whose id is
+  // 'qobuz:<id>' or 'tidal:<id>', with ordinary `tracks` rows whose
+  // path is 'qobuz://<id>' or 'tidal://<id>'. Everything downstream —
+  // the grid, Focus, sorting, the album page, the queue, DSP — treats
+  // them as albums because they are albums.
+  //
+  // These two columns record whether the album is favourited AT THE
+  // SERVICE, which is a different question from albums.is_favorite
+  // (this app's own heart). The ⊕ on a streaming album page writes
+  // the service flag and mirrors it to Qobuz/Tidal; the heart writes
+  // is_favorite and stays local. Both are live at once on purpose:
+  // "in my Qobuz library" and "loved in MusicD" are not the same
+  // statement, and collapsing them would make un-hearting an album
+  // silently remove it from your Qobuz account.
+  //
+  // VISIBILITY IS NOT THESE COLUMNS. It is `excluded`, the flag every
+  // one of this route file's 42 library queries already filters on.
+  // A streaming album carries excluded = 0 when service-favourited
+  // and excluded = 1 when merely cached from a browse, and its tracks
+  // mirror the album. That is why merging a streaming catalogue into
+  // the library needed no change to those 42 queries — see
+  // src/streamingLibrary.js, which owns the invariant, and
+  // test/streaming-library.test.js, which pins it.
+  safeAddColumn('albums', 'qobuz_favorited', 'INTEGER DEFAULT 0');
+  safeAddColumn('albums', 'tidal_favorited', 'INTEGER DEFAULT 0');
+  try { db.exec('CREATE INDEX IF NOT EXISTS idx_albums_qobuz_fav ON albums(qobuz_favorited) WHERE qobuz_favorited = 1'); } catch (e) {}
+  try { db.exec('CREATE INDEX IF NOT EXISTS idx_albums_tidal_fav ON albums(tidal_favorited) WHERE tidal_favorited = 1'); } catch (e) {}
+
   // Clean orphan settings keys
   try { db.exec("DELETE FROM settings WHERE key IN ('vl_schedule_start', 'vl_schedule_end')"); } catch (e) {}
 

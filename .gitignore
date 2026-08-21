@@ -2,6 +2,15 @@
 node_modules/
 npm-debug.log*
 *.log
+# Lockfiles are deliberately not tracked. Both Dockerfile stages run
+# `npm install`, not `npm ci`, so nothing in the build needs one, and no
+# release has ever shipped one — the tarball's file list is built to match.
+# node_modules/ was ignored from the start and this was not, so the first
+# `npm install` in a fresh clone left two untracked files behind and every
+# checkout since has had to remember not to commit them. Tracking lockfiles
+# is a real decision about build reproducibility, and worth taking on
+# purpose rather than by accident on the way past.
+package-lock.json
 
 # Vite build output
 dist/

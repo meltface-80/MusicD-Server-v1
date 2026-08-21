@@ -21,6 +21,7 @@ import UnmatchedScreen from './components/UnmatchedScreen'
 import PlaylistsScreen from './components/PlaylistsScreen'
 import TagsScreen from './components/TagsScreen'
 import RandomAlbumsScreen from './components/RandomAlbumsScreen'
+import ServiceScreen from './components/ServiceScreen'
 
 // Screen identity for the scroll memory below. Declared at module scope so
 // it exists before every use inside the component.
@@ -288,6 +289,12 @@ export default function App() {
     // Home screen carousel's heading. Routed as a section rather than as local
     // state so the top bar's back chevron already knows how to leave it.
     if (sidebarSection === 'random') return <RandomAlbumsScreen onAlbumSelect={handleSetSelectedAlbum} />
+    // v1.1.33.0 — the Qobuz and Tidal screens, opened from the side menu.
+    // One component for both; the side menu only offers a row for a service
+    // that is signed in, and the screen itself 401s gracefully if the
+    // session went away between the menu opening and the tap.
+    if (sidebarSection === 'qobuz') return <ServiceScreen service="qobuz" onAlbumSelect={handleSetSelectedAlbum} />
+    if (sidebarSection === 'tidal') return <ServiceScreen service="tidal" onAlbumSelect={handleSetSelectedAlbum} />
     if (sidebarSection === 'albums') return <AlbumGrid onAlbumSelect={handleSetSelectedAlbum} />
     return <HomeScreen
       onAlbumSelect={handleSetSelectedAlbum}
