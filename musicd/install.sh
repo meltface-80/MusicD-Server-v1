@@ -1,5 +1,5 @@
 #!/bin/bash
-# musicd installer -- v1.1.31.0
+# musicd installer -- v1.1.32.0
 # =============================
 # Interactive installer for first-time install OR for upgrading an
 # existing install to v1.1.1.7.
@@ -65,8 +65,8 @@ set -o pipefail
 # Example:
 #   TAR_URL="https://www.dropbox.com/scl/fi/abc123.../musicd-v1-1-2-11.tar?rlkey=xyz...&dl=1"
 TAR_URL="https://www.dropbox.com/scl/fi/REPLACE_ME/musicd-v1-1-2-11.tar?rlkey=REPLACE_ME&dl=1"
-TAR_FILENAME="musicd-v1-1-31-0.tar"
-EXPECTED_VERSION="1.1.31.0"
+TAR_FILENAME="musicd-v1-1-32-0.tar"
+EXPECTED_VERSION="1.1.32.0"
 MIN_TAR_BYTES=200000   # under this is almost certainly an error page
 
 # Hardcoded paths -- the in-app updater script and other internal code

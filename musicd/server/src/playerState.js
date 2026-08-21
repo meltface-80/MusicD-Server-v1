@@ -291,12 +291,17 @@ async function buildSignalPath(track, rendererId) {
   const trueBitrate = probed?.bitrate ?? (track.bitrate ? track.bitrate * 1000 : null); // db is kbps, probe is bps
 
   // Determine VL state (this isn't probed — it's a decision musicd makes)
+  //
+  // v1.1.32.0 — read from THIS renderer's DSP profile, not the global
+  // settings. Levelling is per zone now; the signal path shown for a zone has
+  // to describe that zone.
   let vlActive = false, gainInfo = null, vlTarget = null;
   try {
     const loudness = require('./loudness');
-    if (loudness.getSetting('vl_enabled', false)) {
-      vlTarget = loudness.getSetting('vl_target_lufs', -18);
-      gainInfo = loudness.computeStreamGain(track.id, vlTarget);
+    const vl = require('./dsp').getProfile(rendererId);
+    if (vl.vl_enabled) {
+      vlTarget = vl.vl_target_lufs;
+      gainInfo = loudness.computeStreamGain(track.id, vlTarget, vl.vl_mode);
       if (gainInfo) vlActive = true;
     }
   } catch {}

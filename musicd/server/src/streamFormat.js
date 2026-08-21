@@ -51,7 +51,17 @@ function predictStreamFormat(track, rendererId, sourceRate) {
   const couldPassThrough = PASS_THROUGH_EXTS.has(ext) && !isDSD;
 
   // Volume-levelling forces re-encode when enabled.
-  const vlEnabled = !!_loudness.getSetting('vl_enabled', false);
+  //
+  // v1.1.32.0 — per zone. Without the rendererId this cannot be answered, and
+  // guessing "off" would make the DIDL claim pass-through for a stream that
+  // is about to be re-encoded — so with no renderer we fall back to the
+  // global, which is what every zone resolves to until it is set anyway.
+  // getProfile resolves an unknown or absent renderer to the same frozen
+  // global every unset zone resolves to, so there is no second path to write
+  // here — and no way for this to disagree with the stream route, which is
+  // what would put a pass-through claim on a re-encoded stream.
+  let vlEnabled = false;
+  try { vlEnabled = !!_dsp.getProfile(rendererId || null).vl_enabled; } catch { /* leave false */ }
 
   // DSP forces re-encode when the renderer is DSP-eligible AND has a
   // non-empty compiled chain. Conservative check -- if any of these

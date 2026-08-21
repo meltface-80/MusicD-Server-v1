@@ -12,6 +12,79 @@ Categories used per release:
 
 ---
 
+## v1.1.32.0 — 2026-08-22 — THE DSP PAGE, TIDIED, AND LEVELLING PER ZONE
+
+### Changed
+
+- **Every DSP category is now a heading with its switch at the right-hand
+  end, and a body that only exists while it is on.** The page was a long
+  column of always-open panels each with an "Enable" checkbox buried
+  somewhere inside it. Five categories, in order: **Volume levelling**,
+  **Headroom**, **FIR Convolution**, **Parametric EQ**, **AutoEQ headphone
+  presets**.
+- **The zone picker is at the top**, above everything it governs.
+- **AutoEQ moved onto the DSP page** and lost the second zone picker it used
+  to carry. It always edited a zone's PEQ, so it belongs with the rest of that
+  zone's chain — and one picker cannot disagree with itself. Applying a preset
+  now refreshes the Parametric EQ section above it, which was previously left
+  drawing the curve the preset had just replaced. Its own Settings entry is
+  gone.
+
+### Volume levelling is per zone
+
+- It was **three global settings** — `vl_enabled`, `vl_mode`,
+  `vl_target_lufs` — read from the settings table by three separate places in
+  the playback path and applied to every zone at once. It is now part of
+  `renderer_dsp` like the rest of the chain, and its controls live in the DSP
+  page's first category.
+- **An upgrade changes nothing.** The new columns are nullable with no
+  default, and NULL resolves to what the global said — so every existing zone
+  keeps behaving exactly as it did until you actually change one. There is
+  deliberately no backfill: a migration writing values everywhere would have
+  had to guess at zones with no row at all.
+- All three read sites now resolve the playing zone: the one that applies the
+  gain, the one that predicts whether the stream is re-encoded (for the DIDL
+  claim), and the one that reports the signal path. `computeStreamGain` takes
+  the mode as an argument rather than reading a global it can no longer
+  assume.
+- Levelling is **not** gated on DSP eligibility — it is a gain applied before
+  the encoder, not part of the filter chain, so a Sonos zone can level even
+  though its EQ is bypassed.
+
+### Details worth knowing
+
+- **The category switch writes through immediately**, and the section bodies
+  no longer send their enable flag at all. That is forced, not stylistic: the
+  switch collapses its own section, so a value it merely staged would need the
+  Save button that just disappeared with the body.
+- A collapsed category renders **nothing**, rather than being hidden with CSS
+  — a collapsed FIR section would otherwise keep polling its IR list, and a
+  collapsed PEQ would hold a draft nobody can see.
+- AutoEQ's switch only opens and closes its panel. It has no on/off of its own
+  — it loads a preset into the zone's PEQ, and that curve is already governed
+  by the Parametric EQ switch above it, so a second switch claiming to enable
+  the same filters would be a lie. The open/closed state is per zone, in
+  localStorage, because it changes nothing about the audio.
+
+### Tests
+
+- `dsp-per-zone.test.js` — 29 assertions. The resolution runs against real
+  SQLite with a real global in the settings table, because "an upgrade changes
+  nothing until you change something" is not visible in a diff. It also pins
+  that all three read sites moved: one left on the global would work perfectly
+  on whichever zone happened to match and silently ignore the rest.
+- Twenty-one mutations proven red-then-green. Two missed on the first pass and
+  one was a real gap: the round-trip test only ever saved a zone **once**, so
+  the `ON CONFLICT` branch was never exercised — the exact shape of the
+  headroom bug this project shipped in v1.1.0.53, where a field missing from
+  that list persisted once and was reverted by the next save. Now every field
+  is changed by a second save and checked.
+- Two bugs were found by the new test while writing it and fixed: `streamFormat`
+  kept a redundant second path to the same global, and `saveProfile` returned
+  an unnormalised gain mode while writing a normalised one.
+
+---
+
 ## v1.1.31.0 — 2026-08-22 — FAVOURITES MOVES INTO FOCUS
 
 ### Changed

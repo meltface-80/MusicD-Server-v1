@@ -55,11 +55,22 @@ router.get('/:trackId', async (req, res) => {
     res.setHeader('Content-Duration', track.duration.toFixed(3));
   }
 
-  // Volume levelling decision
-  const vlEnabled = loudness.getSetting('vl_enabled', false);
-  const targetLufs = loudness.getSetting('vl_target_lufs', -18);
+  // Volume levelling decision.
+  //
+  // v1.1.32.0 — per zone. This is the site that actually changes what comes
+  // out of the encoder, so it reads the renderer's own profile; with no
+  // ?renderer on the request there is no zone to read, and getProfile's
+  // fallback (the frozen global) is what every unset zone resolves to anyway.
+  //
+  // dsp.getProfile is safe for ineligible renderers too — levelling is a gain
+  // applied before the encoder, not part of the DSP chain, so it is NOT gated
+  // on isDspEligible the way the filter chain below is. A Sonos zone can level
+  // even though its EQ is bypassed.
+  const vlProfile = dsp.getProfile(req.query.renderer || null);
+  const vlEnabled = !!vlProfile.vl_enabled;
+  const targetLufs = vlProfile.vl_target_lufs;
   let gainInfo = null;
-  if (vlEnabled) gainInfo = loudness.computeStreamGain(track.id, targetLufs);
+  if (vlEnabled) gainInfo = loudness.computeStreamGain(track.id, targetLufs, vlProfile.vl_mode);
 
   // DSP profile lookup. Skip entirely for non-DSP-eligible renderers.
   let dspChain = { filters: [], summary: [] };

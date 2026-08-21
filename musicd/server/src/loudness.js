@@ -536,9 +536,14 @@ async function scanTrack(track) {
  * mode is 'track' or 'album' depending on vl_mode setting and tag availability.
  * The true-peak clamp keeps adjusted signal ≤ −1 dBTP.
  */
-function computeStreamGain(trackId, targetLufs) {
+// v1.1.32.0 — `mode` is a parameter now. It used to read the global vl_mode
+// setting, which was fine when levelling was global and is not now: the
+// caller knows which ZONE is playing and therefore which mode applies. Both
+// arguments still fall back to the global, so an older caller behaves as it
+// always did.
+function computeStreamGain(trackId, targetLufs, modeArg) {
   const target = targetLufs ?? getSetting('vl_target_lufs', TARGET_LUFS_DEFAULT);
-  const mode   = getSetting('vl_mode', 'track'); // 'track' | 'album'
+  const mode   = modeArg ?? getSetting('vl_mode', 'track'); // 'track' | 'album'
 
   const row = db.get()
     .prepare('SELECT integrated_lufs, true_peak, album_integrated_lufs, album_peak FROM track_loudness WHERE track_id = ?')

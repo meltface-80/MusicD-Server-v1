@@ -36,12 +36,17 @@ const MAX_FILTERS = 16
 // changes the sound.
 const newFilter = () => ({ type: 'PK', fc: 1000, q: 1.0, gain: 0 })
 
-export default function PeqEditor({ rendererId, profile, onProfileChange }) {
+export default function PeqEditor({ rendererId, profile, onProfileChange, enabled = false }) {
   // Local edit state. We deliberately don't sync filters back to the server
   // until Save — but we DO refresh from the profile when the renderer
   // changes (e.g. user picks a different output to edit).
   const [filters, setFilters] = useState([])
-  const [enabled, setEnabled] = useState(false)
+  // v1.1.32.0 — `enabled` is a PROP now, not draft state with a checkbox in
+  // this body. The switch lives on the section's heading and writes straight
+  // through, because a toggle that collapses its own section would otherwise
+  // hide the Save button needed to commit it. This section no longer sends
+  // peq_enabled at all: saveProfile merges a patch, so leaving the key out is what
+  // keeps the heading's value authoritative.
   const [saving, setSaving] = useState(false)
   const [savedAt, setSavedAt] = useState(null)
   const [error, setError] = useState(null)
@@ -50,12 +55,10 @@ export default function PeqEditor({ rendererId, profile, onProfileChange }) {
   useEffect(() => {
     if (!profile) {
       setFilters([])
-      setEnabled(false)
       return
     }
     // Deep-clone so our edits don't mutate the parent's profile reference
     setFilters((profile.peq_filters || []).map(f => ({ ...f })))
-    setEnabled(!!profile.peq_enabled)
   }, [profile, rendererId])
 
   // Magnitude curve — recomputed on every filter change. Cheap (O(filters ×
@@ -85,7 +88,6 @@ export default function PeqEditor({ rendererId, profile, onProfileChange }) {
     try {
       const r = await api.put(`/dsp/profile/${encodeURIComponent(rendererId)}`, {
         peq_filters: filters,
-        peq_enabled: enabled,
         // Note: peq_preamp_db is server-calculated. We don't send it.
         // Sending autoeq_model: null clears any previous AutoEQ label since
         // the user has now manually edited — the chain no longer reflects
@@ -101,8 +103,7 @@ export default function PeqEditor({ rendererId, profile, onProfileChange }) {
 
   // "Dirty" check: did the local state diverge from what's on the server?
   const dirty = profile && (
-    enabled !== !!profile.peq_enabled
-    || JSON.stringify(filters) !== JSON.stringify(profile.peq_filters || [])
+    JSON.stringify(filters) !== JSON.stringify(profile.peq_filters || [])
   )
 
   return (
@@ -187,16 +188,6 @@ export default function PeqEditor({ rendererId, profile, onProfileChange }) {
       </div>
 
       {/* Enable toggle + Save */}
-      <div style={s.row}>
-        <label style={s.label}>
-          <input type="checkbox"
-            checked={enabled}
-            onChange={e => setEnabled(e.target.checked)}
-            style={s.checkbox}
-          />
-          <span>Enable PEQ</span>
-        </label>
-      </div>
 
       {error && <div style={s.error}>{error}</div>}
 

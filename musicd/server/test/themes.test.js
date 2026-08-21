@@ -298,6 +298,7 @@ test('nothing in the client paints itself a fixed white any more', async (t) => 
       'NowPlayingFullScreen.jsx',  // share-chip pair + the radio toggle knob
       'SettingsScreen.jsx',        // white on --red, on the fixed update blue, toggle knob
       'HomeScreenSection.jsx',     // toggle knob
+      'DspTab.jsx',                // toggle knob on each DSP category heading
       'ProfileBar.jsx',            // white on a fixed #d04848
       'TagManagementSection.jsx',  // the tick on a user-chosen tag swatch
       'AlbumSelection.jsx',        // the selection ring drawn over album art

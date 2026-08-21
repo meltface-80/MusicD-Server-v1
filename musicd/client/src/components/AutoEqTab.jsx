@@ -15,9 +15,16 @@ import HelpTooltip from './HelpTooltip'
 //   2. Crossfeed picker — headphones-only, profile selector + Save.
 //
 // Both sections share the renderer picker at the top of the tab.
-export default function AutoEqTab() {
+// v1.1.32.0 — this lives inside the DSP page now, under that page's zone
+// picker, so it takes the zone as a prop and no longer carries a second picker
+// of its own. Two pickers for one setting is two things to keep in step, and
+// the one that was here could silently be pointed at a different zone from the
+// PEQ it was about to overwrite.
+export default function AutoEqTab({ rendererId: fixedRid = null, onProfileChange = null }) {
   const { renderers, rendererId } = useStore()
-  const [editingRid, setEditingRid] = useState(rendererId || (renderers[0]?.id || null))
+  const [editingRid, setEditingRid] = useState(fixedRid || rendererId || (renderers[0]?.id || null))
+  // Follow the DSP page's picker when it moves.
+  useEffect(() => { if (fixedRid && fixedRid !== editingRid) setEditingRid(fixedRid) }, [fixedRid])
   const [profile, setProfile] = useState(null)
   const [eligibility, setEligibility] = useState(null)
 
@@ -128,6 +135,11 @@ export default function AutoEqTab() {
       })
       setProfile(r)
       setAutoeqResult(r)
+      // Applying a preset REWRITES this zone's PEQ filters. The DSP page has
+      // the Parametric EQ section open above us showing the old curve, so tell
+      // it to reload — otherwise the graph and the filter list keep drawing
+      // what was there before the preset landed.
+      if (onProfileChange) onProfileChange()
     } catch (e) { console.warn('autoeq apply failed:', e) }
     finally { setAutoeqApplying(false) }
   }
@@ -153,21 +165,25 @@ export default function AutoEqTab() {
 
   return (
     <div>
-      <div style={s.headerRow}>
-        <Speaker size={14} style={{ color: 'var(--text-tertiary)' }} />
-        <select
-          value={editingRid || ''}
-          onChange={e => setEditingRid(e.target.value)}
-          style={s.rendererSelect}
-        >
-          {renderers.length === 0 && <option value="">No renderers found</option>}
-          {renderers.map(r => (
-            <option key={r.id} value={r.id}>{r.name} ({(r.protocol || '').toUpperCase()})</option>
-          ))}
-        </select>
-      </div>
+      {/* No zone picker and no eligibility notice: the DSP page above shows
+          both, and a second copy could disagree with the first. */}
+      {!fixedRid && (
+        <div style={s.headerRow}>
+          <Speaker size={14} style={{ color: 'var(--text-tertiary)' }} />
+          <select
+            value={editingRid || ''}
+            onChange={e => setEditingRid(e.target.value)}
+            style={s.rendererSelect}
+          >
+            {renderers.length === 0 && <option value="">No renderers found</option>}
+            {renderers.map(r => (
+              <option key={r.id} value={r.id}>{r.name} ({(r.protocol || '').toUpperCase()})</option>
+            ))}
+          </select>
+        </div>
+      )}
 
-      {eligibility && !eligibility.eligible && (
+      {!fixedRid && eligibility && !eligibility.eligible && (
         <div style={s.notice}>
           <AlertTriangle size={13} />
           <span>{eligibility.reason}</span>

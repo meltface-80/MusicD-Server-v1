@@ -26,8 +26,13 @@ import HelpTooltip from './HelpTooltip'
  * still gets a "Will clip" warning. The signal-path orb in the
  * player also pulses red in that state.
  */
-export default function HeadroomSection({ rendererId, profile, onProfileChange }) {
-  const [enabled, setEnabled] = useState(false)
+export default function HeadroomSection({ rendererId, profile, onProfileChange, enabled = false }) {
+  // v1.1.32.0 — `enabled` is a PROP now, not draft state with a checkbox in
+  // this body. The switch lives on the section's heading and writes straight
+  // through, because a toggle that collapses its own section would otherwise
+  // hide the Save button needed to commit it. This section no longer sends
+  // headroom_enabled at all: saveProfile merges a patch, so leaving the key out is what
+  // keeps the heading's value authoritative.
   const [headroomDb, setHeadroomDb] = useState(-3)
   const [saving, setSaving] = useState(false)
   const [savedAt, setSavedAt] = useState(null)
@@ -40,7 +45,6 @@ export default function HeadroomSection({ rendererId, profile, onProfileChange }
 
   useEffect(() => {
     if (!profile) return
-    setEnabled(!!profile.headroom_enabled)
     setHeadroomDb(typeof profile.headroom_db === 'number' ? profile.headroom_db : -3)
   }, [profile])
 
@@ -53,7 +57,6 @@ export default function HeadroomSection({ rendererId, profile, onProfileChange }
   }, [])
 
   const dirty = profile && (
-    enabled !== !!profile.headroom_enabled ||
     Math.abs(headroomDb - (profile.headroom_db ?? -3)) > 0.01
   )
 
@@ -63,7 +66,6 @@ export default function HeadroomSection({ rendererId, profile, onProfileChange }
     setError(null)
     try {
       const r = await api.put(`/dsp/profile/${encodeURIComponent(rendererId)}`, {
-        headroom_enabled: enabled,
         headroom_db: headroomDb,
       })
       setSavedAt(Date.now())
@@ -150,17 +152,6 @@ export default function HeadroomSection({ rendererId, profile, onProfileChange }
         </div>
       )}
 
-      <div style={s.row}>
-        <label style={s.label}>
-          <input
-            type="checkbox"
-            checked={enabled}
-            onChange={e => setEnabled(e.target.checked)}
-            style={s.checkbox}
-          />
-          <span>Enable headroom</span>
-        </label>
-      </div>
 
       <div style={s.sliderRow}>
         <span style={{ ...s.endLabel, opacity: enabled ? 1 : 0.5 }}>−12 dB</span>

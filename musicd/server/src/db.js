@@ -240,6 +240,19 @@ function init() {
       crossfeed_enabled  INTEGER DEFAULT 0,
       crossfeed_profile  TEXT,
       autoeq_model       TEXT,
+      -- v1.1.32.0 — volume levelling, per zone. It was three GLOBAL settings
+      -- rows applied to every renderer at once; the owner wanted it per zone
+      -- like the rest of this table.
+      --
+      -- NULLABLE ON PURPOSE. NULL means "no choice made for this zone yet",
+      -- and getProfile() resolves it to the old global setting — so an
+      -- upgrade changes nothing audible, on any zone, until the user
+      -- actually sets one. There is deliberately no backfill: a migration
+      -- that wrote values everywhere would have to guess at zones that have
+      -- no row here at all, and this way there is nothing to guess.
+      vl_enabled         INTEGER,
+      vl_mode            TEXT,
+      vl_target_lufs     REAL,
       updated_at         INTEGER DEFAULT (unixepoch())
     );
 
@@ -392,6 +405,11 @@ function init() {
   // problem we can switch to mode-based aggregation in a follow-up
   // without breaking the filter API.
   safeAddColumn('albums', 'primary_bit_depth',   'INTEGER');
+  // v1.1.32.0 — per-zone volume levelling. Nullable, no backfill: see the
+  // renderer_dsp DDL above for why.
+  safeAddColumn('renderer_dsp', 'vl_enabled',     'INTEGER');
+  safeAddColumn('renderer_dsp', 'vl_mode',        'TEXT');
+  safeAddColumn('renderer_dsp', 'vl_target_lufs', 'REAL');
   safeAddColumn('albums', 'primary_sample_rate', 'INTEGER');
   safeAddColumn('albums', 'primary_channels',    'INTEGER');
   safeAddColumn('albums', 'genre', 'TEXT');

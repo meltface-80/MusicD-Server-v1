@@ -141,6 +141,8 @@ router.put('/profile/:rendererId', async (req, res) => {
       'conv_enabled', 'conv_irs', 'conv_dry_db', 'conv_wet_db',
       'crossfeed_enabled', 'crossfeed_profile',
       'autoeq_model',
+      // v1.1.32.0 — volume levelling, now per zone.
+      'vl_enabled', 'vl_mode', 'vl_target_lufs',
     ]);
     const filtered = {};
     for (const [k, v] of Object.entries(patch)) {
