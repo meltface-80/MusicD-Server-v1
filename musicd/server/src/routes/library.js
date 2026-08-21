@@ -43,7 +43,8 @@ router.get('/favorites', (req, res) => {
     const rows = database.prepare(`
       SELECT id, title, album_artist, artist, year, track_count, total_duration, primary_format, genre,
              favorited_at,
-             CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art
+             CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art,
+             CASE WHEN id LIKE 'qobuz:%' THEN 'qobuz' WHEN id LIKE 'tidal:%' THEN 'tidal' ELSE NULL END as service
       FROM albums
       WHERE is_favorite = 1 AND excluded = 0
       ORDER BY favorited_at DESC NULLS LAST, title COLLATE NOCASE ASC
@@ -384,7 +385,8 @@ router.get('/albums', tierMiddleware.clampLimit('library_size_limit'), (req, res
       rows = database.prepare(`
         SELECT id, title, album_artist, artist, year, track_count, total_duration, primary_format, genre,
                COALESCE(is_favorite, 0) as is_favorite,
-               CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art
+               CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art,
+             CASE WHEN id LIKE 'qobuz:%' THEN 'qobuz' WHEN id LIKE 'tidal:%' THEN 'tidal' ELSE NULL END as service
         FROM albums
         WHERE (album_artist = ? OR artist = ?) AND excluded = 0 ${filterClause} ${focusClause}
         ORDER BY ${orderBy}
@@ -437,7 +439,8 @@ router.get('/albums', tierMiddleware.clampLimit('library_size_limit'), (req, res
       rows = database.prepare(`
         SELECT id, title, album_artist, artist, year, track_count, total_duration, primary_format, genre,
                COALESCE(is_favorite, 0) as is_favorite,
-               CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art
+               CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art,
+             CASE WHEN id LIKE 'qobuz:%' THEN 'qobuz' WHEN id LIKE 'tidal:%' THEN 'tidal' ELSE NULL END as service
         FROM albums
         WHERE ${whereClause}
         ORDER BY ${orderBy}
@@ -447,7 +450,8 @@ router.get('/albums', tierMiddleware.clampLimit('library_size_limit'), (req, res
       rows = database.prepare(`
         SELECT id, title, album_artist, artist, year, track_count, total_duration, primary_format, genre,
                COALESCE(is_favorite, 0) as is_favorite,
-               CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art
+               CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art,
+             CASE WHEN id LIKE 'qobuz:%' THEN 'qobuz' WHEN id LIKE 'tidal:%' THEN 'tidal' ELSE NULL END as service
         FROM albums
         WHERE primary_format = ? AND excluded = 0 ${filterClause} ${focusClause}
         ORDER BY ${orderBy}
@@ -464,7 +468,8 @@ router.get('/albums', tierMiddleware.clampLimit('library_size_limit'), (req, res
       rows = database.prepare(`
         SELECT id, title, album_artist, artist, year, track_count, total_duration, primary_format, genre,
                COALESCE(is_favorite, 0) as is_favorite,
-               CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art
+               CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art,
+             CASE WHEN id LIKE 'qobuz:%' THEN 'qobuz' WHEN id LIKE 'tidal:%' THEN 'tidal' ELSE NULL END as service
         FROM albums
         WHERE excluded = 0 ${filterClause} ${focusClause}
         ORDER BY ${orderBy}
@@ -548,7 +553,18 @@ router.post('/albums/tracks', (req, res) => {
       t.album_id = ?
       OR (t.album_id IS NULL AND t.album = ? AND t.album_artist = ?)
     )
-    AND t.excluded = 0
+    -- v1.1.33.0 — the two album-scoped queries (this one and the album
+    -- detail route) relax the excluded filter for streaming rows; every
+    -- browse surface keeps it strict. A Qobuz album you opened from a
+    -- search result is cached but NOT in your library until you press the
+    -- circled plus, and its tracks are excluded with it — yet you are
+    -- looking at its page, so it has to list and play them. Dropping the
+    -- filter outright would instead resurrect local tracks the user has
+    -- deliberately put out of scope.
+    -- Both sites are worded identically on purpose; the FTS search below
+    -- deliberately does NOT carry this, or catalogue albums you merely
+    -- glanced at would start turning up in library search.
+    AND (t.excluded = 0 OR t.path LIKE 'qobuz://%' OR t.path LIKE 'tidal://%')
     ORDER BY COALESCE(t.disc_number, 1) ASC, t.track_number ASC
   `);
 
@@ -592,7 +608,8 @@ router.get('/albums/random-set', (req, res) => {
     SELECT id, title, album_artist, artist, year,
            primary_format, track_count,
            COALESCE(is_favorite, 0) as is_favorite,
-           CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art
+           CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art,
+             CASE WHEN id LIKE 'qobuz:%' THEN 'qobuz' WHEN id LIKE 'tidal:%' THEN 'tidal' ELSE NULL END as service
     FROM albums
     WHERE track_count > 0 AND excluded = 0
     ORDER BY RANDOM()
@@ -628,6 +645,7 @@ router.get('/albums/recent', (req, res) => {
              a.primary_format, a.track_count,
              COALESCE(a.is_favorite, 0) as is_favorite,
              CASE WHEN a.cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art,
+             CASE WHEN a.id LIKE 'qobuz:%' THEN 'qobuz' WHEN a.id LIKE 'tidal:%' THEN 'tidal' ELSE NULL END as service,
              ph.last_played as activity_at
       FROM (
         SELECT album_title, album_artist, MAX(played_at) as last_played
@@ -647,6 +665,7 @@ router.get('/albums/recent', (req, res) => {
              primary_format, track_count,
              COALESCE(is_favorite, 0) as is_favorite,
              CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art,
+             CASE WHEN id LIKE 'qobuz:%' THEN 'qobuz' WHEN id LIKE 'tidal:%' THEN 'tidal' ELSE NULL END as service,
              added_at as activity_at
       FROM albums
       WHERE track_count > 0 AND excluded = 0
@@ -677,6 +696,7 @@ router.get('/albums/:id', (req, res) => {
            album_type,
            COALESCE(album_type_locked, 0) as album_type_locked,
            CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art,
+             CASE WHEN id LIKE 'qobuz:%' THEN 'qobuz' WHEN id LIKE 'tidal:%' THEN 'tidal' ELSE NULL END as service,
            mb_release_group_id, match_status, match_confidence
     FROM albums WHERE id = ?
   `).get(req.params.id);
@@ -710,7 +730,18 @@ router.get('/albums/:id', (req, res) => {
       t.album_id = ?
       OR (t.album_id IS NULL AND t.album = ? AND t.album_artist = ?)
     )
-    AND t.excluded = 0
+    -- v1.1.33.0 — the two album-scoped queries (this one and the album
+    -- detail route) relax the excluded filter for streaming rows; every
+    -- browse surface keeps it strict. A Qobuz album you opened from a
+    -- search result is cached but NOT in your library until you press the
+    -- circled plus, and its tracks are excluded with it — yet you are
+    -- looking at its page, so it has to list and play them. Dropping the
+    -- filter outright would instead resurrect local tracks the user has
+    -- deliberately put out of scope.
+    -- Both sites are worded identically on purpose; the FTS search below
+    -- deliberately does NOT carry this, or catalogue albums you merely
+    -- glanced at would start turning up in library search.
+    AND (t.excluded = 0 OR t.path LIKE 'qobuz://%' OR t.path LIKE 'tidal://%')
     ORDER BY
       COALESCE(t.disc_number, 1) ASC,
       t.track_number ASC
@@ -1201,7 +1232,8 @@ router.get('/albums/:id/related', (req, res) => {
   const moreByArtist = database.prepare(`
     SELECT id, title, album_artist, year, release_date,
            COALESCE(is_favorite, 0) as is_favorite,
-           CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art
+           CASE WHEN cover_art IS NOT NULL THEN 1 ELSE 0 END as has_art,
+             CASE WHEN id LIKE 'qobuz:%' THEN 'qobuz' WHEN id LIKE 'tidal:%' THEN 'tidal' ELSE NULL END as service
     FROM albums
     WHERE album_artist = ?
       AND id != ?
@@ -1236,13 +1268,62 @@ router.get('/tracks/:id', (req, res) => {
 });
 
 // GET /api/library/search
-router.get('/search', (req, res) => {
+// GET /api/library/search?q=&type=tracks|albums|artists
+//
+// v1.1.33.0 — unified search. Local library, Qobuz catalogue and Tidal
+// catalogue, in one list.
+//
+// "Not just what is in your favourites": the service calls hit the full
+// catalogue, so an album nobody here has ever heard of comes back
+// alongside the local ones and can be opened, played, and added with the
+// circled plus straight from the results.
+//
+// Three properties this route has to hold:
+//
+//   1. LOCAL RESULTS ARE NEVER AT RISK. The service calls run after the
+//      local query, with their own timeout, through allSettled. Qobuz
+//      being down, slow, or rate-limiting degrades search to local-only
+//      and logs; it never turns the search box into an error.
+//
+//   2. LOCAL FIRST, ALWAYS. Merged into one list per the unified-library
+//      brief, but ordered local-then-catalogue, because a result you
+//      already own plays instantly and one you do not needs a network
+//      fetch. Each catalogue entry carries `service`, which is what the
+//      client draws its Qobuz/Tidal glyph from.
+//
+//   3. NO DUPLICATES OF WHAT YOU ALREADY HAVE. A favourited streaming
+//      album is a local album row by then, so it comes back from the
+//      local query. Dropping the catalogue copy by local id stops it
+//      appearing twice — once as library, once as catalogue.
+//
+// ARTISTS ARE LOCAL-ONLY, deliberately. This app's artist screen is built
+// out of local album rows; a catalogue artist with nothing in the library
+// would open an empty page. Their albums still surface — in the Albums
+// section of this same search.
+//
+// ?local=1 skips the services entirely.
+const STREAMING_SEARCH_TIMEOUT_MS = 6000;
+
+// Race a service search against the clock. A search box that hangs for
+// undici's default timeout is worse than one that quietly returns fewer
+// results.
+function searchServiceBounded(service, q, type, limit) {
+  const streamingRoutes = require('./streaming');
+  return Promise.race([
+    streamingRoutes.searchService(service, q, type, limit),
+    new Promise((_resolve, reject) =>
+      setTimeout(() => reject(new Error('timed out')), STREAMING_SEARCH_TIMEOUT_MS).unref()),
+  ]);
+}
+
+router.get('/search', async (req, res) => {
   const database = db.get();
   const q = (req.query.q || '').trim();
   const type = req.query.type || 'tracks';
   if (!q) return res.json([]);
   const like = `%${q}%`;
 
+  // Artists: local only — see the note above.
   if (type === 'artists') {
     const artists = database.prepare(`
       SELECT album_artist as name, COUNT(DISTINCT id) as album_count
@@ -1255,35 +1336,117 @@ router.get('/search', (req, res) => {
     return res.json(artists);
   }
 
+  const streaming = require('../streamingLibrary');
+  const wantStreaming = req.query.local !== '1' && req.query.local !== 'true';
+  const services = wantStreaming ? streaming.loggedInServices() : [];
+
+  // Fan out to whichever services are signed in. Started before the
+  // local query is read back so the two overlap.
+  const streamingWork = services.map((service) =>
+    searchServiceBounded(service, q, type === 'albums' ? 'albums' : 'tracks', 25)
+      .then((r) => ({ service, r }))
+  );
+
   if (type === 'albums') {
-    const albums = database.prepare(`
+    const localRows = database.prepare(`
       SELECT id, title, album_artist, artist, year,
+             CASE WHEN id LIKE 'qobuz:%' THEN 'qobuz'
+                  WHEN id LIKE 'tidal:%' THEN 'tidal'
+                  ELSE NULL END as service,
              CASE WHEN cover_art IS NOT NULL THEN '/api/library/albums/' || id || '/cover' ELSE NULL END as cover_art
       FROM albums
       WHERE (title LIKE ? COLLATE NOCASE OR album_artist LIKE ? COLLATE NOCASE) AND excluded = 0
       ORDER BY title COLLATE NOCASE
       LIMIT 30
     `).all(like, like);
-    return res.json(albums);
+
+    const seen = new Set(localRows.map((a) => String(a.id)));
+    const out = localRows.map((a) => ({ ...a, in_library: true }));
+
+    for (const settled of await Promise.allSettled(streamingWork)) {
+      if (settled.status !== 'fulfilled') {
+        console.warn(`[search] streaming album search failed: ${settled.reason?.message || settled.reason}`);
+        continue;
+      }
+      const { service, r } = settled.value;
+      for (const a of (r.albums || [])) {
+        if (seen.has(a.localAlbumId)) continue;
+        seen.add(a.localAlbumId);
+        out.push({
+          // The local id is what the album page opens with. The row
+          // does not exist yet — GET /api/streaming/<service>/album/<id>
+          // creates it, which is what the client calls on tap.
+          id:             a.localAlbumId,
+          title:          a.title,
+          album_artist:   a.artist,
+          artist:         a.artist,
+          year:           a.year,
+          cover_art:      a.cover,
+          service,
+          serviceAlbumId: a.serviceAlbumId,
+          quality:        a.quality,
+          explicit:       a.explicit,
+          streamable:     a.streamable,
+          in_library:     false,
+        });
+      }
+    }
+    return res.json(out);
   }
 
+  // Tracks. FTS with a LIKE fallback, exactly as before — an FTS syntax
+  // error on a query with punctuation must not lose the local results.
+  let localTracks;
   try {
-    const results = database.prepare(`
+    localTracks = database.prepare(`
       SELECT t.id, t.title, t.artist, t.album, t.duration, t.format, t.codec
       FROM tracks t JOIN tracks_fts f ON t.rowid = f.rowid
       WHERE tracks_fts MATCH ? AND t.excluded = 0
       ORDER BY rank LIMIT 40
     `).all(`${q}*`);
-    return res.json(results);
   } catch (e) {
-    const results = database.prepare(`
+    localTracks = database.prepare(`
       SELECT id, title, artist, album, duration, format, codec
       FROM tracks
       WHERE (title LIKE ? COLLATE NOCASE OR artist LIKE ? COLLATE NOCASE) AND excluded = 0
       LIMIT 40
     `).all(like, like);
-    return res.json(results);
   }
+
+  const out = localTracks.map((t) => ({ ...t, service: null, in_library: true }));
+  const seenTracks = new Set(localTracks.map((t) => String(t.id)));
+
+  for (const settled of await Promise.allSettled(streamingWork)) {
+    if (settled.status !== 'fulfilled') {
+      console.warn(`[search] streaming track search failed: ${settled.reason?.message || settled.reason}`);
+      continue;
+    }
+    const { service, r } = settled.value;
+    for (const t of (r.tracks || [])) {
+      // A catalogue track has no local row until its album is cached, so
+      // it carries no playable id. The client resolves it on tap via
+      // POST /api/streaming/<service>/track/<id>/resolve, which caches
+      // the album and hands back the real track id.
+      if (t.localAlbumId && seenTracks.has(t.localAlbumId)) continue;
+      out.push({
+        id:             null,
+        title:          t.title,
+        artist:         t.artist,
+        album:          t.album,
+        duration:       t.duration,
+        format:         service === 'qobuz' ? 'flac' : null,
+        codec:          null,
+        service,
+        serviceTrackId: t.serviceTrackId,
+        serviceAlbumId: t.serviceAlbumId,
+        localAlbumId:   t.localAlbumId,
+        explicit:       t.explicit,
+        streamable:     t.streamable,
+        in_library:     false,
+      });
+    }
+  }
+  return res.json(out);
 });
 
 // GET /api/library/artists
@@ -2578,4 +2741,10 @@ router.get('/artists/:name/bio', async (req, res) => {
 });
 
 
+// v1.1.33.0 — the streaming routes and the favourites sync change what
+// the library contains without going through any route in this file, so
+// they need a way to drop the album-list cache. Attached to the router
+// (an Express router is a function) rather than restructuring the export,
+// the same way routes/bugReport.js hangs pruneOldReports off its own.
 module.exports = router;
+module.exports.invalidateCache = invalidateCache;

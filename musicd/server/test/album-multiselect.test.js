@@ -33,17 +33,22 @@ const client = (...p) => code(readRaw(CLIENT_SRC, ...p));
 function makeDb() {
   const db = new Database(':memory:');
   db.exec(`CREATE TABLE albums (id TEXT PRIMARY KEY, title TEXT, album_artist TEXT)`);
+  // `path` is in the shipping table and was simply not needed here until
+  // v1.1.33.0, when the query started reading it to tell a streaming track
+  // from a local one.
   db.exec(`CREATE TABLE tracks (
-    id TEXT PRIMARY KEY, title TEXT, artist TEXT, album TEXT, album_artist TEXT,
+    id TEXT PRIMARY KEY, path TEXT, title TEXT, artist TEXT, album TEXT, album_artist TEXT,
     album_id TEXT, track_number INT, disc_number INT, duration REAL,
     format TEXT, codec TEXT, sample_rate INT, bit_depth INT,
     is_favorite INT DEFAULT 0, user_rating INT DEFAULT 0,
     is_saved_for_later INT DEFAULT 0, excluded INT DEFAULT 0)`);
 
   const album = db.prepare('INSERT INTO albums (id,title,album_artist) VALUES (?,?,?)');
+  // Local tracks get a filesystem path; the streaming album below gets
+  // sentinel paths, which is the only thing that distinguishes them.
   const track = db.prepare(`INSERT INTO tracks
-    (id,title,album_id,album,album_artist,track_number,disc_number,excluded)
-    VALUES (?,?,?,?,?,?,?,?)`);
+    (id,path,title,album_id,album,album_artist,track_number,disc_number,excluded)
+    VALUES (?,?,?,?,?,?,?,?,?)`);
 
   // Three albums, deliberately inserted so that natural row order is NOT
   // selection order for the cases below.
@@ -51,15 +56,22 @@ function makeDb() {
     album.run(id, title, 'Someone');
     // tracks inserted out of order, and across two discs, so the ORDER BY has
     // something to do
-    track.run(`${id}2`, `${id} two`,   id, title, 'Someone', 2, 1, 0);
-    track.run(`${id}1`, `${id} one`,   id, title, 'Someone', 1, 1, 0);
-    track.run(`${id}d2`, `${id} d2t1`, id, title, 'Someone', 1, 2, 0);
+    track.run(`${id}2`, `/music/${id}/02.flac`, `${id} two`,   id, title, 'Someone', 2, 1, 0);
+    track.run(`${id}1`, `/music/${id}/01.flac`, `${id} one`,   id, title, 'Someone', 1, 1, 0);
+    track.run(`${id}d2`, `/music/${id}/d2-01.flac`, `${id} d2t1`, id, title, 'Someone', 1, 2, 0);
   }
   // An excluded track, which must never be queued.
-  track.run('Ax', 'A excluded', 'A', 'Alpha', 'Someone', 9, 1, 1);
+  track.run('Ax', '/music/A/09.flac', 'A excluded', 'A', 'Alpha', 'Someone', 9, 1, 1);
   // An album whose tracks predate the album_id column, matched by title+artist.
   album.run('L', 'Legacy', 'Old Band');
-  track.run('L1', 'L one', null, 'Legacy', 'Old Band', 1, 1, 0);
+  track.run('L1', '/music/Legacy/01.flac', 'L one', null, 'Legacy', 'Old Band', 1, 1, 0);
+  // v1.1.33.0 — a Qobuz album opened from a search result: cached, so its
+  // rows exist, but not favourited, so album and tracks are excluded. It has
+  // to queue anyway. Everything else about excluded rows is unchanged, which
+  // is what the pair of assertions below is for.
+  album.run('qobuz:900', 'Cached Qobuz', 'Some Artist');
+  track.run('q1', 'qobuz://9001', 'Q one', 'qobuz:900', 'Cached Qobuz', 'Some Artist', 1, 1, 1);
+  track.run('q2', 'qobuz://9002', 'Q two', 'qobuz:900', 'Cached Qobuz', 'Some Artist', 2, 1, 1);
   return db;
 }
 
@@ -111,6 +123,27 @@ test('the batch endpoint returns whole albums in the order they were picked', as
   await t.test('excluded tracks never come back', async () => {
     const r = await call(['A']);
     assert.ok(!ids(r).includes('Ax'), 'an excluded track was queued');
+  });
+
+  await t.test('a streaming album queues even when it is not in the library', async () => {
+    // v1.1.33.0. A Qobuz album reached from a search result is excluded — it
+    // is not in the library until the ⊕ adds it — but the user is looking at
+    // its page with the play button right there. Excluding its tracks here
+    // meant pressing play queued nothing at all, silently.
+    const r = await call(['qobuz:900']);
+    assert.equal(ids(r), 'q1,q2',
+      'a browsed streaming album queued nothing — the relaxation on the ' +
+      'excluded filter is missing from POST /albums/tracks');
+  });
+
+  await t.test('and the relaxation is on the path, not on the filter', async () => {
+    // The lazy fix is to drop `excluded` from this query entirely, which also
+    // resurrects every local track the user put out of scope. Ax is a local
+    // excluded track on album A; it must still never be queued.
+    const r = await call(['A', 'qobuz:900']);
+    assert.equal(ids(r), 'A1,A2,Ad2,q1,q2',
+      'the excluded LOCAL track came back too — the filter was dropped ' +
+      'rather than relaxed for streaming paths');
   });
 
   await t.test('albums scanned before album_id existed still resolve', async () => {

@@ -62,11 +62,24 @@ const SCREENS = [
   ['VolumeSheet',              './components/VolumeSheet.jsx',        '{ onClose: () => {} }'],
   ['AppearanceSection',        './components/AppearanceSection.jsx',  '{}'],
   ['HomeScreenSection',        './components/HomeScreenSection.jsx',  '{}'],
+  // v1.1.33.0 — Qobuz / Tidal. Both services go through one component, so
+  // both are probed: they take different tab lists, and Tidal has no Browse
+  // tab, which is exactly the kind of difference that renders fine for one
+  // and throws for the other.
+  ['ServiceScreen (Qobuz)',    './components/ServiceScreen.jsx',      "{ service: 'qobuz', onAlbumSelect: () => {} }"],
+  ['ServiceScreen (Tidal)',    './components/ServiceScreen.jsx',      "{ service: 'tidal', onAlbumSelect: () => {} }"],
+  ['ServicesSection',          './components/ServicesSection.jsx',    '{}'],
 ];
 
 // Every sidebar section App can route to, rendered through App itself.
 const SECTIONS = ['home', 'albums', 'artists', 'genres', 'favorites', 'tags',
-                  'saved', 'playlists', 'random', 'settings'];
+                  'saved', 'playlists', 'random', 'settings',
+                  // v1.1.33.0 — the two service routes. The side menu only
+                  // offers these when signed in, but App must route them
+                  // either way: the store can hold the section across a
+                  // sign-out, and landing on an unroutable section renders a
+                  // blank screen with no way back.
+                  'qobuz', 'tidal'];
 
 let built = null;
 async function bundle() {

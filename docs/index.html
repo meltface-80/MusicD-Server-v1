@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MusicD Server v1 — self-hosted music server</title>
-<meta name="description" content="MusicD Server v1.1.32.0 — a self-hosted music server with a Roon-inspired web UI, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
+<meta name="description" content="MusicD Server v1.1.33.0 — a self-hosted music server with a Roon-inspired web UI, Qobuz and Tidal merged into one library, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
 <style>
   :root {
     --bg:        #1b1d1f;   /* charcoal */
@@ -257,13 +257,13 @@
 <header class="hero" id="top">
   <div class="wordmark">Music<span>D</span></div>
   <h1>A self-hosted music server for one library and one home network</h1>
-  <p class="tag">MusicD Server scans your albums into SQLite, serves a
-  Roon-inspired mobile-first web app, and plays to DLNA&nbsp;/&nbsp;UPnP,
-  Sonos, Squeezelite and local USB DACs &mdash; with parametric EQ, AutoEQ
-  presets, FIR convolution and a per-stream signal path you can actually
-  read.</p>
+  <p class="tag">MusicD Server scans your albums into SQLite, folds your
+  Qobuz and Tidal favourites in beside them, serves a Roon-inspired
+  mobile-first web app, and plays the lot to DLNA&nbsp;/&nbsp;UPnP, Sonos,
+  Squeezelite and local USB DACs &mdash; with parametric EQ, AutoEQ presets,
+  FIR convolution and a per-stream signal path you can actually read.</p>
   <div class="badges">
-    <span class="badge">v1.1.32.0</span>
+    <span class="badge">v1.1.33.0</span>
     <span class="badge">Node 20 &middot; Express &middot; SQLite</span>
     <span class="badge">React SPA &middot; PWA</span>
     <span class="badge plain">Docker &middot; port 32700</span>
@@ -275,11 +275,54 @@
 
 <section id="whats-new" aria-labelledby="whats-new-h">
   <div class="wrap">
-    <h2 id="whats-new-h">What&rsquo;s new in 1.1.32.0</h2>
-    <p class="lead">A DSP page you can actually read, with levelling set per
-    zone &mdash; and below it, album multi-select, four themes and a Home screen
-    you choose the shape of.</p>
+    <h2 id="whats-new-h">What&rsquo;s new in 1.1.33.0</h2>
+    <p class="lead">Qobuz and Tidal join the library you already have &mdash;
+    one album wall, one search, one signal path &mdash; and below them, a DSP
+    page you can read, levelling per zone, and four themes.</p>
     <div class="grid">
+
+      <div class="card new">
+        <span class="tagline">New</span>
+        <h3><span class="em" aria-hidden="true">&#9729;&#65039;</span>Qobuz and Tidal, in the same library</h3>
+        <p>Sign in under <b>Settings &rarr; Services</b> &mdash; Qobuz with
+        your email and password, Tidal with a code you approve at their site
+        &mdash; and whatever you have favourited there appears in your album
+        wall next to your own records. Sorted with them, filtered with them,
+        searched with them.</p>
+        <p>Not a second tab and not a separate browser. The same album page,
+        the same queue, and the same DSP chain on the way out: a Qobuz album
+        plays to a Sonos zone with your EQ and your levelling on it, because
+        by the time the audio reaches that pipeline there is nothing left to
+        tell it apart from a local file.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">New</span>
+        <h3><span class="em" aria-hidden="true">&#10133;</span>One button decides what you keep</h3>
+        <p>Every Qobuz and Tidal album page has a <b>&#8853;</b> beside Add
+        Queue. It adds the album to that service's favourites &mdash; the same
+        list their own app shows, on every device you use it from &mdash; and
+        that is also what brings the album into the library here. Tap it again
+        and it leaves.</p>
+        <p>The heart next to it is unchanged. It is still this app's own
+        favourite, working on a streaming album exactly as it does on a local
+        one. The two are kept apart on purpose: un-hearting something here
+        should never quietly remove it from your Qobuz account.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">New</span>
+        <h3><span class="em" aria-hidden="true">&#128269;</span>Search the catalogues, not just your shelf</h3>
+        <p>One search box and one list of results: your own albums and tracks
+        first, then anything matching in the catalogues of whichever services
+        you are signed in to &mdash; the whole catalogue, not only what you
+        have already added. Each result carries a small mark so you know which
+        is which before you tap.</p>
+        <p><b>Qobuz</b> and <b>Tidal</b> also get their own entries in the side
+        menu, below Genres, showing the page types their apps do: New Releases,
+        Favourites, Recent, and for Qobuz all eight of their editorial Browse
+        lists.</p>
+      </div>
 
       <div class="card new">
         <span class="tagline">Changed</span>
@@ -312,21 +355,6 @@
       </div>
 
       <div class="card new">
-        <span class="tagline">Changed</span>
-        <h3><span class="em" aria-hidden="true">&#9825;</span>Favourites is a Focus section now</h3>
-        <p>The heart has left the album wall's top row. With the sort chip,
-        Random, the funnel and Select up there, five controls no longer fitted
-        without scrolling &mdash; and the heart was the one that was really a
-        filter like the ones inside the funnel.</p>
-        <p>Open <b>Focus</b> and it is the first column: <b>Favourites</b> and
-        <b>Not favourites</b>, ticking and un-ticking like every other column,
-        and combining with genre, decade or format the way they combine with
-        each other. Your place in the wall is still kept when you open an album
-        and come back, exactly as the heart used to manage, and <b>Random</b>
-        still picks a favourite when favourites are the filter.</p>
-      </div>
-
-      <div class="card new">
         <span class="tagline">New</span>
         <h3><span class="em" aria-hidden="true">&#9745;</span>Tick albums, play the lot</h3>
         <p>A <b>Select</b> chip on the Albums wall, Favourites, Saved for later
@@ -338,19 +366,6 @@
         While you are choosing, the sort and filter chips step aside and the
         Random wall hides its Refresh &mdash; re-sorting or re-rolling would
         throw your selection away with nothing to get it back.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">Fixed</span>
-        <h3><span class="em" aria-hidden="true">&#9888;&#65039;</span>The blank Albums screen</h3>
-        <p>On 1.1.25.0 and 1.1.26.0 the <b>Albums</b> screen and <b>Saved for
-        later</b> opened blank and the app had to be force-quit. One line of
-        state was deleted by accident during an unrelated tidy-up, and the
-        reference left behind threw the moment either screen tried to draw.</p>
-        <p>Both are the same component, which is why both went. Fixed in
-        1.1.27.0, along with the first test in this project that actually
-        renders every screen rather than reading the source of it &mdash;
-        nothing that only reads the code could have caught this.</p>
       </div>
 
       <div class="card new">
@@ -421,18 +436,6 @@
 
       <div class="card new">
         <span class="tagline">Fixed</span>
-        <h3><span class="em" aria-hidden="true">&#128072;</span>Touch and hold does nothing again</h3>
-        <p>Holding a finger on a settings label, an album title or a track name
-        selected the text and raised the system <i>Copy / Look&nbsp;Up /
-        Translate</i> bar. Nothing in the app sits behind that gesture, so it
-        read as the app misbehaving.</p>
-        <p>It is suppressed everywhere now, with two deliberate exceptions: the
-        share card, where holding it is how you save it to Photos, and text
-        fields, which keep the caret and the Paste menu.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">Fixed</span>
         <h3><span class="em" aria-hidden="true">&#128241;</span>Six safe-area insets that never applied</h3>
         <p>The side-menu header sat under the status bar, and four bottom
         sheets ran under the home indicator. Each had been given the right
@@ -473,6 +476,25 @@
     <h2 id="features-h">Features</h2>
     <p class="lead">One server, one library, one home network. Everything below
     runs on your own hardware and talks to nothing you did not ask it to.</p>
+
+    <h3 class="sub">Streaming services</h3>
+    <div class="grid">
+      <div class="card">
+        <h4><span class="em" aria-hidden="true">☁️</span>Qobuz &amp; Tidal</h4>
+        <p>Sign in under <b>Settings &rarr; Services</b> to either or both.
+        Qobuz takes an email and password; Tidal uses a device code you
+        approve at their site.</p>
+        <p>Your favourites at each service become part of the same library as
+        your own files &mdash; one album wall, one set of Focus filters, one
+        search that reaches both catalogues in full rather than only what you
+        have already added. A <b>&#8853;</b> on any streaming album page adds
+        it to that service's favourites, which is also what keeps it here.</p>
+        <p>Streaming tracks go through the same pipeline as local files:
+        levelling, PEQ, convolution, per-renderer downsampling, dither and
+        FLAC encoding. Quality is whatever tier you pick, converted per zone
+        only where a renderer cannot take it.</p>
+      </div>
+    </div>
 
     <h3 class="sub">Playback &amp; formats</h3>
     <div class="grid">
@@ -848,7 +870,7 @@
       <code>-e MUSICD_MANIFEST_URL=https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json</code>
       to your <code>docker run</code>, restart, then <b>Check for updates</b>.
       The older parser understands this manifest, so it installs normally. Drop
-      the variable afterwards &mdash; v1.1.32.0 has the same URL as its own
+      the variable afterwards &mdash; v1.1.33.0 has the same URL as its own
       default.
     </div>
   </div>
@@ -921,7 +943,7 @@
 </main>
 
 <footer>
-  MusicD Server v1.1.32.0 &mdash; self-hosted music, one user, one library, one home network.
+  MusicD Server v1.1.33.0 &mdash; self-hosted music, one user, one library, one home network.
   <br>MIT licence &middot; <a href="https://github.com/meltface-80/MusicD-Server-v1">Source on GitHub</a>
 </footer>
 

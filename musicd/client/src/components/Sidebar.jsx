@@ -3,6 +3,7 @@ import { useStore } from '../store'
 import { api } from '../api'
 import { Disc3, Mic2, ListMusic, Wifi, X, Tag, Settings, Heart, AlertCircle, Bookmark, Home as HomeIcon } from 'lucide-react'
 import RendererIcon from './RendererIcon'
+import ServiceBadge from './ServiceBadge'
 
 export default function Sidebar({ onClose }) {
   const {
@@ -17,6 +18,10 @@ export default function Sidebar({ onClose }) {
     // page reruns minimised" — visually, the section list never
     // re-appears because settingsSubSection is sticky.
     setSettingsSubSection,
+    // v1.1.33.0 — Qobuz / Tidal rows appear only when signed in. Read from
+    // the store so signing in from Settings updates the menu without a
+    // reload, and so this component makes no request of its own.
+    streamingServices, refreshStreamingServices,
   } = useStore()
 
   // Number of albums needing manual triage on the Unmatched page
@@ -26,6 +31,12 @@ export default function Sidebar({ onClose }) {
   // hitting the endpoint. We also fetch immediately on becoming
   // visible again so the badge is fresh when the user returns.
   const [unmatchedCount, setUnmatchedCount] = useState(0)
+  // Refresh sign-in state each time the menu opens. Cheap (no network on
+  // the service side — the server answers from stored settings) and it
+  // means a sign-in on another device shows up the next time the menu is
+  // pulled out, rather than at the next full reload.
+  useEffect(() => { refreshStreamingServices() }, [refreshStreamingServices])
+
   useEffect(() => {
     let cancelled = false
     let timer = null
@@ -68,6 +79,17 @@ export default function Sidebar({ onClose }) {
   // one behind the Now Playing screen's tab switcher is the real one, and two
   // views of the same queue that had drifted apart in what they could do was
   // one more than anybody needed.
+  //
+  // v1.1.33.0 — Qobuz and Tidal sit directly below Genres, and only when
+  // that service is signed in. They are the one pair of rows here that
+  // does NOT lead into the library: everything above them browses what
+  // you have, these two browse a catalogue you do not. That is why they
+  // are their own group under a divider rather than more entries in the
+  // list — and why they are placed after the browse-by-metadata rows
+  // instead of among them.
+  const serviceRows = ['qobuz', 'tidal']
+    .filter(id => streamingServices?.[id]?.logged_in)
+
   const sections = [
     { id: 'albums', label: 'Albums', icon: Disc3 },
     { id: 'artists', label: 'Artists', icon: Mic2 },
@@ -163,6 +185,24 @@ export default function Sidebar({ onClose }) {
             )}
           </React.Fragment>
         ))}
+        {/* v1.1.33.0 — the streaming services, below Genres and the rest of
+            the library rows. Hidden entirely when neither is signed in, so
+            an install that does not use them looks exactly as it did. */}
+        {serviceRows.length > 0 && (
+          <>
+            <div style={s.serviceDivider} />
+            {serviceRows.map(id => (
+              <button
+                key={id}
+                style={{ ...s.navItem, ...(sidebarSection === id ? s.navItemActive : {}) }}
+                onClick={() => handleSection(id)}>
+                <span style={s.serviceIcon}><ServiceBadge service={id} size={16} /></span>
+                <span>{id === 'qobuz' ? 'Qobuz' : 'Tidal'}</span>
+              </button>
+            ))}
+            <div style={s.serviceDivider} />
+          </>
+        )}
         <button style={{ ...s.navItem, ...(sidebarSection === 'settings' ? s.navItemActive : {}) }}
           onClick={handleSettings}>
           <Settings size={16} strokeWidth={1.8} /><span>Settings</span>
@@ -227,6 +267,14 @@ const s = {
     minWidth: 18, textAlign: 'center',
     fontFamily: 'var(--font-mono)',
   },
+  // v1.1.33.0 — hairline above and below the service rows. Tighter inset
+  // than the Output divider below because this one separates rows inside
+  // one nav list rather than two sections of the menu.
+  serviceDivider: { height: 1, background: 'var(--jp-border)', margin: '8px 12px' },
+  // The badge is 16px like the lucide icons beside it, but it is a filled
+  // disc rather than a stroke glyph, so it needs the same 16px box to
+  // keep every row's label on the same left edge.
+  serviceIcon: { width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   divider: { height: 1, background: 'var(--jp-border)', margin: '6px 14px' },
   // Output renderer button: outline-style (transparent fill,
   // hairline border) — matches the JPLAY card discipline of

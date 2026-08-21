@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const db = require('./db');
 const { findCoverArt } = require('./coverArt');
 const libraryScope = require('./libraryScope');
+const streamingLibrary = require('./streamingLibrary');   // v1.1.33.0 — scope-pass exemptions
 
 const SUPPORTED_FORMATS = new Set([
   '.flac', '.mp3', '.dsf', '.dff', '.dsd',
@@ -419,9 +420,14 @@ function reconcileExcludedFlags() {
 
   database.transaction(() => {
     if (scope.length === 0) {
-      // No scope — everything is excluded.
-      database.prepare(`UPDATE tracks SET excluded = 1 WHERE excluded = 0`).run();
-      database.prepare(`UPDATE albums SET excluded = 1 WHERE excluded = 0`).run();
+      // No scope — every LOCAL row is excluded. Streaming rows are not
+      // touched here for the reason set out below.
+      database.prepare(
+        `UPDATE tracks SET excluded = 1 WHERE excluded = 0 AND ${streamingLibrary.NOT_STREAMING_TRACK_SQL}`
+      ).run();
+      database.prepare(
+        `UPDATE albums SET excluded = 1 WHERE excluded = 0 AND ${streamingLibrary.NOT_STREAMING_ALBUM_SQL}`
+      ).run();
       return;
     }
 
@@ -439,9 +445,24 @@ function reconcileExcludedFlags() {
       params.push(p);
     }
 
+    // v1.1.33.0 — streaming rows are exempt from the scope pass.
+    //
+    // Scope is a list of filesystem directories, and this statement
+    // rewrites `excluded` across the WHOLE table from it. A Qobuz track's
+    // path is 'qobuz://5152123', which is under none of them, so an
+    // unguarded pass sets excluded = 1 on every streaming track — and the
+    // album rule below then excludes their albums too. The user sees
+    // their entire Qobuz and Tidal library disappear from the grid the
+    // moment they narrow their local library to a subfolder, with nothing
+    // in the UI connecting the two acts.
+    //
+    // A streaming row's `excluded` means "not favourited at the service"
+    // and belongs to streamingLibrary.setAlbumFavorited(). Nothing here
+    // may write it.
     database.prepare(`
       UPDATE tracks
       SET excluded = CASE WHEN (${conditions}) THEN 0 ELSE 1 END
+      WHERE ${streamingLibrary.NOT_STREAMING_TRACK_SQL}
     `).run(...params);
 
     // Album rule: an album is active if it has at least one active track.
@@ -459,6 +480,7 @@ function reconcileExcludedFlags() {
         ) THEN 0
         ELSE 1
       END
+      WHERE ${streamingLibrary.NOT_STREAMING_ALBUM_SQL}
     `).run();
   })();
 }

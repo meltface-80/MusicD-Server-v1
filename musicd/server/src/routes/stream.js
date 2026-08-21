@@ -11,6 +11,8 @@ const renderers = require('../renderers');
 const { planDownsample } = require('../downsamplePlan');
 const dsp = require('../dsp');
 const fir = require('../dsp/fir');
+const streamingLibrary = require('../streamingLibrary');
+const qobuzLiveFormat = require('../qobuz/liveFormat');
 
 // All DSD sources land at this PCM rate. Rationale:
 //   - DSD bitstreams are always 44.1×N (DSD64=2.8224 MHz, DSD128=5.6448 MHz, etc).
@@ -36,15 +38,129 @@ function safeHeader(value) {
   return String(value).replace(/[^\x20-\x7E]/g, '?').slice(0, 200);
 }
 
+// v1.1.33.0 — resolve a Qobuz / Tidal track to something ffmpeg can read.
+//
+// A streaming track's `path` is a sentinel — 'qobuz://5152123' — not a
+// file. This turns it into an input: a time-limited signed HTTPS URL for
+// Qobuz and for Tidal's direct manifests, or a temp .mpd path for Tidal
+// hi-res, which arrives as MPEG-DASH. ffmpeg reads all three with -i.
+//
+// It is deliberately the ONLY place this happens. Everything downstream
+// of it — volume levelling, PEQ, convolution, the renderer-aware
+// downsample plan, dither, FLAC encoding, the Range handling — then runs
+// on a streaming track exactly as it does on a local file, because by
+// that point there is no difference left to handle. That is what makes a
+// Qobuz album play to a Sonos zone with the user's DSP on it.
+//
+// Signed URLs expire in an hour or two, so this runs per request and
+// nothing caches its result.
+//
+// Quality: both services are asked for the user's configured tier, NOT
+// forced down to CD. This server plans its own per-renderer downsample
+// from the source rate, so asking for 24/96 and letting planDownsample
+// decide is how a hi-res streaming album reaches a hi-res renderer at
+// full rate — and a Sonos zone still gets what it can take.
+async function resolveStreamingSource(service, track) {
+  const def = streamingLibrary.serviceDef(service);
+  const serviceTrackId = streamingLibrary.serviceTrackIdFrom(track.path);
+  if (!serviceTrackId) throw new Error(`unreadable ${def.label} track path`);
+  const api = streamingLibrary.apiFor(service);
+  if (!api.isLoggedIn()) {
+    const err = new Error(`Not signed in to ${def.label}`);
+    err.notLoggedIn = true;
+    throw err;
+  }
+
+  if (service === 'qobuz') {
+    const info = await api.getFileUrl(serviceTrackId);
+    if (!info || !info.url) throw new Error('Qobuz returned no stream URL');
+    // Qobuz reports sampling_rate in kHz and may serve a LOWER tier than
+    // asked for when a release is not available at it. Record what
+    // actually arrived so the Now Playing signal path shows the real
+    // stream rather than the catalogue's "maximum available".
+    const sampleRate = Math.round((info.sampling_rate || 0) * 1000) || null;
+    const bitDepth = info.bit_depth || null;
+    qobuzLiveFormat.record(track.id, {
+      sampleRate, bitDepth, mimeType: info.mime_type,
+    });
+    return {
+      input: info.url,
+      sampleRate,
+      bitDepth,
+      label: `Qobuz ${bitDepth || '?'}/${info.sampling_rate || '?'}`,
+      cleanup: null,
+    };
+  }
+
+  // Tidal. getStreamInfo hands back either a direct URL or a temp .mpd
+  // it wrote, along with a cleanup callback for the latter.
+  const si = await api.getStreamInfo(serviceTrackId);
+  if (!si || !si.value) throw new Error('Tidal returned no stream URL');
+  // Tidal does not publish per-track numbers on this endpoint; the rates
+  // cached at album level (derived from the quality tier) stand.
+  return {
+    input: si.value,
+    sampleRate: null,
+    bitDepth: null,
+    label: `Tidal ${si.audioQuality || ''}`.trim(),
+    cleanup: si.cleanup || null,
+  };
+}
+
 router.get('/:trackId', async (req, res) => {
   const database = db.get();
   const track = database.prepare('SELECT * FROM tracks WHERE id = ?').get(req.params.trackId);
   if (!track) return res.status(404).json({ error: 'Track not found' });
 
-  try { await fsp.access(track.path); }
-  catch { return res.status(404).json({ error: 'File not found' }); }
+  // v1.1.33.0 — Qobuz / Tidal tracks resolve to a network source here,
+  // and to nothing else anywhere. See resolveStreamingSource above.
+  const streamingService = streamingLibrary.serviceForTrackPath(track.path);
+  let streamingCleanup = null;
+  if (streamingService) {
+    let resolved;
+    try {
+      resolved = await resolveStreamingSource(streamingService, track);
+    } catch (e) {
+      const label = streamingLibrary.serviceDef(streamingService).label;
+      console.warn(`[stream] ${label} resolve failed for ${track.id}: ${e.message}`);
+      // 401 when the account is signed out, so the client can say so and
+      // send the user to Settings → Services rather than reporting a
+      // broken file. 502 when the service itself refused or fell over.
+      return res.status(e.notLoggedIn ? 401 : 502)
+        .json({ error: e.notLoggedIn ? e.message : `${label} could not provide this track` });
+    }
+    // In-memory only. The sentinel path stays in the database — the
+    // signed URL is dead within hours and persisting it would leave rows
+    // pointing at expired CDN links.
+    track.path = resolved.input;
+    streamingCleanup = resolved.cleanup;
+    if (resolved.sampleRate) track.sample_rate = resolved.sampleRate;
+    if (resolved.bitDepth)   track.bit_depth   = resolved.bitDepth;
+    if (resolved.label) res.setHeader('X-Musicd-Source', safeHeader(resolved.label));
+    // Tidal hi-res writes a temp .mpd per stream. Remove it when the
+    // response closes, however it closes — a skipped track ends the
+    // response without ffmpeg finishing, and those are exactly the ones
+    // that used to accumulate.
+    if (streamingCleanup) {
+      res.on('close', () => {
+        Promise.resolve(streamingCleanup()).catch((e) =>
+          console.warn(`[stream] temp manifest cleanup failed: ${e.message}`));
+      });
+    }
+  } else {
+    try { await fsp.access(track.path); }
+    catch { return res.status(404).json({ error: 'File not found' }); }
+  }
 
-  const ext = path.extname(track.path).toLowerCase();
+  // Extension sniffing is for local files only. track.path is a URL by
+  // now for a streaming track, and path.extname on
+  // '…/file.flac?sig=abc' returns '.flac?sig=abc' — which matches
+  // nothing here, so the flags would come out right by luck rather than
+  // by intent. Worse, if one ever DID match, canPassThrough below would
+  // hand fs.createReadStream a URL. Left empty on purpose: every
+  // streaming track takes the ffmpeg path, which is the only one that
+  // can read a network source.
+  const ext = streamingService ? '' : path.extname(track.path).toLowerCase();
   const isDSD = ['.dsf', '.dff', '.dsd'].includes(ext);
   const isFlac = ext === '.flac';
   const isMp3 = ext === '.mp3';
@@ -132,7 +248,12 @@ router.get('/:trackId', async (req, res) => {
 
   // Probe source for ground-truth sample rate (used by both downsample
   // planning and FIR rate matching).
-  const probed = await probe(track.path).catch(() => null);
+  // probe() guards on fs.existsSync, so a URL returns { ok: false } and
+  // costs nothing — but a Tidal DASH source resolves to a real .mpd file
+  // on disk, and probing that makes ffprobe go and fetch segments over
+  // the network before playback can start. Skip it outright for
+  // streaming and use the rates the service reported.
+  const probed = streamingService ? null : await probe(track.path).catch(() => null);
   const sourceRate = isDSD ? DSD_TARGET_RATE : (probed?.sampleRate || track.sample_rate || null);
 
   // FIR convolution selection (#29.1).

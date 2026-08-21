@@ -205,6 +205,23 @@ export const useStore = create((set, get) => ({
   settingsSubSection: null,
   serverVersion: null,
 
+  // v1.1.33.0 — Qobuz / Tidal sign-in state.
+  //
+  // Three unrelated bits of UI read this and none of them should be
+  // making their own request for it: the side menu (whether to show the
+  // Qobuz and Tidal rows below Genres), the album page (whether to draw
+  // the circled plus), and Settings → Services. Kept in the store so one
+  // fetch serves all three and a sign-in updates them together.
+  //
+  // Shape is the /api/streaming/status response:
+  //   { qobuz: { logged_in, user, sync, ... }, tidal: { ... } }
+  // Starts empty rather than with a guessed default: "not signed in" and
+  // "not asked yet" look the same to a component that only reads
+  // logged_in, and the side menu drawing a Qobuz row for a moment before
+  // removing it is worse than drawing it a moment late.
+  streamingServices: {},
+  streamingChecked: false,
+
   setPlayerState: (s) => set(s),
   setSelectedAlbum: (id) => set({ selectedAlbumId: id }),
   setShowSignalPath: (v) => set({ showSignalPath: v }),
@@ -213,6 +230,30 @@ export const useStore = create((set, get) => ({
   setSearchQuery: (q) => set({ searchQuery: q }),
   setSidebarSection: (s) => set({ sidebarSection: s }),
   setSettingsSubSection: (s) => set({ settingsSubSection: s }),
+  setStreamingServices: (s) => set({ streamingServices: s || {}, streamingChecked: true }),
+
+  // Re-read sign-in state. Called on boot, after a sign-in or sign-out,
+  // and when a favourites sync finishes.
+  refreshStreamingServices: async () => {
+    try {
+      const r = await api.get('/streaming/status')
+      set({ streamingServices: r || {}, streamingChecked: true })
+    } catch (e) {
+      // A demo-tier install gets 403 here and an offline one gets a
+      // network error. Both mean "no streaming services", which is the
+      // same thing the empty default says — so mark it checked and keep
+      // whatever we last knew rather than blanking a working side menu
+      // on one failed poll.
+      set({ streamingChecked: true })
+    }
+  },
+
+  // True when either service is signed in. The side menu and the album
+  // page both branch on this.
+  hasStreamingService: () => {
+    const svc = get().streamingServices || {}
+    return Object.values(svc).some(s => s && s.logged_in)
+  },
   setRendererId: (id) => set({ rendererId: id }),
 
   // Focus a zone (#v1.1.0.9). Brings that zone's state into the legacy

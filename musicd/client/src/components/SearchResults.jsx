@@ -1,13 +1,32 @@
 import React, { useEffect, useState } from 'react'
 import { useStore } from '../store'
 import { api } from '../api'
-import { Music2, Disc3, Mic2 } from 'lucide-react'
+import { Music2, Disc3, Mic2, Loader2 } from 'lucide-react'
+import ServiceBadge from './ServiceBadge'
 
 function fmtTime(s) {
   if (!s) return ''
   return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
 }
 
+// v1.1.33.0 — results are local AND catalogue, in one list.
+//
+// The server merges them (see GET /api/library/search) and orders local
+// first, because a result you already own plays instantly and one you do
+// not needs a network fetch before it can. Each catalogue result carries
+// `service`, which is the only thing this file branches on:
+//
+//   * a badge next to the title, so you can tell before tapping that a
+//     result will go out to Qobuz or Tidal
+//   * albums open through the service route, which caches the album into
+//     the library on the way and then hands off to the ordinary album
+//     page — the same page a local album opens
+//   * tracks have no id yet (no local row exists until their album is
+//     cached), so tapping one resolves it first and then plays it
+//
+// Artists are local-only by design: this app's artist screen is built out
+// of local album rows, so a catalogue artist would open an empty page.
+// Their albums still show up, in the Albums section here.
 export default function SearchResults({ onArtistClick }) {
   const { searchQuery, rendererId, setSelectedAlbum, playQueue, setSearchQuery } = useStore()
   const [results, setResults] = useState({ tracks: [], albums: [], artists: [] })
@@ -31,17 +50,60 @@ export default function SearchResults({ onArtistClick }) {
     return () => clearTimeout(t)
   }, [searchQuery])
 
-  const handleTrackPlay = (track, index, allTracks) => {
+  // Which result is currently being fetched, so the row can say so. One
+  // at a time is enough: these are taps, not a queue.
+  const [pending, setPending] = useState(null)
+  const [actionError, setActionError] = useState(null)
+
+  const handleTrackPlay = async (track, index, allTracks) => {
     if (!rendererId) {
       alert('Tap ☰ → Output to select a renderer first')
       return
     }
-    playQueue(allTracks, index)
+    // A local track can be queued as-is. A catalogue track has no local
+    // row until its album is cached, so it has no id to queue — resolve
+    // it first, which caches the album and returns the real track id.
+    if (!track.service) {
+      playQueue(allTracks, index)
+      return
+    }
+    setPending(`track:${track.service}:${track.serviceTrackId}`)
+    setActionError(null)
+    try {
+      const r = await api.post(
+        `/streaming/${track.service}/track/${encodeURIComponent(track.serviceTrackId)}/resolve`,
+        { albumId: track.serviceAlbumId })
+      // Queue the single resolved track. Queuing the rest of the result
+      // list alongside it would mean resolving every other catalogue row
+      // too — a search for one song should not fetch twenty albums.
+      playQueue([{ ...track, id: r.trackId }], 0)
+    } catch (e) {
+      setActionError(e.message || 'Could not play that')
+    } finally {
+      setPending(null)
+    }
   }
 
-  const handleAlbumOpen = (album) => {
-    setSelectedAlbum(album.id)
-    setSearchQuery('')
+  const handleAlbumOpen = async (album) => {
+    if (!album.service || album.in_library) {
+      setSelectedAlbum(album.id)
+      setSearchQuery('')
+      return
+    }
+    // Catalogue album: the row for album.id does not exist yet. The
+    // service route creates it, then the ordinary album page opens on it.
+    setPending(`album:${album.service}:${album.serviceAlbumId}`)
+    setActionError(null)
+    try {
+      const r = await api.get(
+        `/streaming/${album.service}/album/${encodeURIComponent(album.serviceAlbumId)}`)
+      setSelectedAlbum(r.localAlbumId || album.id)
+      setSearchQuery('')
+    } catch (e) {
+      setActionError(e.message || 'Could not open that album')
+    } finally {
+      setPending(null)
+    }
   }
 
   const handleArtistOpen = (artistName) => {
@@ -65,6 +127,8 @@ export default function SearchResults({ onArtistClick }) {
         <div style={s.empty}>No results found</div>
       )}
 
+      {actionError && <div style={s.actionError}>{actionError}</div>}
+
       {/* Artists */}
       {results.artists.length > 0 && (
         <Section title="Artists" icon={<Mic2 size={13} />}>
@@ -85,18 +149,29 @@ export default function SearchResults({ onArtistClick }) {
       {results.albums.length > 0 && (
         <Section title="Albums" icon={<Disc3 size={13} />}>
           <div className="album-grid">
-            {results.albums.map(album => (
-              <button key={album.id} style={s.albumCard} onClick={() => handleAlbumOpen(album)}>
-                <div style={s.albumArt}>
-                  {album.cover_art
-                    ? <img src={album.cover_art} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} draggable={false} />
-                    : <span style={{ fontSize: 20, color: 'var(--text-muted)' }}>♫</span>
-                  }
-                </div>
-                <div style={s.albumTitle}>{album.title}</div>
-                <div style={s.albumArtist}>{album.album_artist || album.artist}</div>
-              </button>
-            ))}
+            {results.albums.map(album => {
+              const busy = pending === `album:${album.service}:${album.serviceAlbumId}`
+              return (
+                <button key={album.id} style={s.albumCard} onClick={() => handleAlbumOpen(album)}>
+                  <div style={s.albumArt}>
+                    {album.cover_art
+                      ? <img src={album.cover_art} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} draggable={false} />
+                      : <span style={{ fontSize: 20, color: 'var(--text-muted)' }}>♫</span>
+                    }
+                    {busy && (
+                      <span style={s.busyOverlay}>
+                        <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                      </span>
+                    )}
+                  </div>
+                  <div style={s.albumTitleRow}>
+                    {album.service && <ServiceBadge service={album.service} size={12} />}
+                    <span style={s.albumTitle}>{album.title}</span>
+                  </div>
+                  <div style={s.albumArtist}>{album.album_artist || album.artist}</div>
+                </button>
+              )
+            })}
           </div>
         </Section>
       )}
@@ -104,18 +179,31 @@ export default function SearchResults({ onArtistClick }) {
       {/* Tracks */}
       {results.tracks.length > 0 && (
         <Section title="Tracks" icon={<Music2 size={13} />}>
-          {results.tracks.map((track, i) => (
-            <button key={track.id} style={s.trackRow}
-              onClick={() => handleTrackPlay(track, i, results.tracks)}>
-              <span style={s.trackNum}>{i + 1}</span>
-              <span style={s.trackInfo}>
-                <span style={s.trackTitle}>{track.title}</span>
-                <span style={s.trackMeta}>{track.artist}{track.album ? ` · ${track.album}` : ''}</span>
-              </span>
-              <span style={s.trackFmt}>{(track.codec || track.format || '').toUpperCase()}</span>
-              <span style={s.trackDur}>{fmtTime(track.duration)}</span>
-            </button>
-          ))}
+          {results.tracks.map((track, i) => {
+            const busy = pending === `track:${track.service}:${track.serviceTrackId}`
+            return (
+              // Local rows key on their track id; catalogue rows have none
+              // yet, so they key on service + service track id. Using the
+              // index alone would re-use a row across two different searches.
+              <button key={track.id || `${track.service}:${track.serviceTrackId}`} style={s.trackRow}
+                onClick={() => handleTrackPlay(track, i, results.tracks)}>
+                <span style={s.trackNum}>
+                  {busy
+                    ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
+                    : i + 1}
+                </span>
+                <span style={s.trackInfo}>
+                  <span style={s.trackTitleRow}>
+                    {track.service && <ServiceBadge service={track.service} size={12} />}
+                    <span style={s.trackTitle}>{track.title}</span>
+                  </span>
+                  <span style={s.trackMeta}>{track.artist}{track.album ? ` · ${track.album}` : ''}</span>
+                </span>
+                <span style={s.trackFmt}>{(track.codec || track.format || '').toUpperCase()}</span>
+                <span style={s.trackDur}>{fmtTime(track.duration)}</span>
+              </button>
+            )
+          })}
         </Section>
       )}
     </div>
@@ -153,7 +241,16 @@ const s = {
   // Albums
   albumGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 },
   albumCard: { background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' },
-  albumArt: { width: '100%', aspectRatio: '1', borderRadius: 8, overflow: 'hidden', background: 'var(--bg-elevated)', marginBottom: 5, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  albumArt: { position: 'relative', width: '100%', aspectRatio: '1', borderRadius: 8, overflow: 'hidden', background: 'var(--bg-elevated)', marginBottom: 5, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  // v1.1.33.0 — badge + title share a row so the glyph sits with the
+  // title rather than floating over the artwork, where at 12px it would
+  // compete with the tile's own corner marker in the album wall.
+  albumTitleRow: { display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden' },
+  trackTitleRow: { display: 'flex', alignItems: 'center', gap: 5, overflow: 'hidden' },
+  // Themed rather than a fixed dark scrim — see the same overlay in
+  // ServiceScreen.jsx for why this app cannot assume a dark ground.
+  busyOverlay: { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--jp-bg)', opacity: 0.82, color: 'var(--jp-text)' },
+  actionError: { margin: '0 0 16px', padding: '9px 11px', borderRadius: 6, fontSize: 12, color: 'var(--jp-hot)', background: 'rgba(255,90,90,0.08)' },
   albumTitle: { fontSize: 11, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   albumArtist: { fontSize: 10, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
 

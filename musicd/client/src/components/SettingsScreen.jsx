@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useStore } from '../store'
 import { api } from '../api'
-import { Volume2, Play, Square, Download, RefreshCw, ChevronRight, ChevronLeft, User, Sliders, Folder, Save, Image as ImageIcon, Radio, LogOut, Cable, Key, Home, Power, Cpu, Palette } from 'lucide-react'
+import { Volume2, Play, Square, Download, RefreshCw, ChevronRight, ChevronLeft, User, Sliders, Folder, Save, Image as ImageIcon, Radio, LogOut, Cable, Key, Home, Power, Cpu, Palette, Cloud } from 'lucide-react'
 import DspTab from './DspTab'
 import LibraryScopeSection from './LibraryScopeSection'
 import HelpTooltip from './HelpTooltip'
@@ -14,6 +14,7 @@ import AppearanceSection from './AppearanceSection'
 import HomeScreenSection from './HomeScreenSection'
 import AudioSection from './AudioSection'
 import CpuTweaksSection from './CpuTweaksSection'
+import ServicesSection from './ServicesSection'
 
 // Settings section navigation (#30.26).
 // Sections used to be inline accordions. They're now full-screen
@@ -545,6 +546,9 @@ export default function SettingsScreen({ onBack }) {
     { id: 'audio',      title: 'Audio Devices',    icon: <Cable size={14} style={{ marginRight: 8 }} /> },
     { id: 'dsp',        title: 'DSP',              icon: <Sliders size={14} style={{ marginRight: 8 }} /> },
     { id: 'metadata',   title: 'Metadata',         icon: <User size={14} style={{ marginRight: 8 }} /> },
+    // v1.1.33.0 — Qobuz / Tidal sign-in. Sits after Metadata because it is
+    // another source of what the library holds, not an output setting.
+    { id: 'services',   title: 'Services',         icon: <Cloud size={14} style={{ marginRight: 8 }} /> },
     { id: 'scrobbling', title: 'LastFM Scrobbler', icon: <Radio size={14} style={{ marginRight: 8 }} /> },
     { id: 'backup',     title: 'Backup',           icon: <Save size={14} style={{ marginRight: 8 }} /> },
     // v1.1.24.0 — the four themes, directly below Backup as asked.
@@ -639,6 +643,11 @@ export default function SettingsScreen({ onBack }) {
 
       <Section id="audio" title="Audio Devices" icon={<Cable size={14} style={{ marginRight: 8 }} />} openSection={openSection} setOpenSection={setOpenSection}>
         <AudioSection />
+      </Section>
+
+      {/* v1.1.33.0 — Qobuz / Tidal. */}
+      <Section id="services" title="Services" icon={<Cloud size={14} style={{ marginRight: 8 }} />} openSection={openSection} setOpenSection={setOpenSection}>
+        <ServicesSection />
       </Section>
 
       <Section id="dsp" title="DSP" icon={<Sliders size={14} style={{ marginRight: 8 }} />} openSection={openSection} setOpenSection={setOpenSection}>

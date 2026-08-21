@@ -11,6 +11,7 @@ import {
   useAlbumSelection, runSelectionAction,
   SelectChip, SelectionBar, SelectionSheet, SelectionTick,
 } from './AlbumSelection'
+import ServiceBadge from './ServiceBadge'
 
 const PAGE_SIZE = 200
 
@@ -1177,6 +1178,16 @@ function AlbumCard({ album, onClick, selecting = false, selected = false }) {
             of the time would be a permanent piece of chrome over the artwork,
             which is what this wall is for. */}
         {selecting && <SelectionTick on={selected} />}
+        {/* v1.1.33.0 — Qobuz / Tidal marker. `service` is derived from the
+            album id server-side, so it is null for every local album and the
+            badge renders nothing: no guard needed here, and no site can be
+            missed by forgetting one. Bottom-left, opposite the selection
+            tick, so the two never overlap. */}
+        {album.service && (
+          <span style={s.serviceBadge}>
+            <ServiceBadge service={album.service} size={16} />
+          </span>
+        )}
       </div>
       <div style={s.cardTitle}>{album.title}</div>
       <div style={s.cardArtist}>{album.album_artist || album.artist}</div>
@@ -1185,6 +1196,14 @@ function AlbumCard({ album, onClick, selecting = false, selected = false }) {
 }
 
 const s = {
+  // v1.1.33.0 — the streaming marker sits over the artwork's bottom-left
+  // corner. Absolute inside artBox (which is already position:relative for
+  // the selection tick), so it rides the art rather than the card and does
+  // not shift the title below it.
+  serviceBadge: {
+    position: 'absolute', left: 6, bottom: 6,
+    display: 'flex', pointerEvents: 'none',
+  },
   // v1.1.0.62 — JPLAY-style page layout. Was 14px 10px with 120px
   // bottom for the now-playing strip; JPLAY uses generous side
   // padding (16px+) so the grid doesn't crowd the edges. Bottom

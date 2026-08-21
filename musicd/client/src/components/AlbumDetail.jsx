@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useStore } from '../store'
 import { api } from '../api'
-import { ArrowLeft, Play, Plus, Clock, Share2, X, Heart, Copy, ExternalLink, Check, BookOpen, ChevronDown, Shuffle, ListMusic, Star, MoreHorizontal, Tag, Bookmark, Layers } from 'lucide-react'
+import { ArrowLeft, Play, Plus, Clock, Share2, X, Heart, Copy, ExternalLink, Check, BookOpen, ChevronDown, Shuffle, ListMusic, Star, MoreHorizontal, Tag, Bookmark, Layers, PlusCircle, CheckCircle2 } from 'lucide-react'
 import BioModal from './BioModal'
 import TagPicker from './TagPicker'
+import ServiceBadge, { serviceLabel } from './ServiceBadge'
 
 function fmtDur(secs) {
   if (!secs) return '--:--'
@@ -225,6 +226,63 @@ export default function AlbumDetail({ albumId, onArtistClick, onGenreClick, onBa
       dlog('fetch rejected', { albumId, error: String(e) })
     }).finally(() => setLoading(false))
   }, [albumId])
+
+  // v1.1.33.0 — the circled plus, on Qobuz and Tidal albums only.
+  //
+  // It is NOT the heart, and the two live side by side on purpose. The
+  // heart is this app's own favourite: local, and identical in meaning on
+  // a streaming album and a local one. The ⊕ writes the favourite at the
+  // SERVICE — the same list the Qobuz or Tidal app shows — and that list
+  // is what defines which streaming albums are in this library. So:
+  //
+  //   ⊕ on   → the album is in your Qobuz/Tidal favourites, and appears
+  //            in the album wall, in Focus, in search, everywhere a local
+  //            album does
+  //   ⊕ off  → it goes back to being something you can browse to
+  //
+  // Collapsing the two would mean un-hearting an album here silently
+  // removed it from the user's streaming account, which is not a thing a
+  // heart should ever do.
+  //
+  // Which service an album belongs to is read from its own id prefix
+  // rather than passed down, so this works wherever an album page is
+  // opened from — the wall, search, a service screen, a queue item.
+  const service = albumId && String(albumId).startsWith('qobuz:') ? 'qobuz'
+                : albumId && String(albumId).startsWith('tidal:') ? 'tidal'
+                : null
+  const serviceAlbumId = service ? String(albumId).slice(service.length + 1) : null
+  const [inService, setInService] = useState(false)
+  const [serviceBusy, setServiceBusy] = useState(false)
+  const [serviceErr, setServiceErr] = useState(null)
+
+  useEffect(() => {
+    if (!service) { setInService(false); return }
+    let cancelled = false
+    setServiceErr(null)
+    api.get(`/streaming/${service}/favorites/album/${encodeURIComponent(serviceAlbumId)}/status`)
+      .then(r => { if (!cancelled) setInService(!!r.favorited) })
+      .catch(() => { /* signed out, or the service is unreachable: leave it off
+                        rather than showing a state we cannot back up */ })
+    return () => { cancelled = true }
+  }, [service, serviceAlbumId])
+
+  const handleToggleService = async () => {
+    if (!service || serviceBusy) return
+    const next = !inService
+    setInService(next)            // optimistic; rolled back below on failure
+    setServiceBusy(true)
+    setServiceErr(null)
+    try {
+      const path = `/streaming/${service}/favorites/album/${encodeURIComponent(serviceAlbumId)}`
+      if (next) await api.post(path, {})
+      else await api.del(path)
+    } catch (e) {
+      setInService(!next)
+      setServiceErr(e.message || `Could not update ${serviceLabel(service)}`)
+    } finally {
+      setServiceBusy(false)
+    }
+  }
 
   const handleToggleFavorite = async () => {
     if (!album || favBusy) return
@@ -505,7 +563,37 @@ export default function AlbumDetail({ albumId, onArtistClick, onGenreClick, onBa
               <button style={s.appendBtn} onClick={handleAppend} title="Add to queue">
                 Add Queue
               </button>
+              {/* v1.1.33.0 — the circled plus. Only on Qobuz / Tidal albums;
+                  a local album has no service favourite to write. Filled once
+                  the album is in that service's favourites, which is also what
+                  puts it in this library. */}
+              {service && (
+                <button
+                  style={{ ...s.serviceAddBtn, ...(inService ? s.serviceAddBtnOn : {}) }}
+                  onClick={handleToggleService}
+                  disabled={serviceBusy}
+                  aria-pressed={inService}
+                  title={inService
+                    ? `In your ${serviceLabel(service)} favourites — tap to remove`
+                    : `Add to your ${serviceLabel(service)} favourites`}>
+                  {inService
+                    ? <CheckCircle2 size={18} strokeWidth={1.8} />
+                    : <PlusCircle size={18} strokeWidth={1.8} />}
+                </button>
+              )}
             </div>
+            {service && (
+              <div style={s.serviceLine}>
+                <ServiceBadge service={service} variant="chip" />
+                <span style={s.serviceLineText}>
+                  {serviceErr
+                    ? serviceErr
+                    : inService
+                      ? 'In your library'
+                      : `Browsing ${serviceLabel(service)} — add it to keep it`}
+                </span>
+              </div>
+            )}
             <div style={s.matchedPillRow}>
               {album.match_status === 'matched' && album.mb_release_group_id && (
                 <div style={s.mbidChip}>
@@ -1803,6 +1891,28 @@ const s = {
   // comfortably on a single row at iPhone widths.
   playBtn: { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 20, background: 'var(--jp-accent)', color: 'var(--jp-bg)', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer' },
   appendBtn: { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 20, background: 'rgba(var(--tint-rgb), 0.1)', color: 'rgba(var(--tint-rgb), 0.7)', fontSize: 13, fontWeight: 600, border: '1px solid rgba(var(--tint-rgb), 0.15)', cursor: 'pointer' },
+  // v1.1.33.0 — the circled plus and the line under it. Four new keys;
+  // none of them already existed in this map (a duplicate key here is an
+  // esbuild WARNING, not an error, and the later value silently wins).
+  // Sized and cornered to sit level with Add Queue rather than to match
+  // the round pills either side of it, because it is an icon action and
+  // not a labelled one.
+  serviceAddBtn: {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    width: 38, height: 38, borderRadius: 20, flexShrink: 0,
+    background: 'transparent', color: 'var(--jp-text-2)',
+    border: '1px solid rgba(var(--tint-rgb), 0.15)', cursor: 'pointer',
+  },
+  serviceAddBtnOn: {
+    background: 'rgba(var(--tint-rgb), 0.12)',
+    color: 'var(--green)',
+    borderColor: 'rgba(var(--tint-rgb), 0.25)',
+  },
+  serviceLine: {
+    display: 'flex', alignItems: 'center', gap: 8, marginTop: 10,
+    flexWrap: 'wrap',
+  },
+  serviceLineText: { fontSize: 11, color: 'var(--jp-text-3)' },
 
   // v56: Play split-button. Two halves of one visual pill — the left
   // half (label "Play") triggers Play Now directly; the right half
