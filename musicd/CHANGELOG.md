@@ -12,6 +12,48 @@ Categories used per release:
 
 ---
 
+## v1.1.30.0 — 2026-08-21 — THE QUEUE TAB THREW ON RENDER
+
+### Fixed
+
+- **The queue screen behind the Now Playing tab switcher came up blank.** Two
+  icons, `Plus` and `Minus`, were dropped from `NowPlayingFullScreen.jsx`'s
+  import line in v1.1.26.0. That release moved the volume sheet out to its own
+  file and retyped the import in the process; both icons were used by the
+  volume sheet **and** by the queue view's − / + row controls. The queue tab
+  threw `ReferenceError: Minus is not defined` the moment it was opened.
+
+  Same failure mode as v1.1.25.0's blank Albums screen, and the same root
+  cause: an edit that removed more than it accounted for.
+
+### Why the new render test did not catch it
+
+  `screens-render.test.js` renders each screen in its **default state**. The
+  queue lives behind `activeTab === 'queue'`, so rendering the Now Playing
+  screen never reaches it. The test that was written for exactly this bug class
+  had a hole in exactly this shape, so both halves are closed:
+
+- **Every `<Capitalised />` in the client must be imported into its file or
+  defined in it.** A static check, and the cheap half: it does not care what
+  state a branch is behind — an identifier used in JSX and imported nowhere is
+  wrong whether or not anything renders it today. It catches this bug directly,
+  and it carries a four-case self-test (it must find the bug, accept an import,
+  accept a local definition / alias / destructured rename, and not count a name
+  inside a comment as a use).
+- **State-gated inner components are now rendered too.** `QueueView` (loaded
+  and empty), both variants of the track overflow menu, the DSP and device
+  overlays, and the selection bar and sheet. Each is exported into a throwaway
+  copy of its file, rendered, and the copy deleted — they are deliberately not
+  part of any module's public surface, so the test does not make them so.
+
+### Tests
+
+- `screens-render.test.js` — 45 assertions, up from 31. Verified red by
+  reintroducing the real bug (both checks fire) and by deleting a piece of
+  state the queue body uses (the render fires), which is the v1.1.25.0 shape.
+
+---
+
 ## v1.1.29.0 — 2026-08-21 — MULTI-SELECT ON THE ALBUM WALLS
 
 ### New

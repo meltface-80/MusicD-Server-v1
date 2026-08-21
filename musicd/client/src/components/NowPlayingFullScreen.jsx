@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
 import { useStore } from '../store'
 import { api } from '../api'
-import { ChevronLeft, Play, Pause, SkipBack, SkipForward, ChevronDown, Trash2, Check, Music, ListMusic, X, Share2, MoreHorizontal, Heart, Disc, User, Tag, Bookmark, Star, Sparkles, SkipForward as SkipIcon, ChevronRight } from 'lucide-react'
+import { ChevronLeft, Play, Pause, SkipBack, SkipForward, ChevronDown, Trash2, Check, Music, ListMusic, X, Plus, Minus, Share2, MoreHorizontal, Heart, Disc, User, Tag, Bookmark, Star, Sparkles, SkipForward as SkipIcon, ChevronRight } from 'lucide-react'
 import RendererModal from './RendererModal'
 import VolumeSheet from './VolumeSheet'
 import TagPicker from './TagPicker'
