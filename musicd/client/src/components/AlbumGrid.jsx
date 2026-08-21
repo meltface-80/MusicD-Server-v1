@@ -280,6 +280,16 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
     }
   }, [sectionOrder])
 
+  // The sort sheet. Open/closed only — the choice itself lives in sortView.
+  //
+  // v1.1.26.1 — this line was collateral damage in v1.1.25.0. The saved-focus
+  // removal spliced from the save-modal comment to the end of the last save
+  // handler, and this declaration was sitting between two of them. Nothing
+  // caught it: an undeclared identifier is not a build error, it is a
+  // ReferenceError on first render, and AlbumGrid is BOTH the Albums screen
+  // and Saved for later — so both came up blank.
+  const [sortSheetOpen, setSortSheetOpen] = useState(false)
+
   // Fetch focus options on first mount when needed. The endpoint
   // computes from the live library, so we re-fetch when the bar
   // opens — that way picks reflect any albums added since the
