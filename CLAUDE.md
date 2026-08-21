@@ -6,9 +6,18 @@
 cd musicd/server && npm test
 ```
 
-105 assertions across eight files. It is fast and needs no device, no
+Assertions across the whole suite; it is fast and needs no device, no
 renderer and no database. Run it. Three of this project's worst bugs were
 shipped by changes that "obviously" could not break anything.
+
+`test/screens-render.test.js` is the one test here that RUNS the client
+rather than reading it: esbuild bundles every screen and
+`renderToStaticMarkup` executes their render bodies. It exists because
+v1.1.25.0 shipped an Albums screen that came up blank — one line of state
+deleted by accident — and every other check in this suite is a grep. `node
+--check` passes on an undeclared identifier. So does `vite build`. If you
+delete or move code, that file is the one that tells you the screen still
+mounts.
 
 - [ ] `npm test` passes
 - [ ] `node --check` on every server file you touched
@@ -16,6 +25,8 @@ shipped by changes that "obviously" could not break anything.
       it is the only syntax gate the client has outside a full build
 - [ ] Version bumped with `./scripts/release.sh`, not by hand
 - [ ] `CHANGELOG.md` entry added
+- [ ] **`README.md` and `docs/index.html` updated** — every release, not just
+      the ones that feel big. See *The published face of a release* below
 - [ ] Tarball rebuilt **after** the last source edit, `manifest.json`
       pointed at it, `tarSha256` refreshed
 - [ ] If you touched the client's `<head>`, `App.jsx`'s root style, or
@@ -62,6 +73,49 @@ is already published on `main`, ship the fix as a new version instead: an
 install that already took that version is never offered a same-version
 update, and anyone who fetched the old bytes holds something the manifest
 no longer describes.
+
+## The published face of a release
+
+`CHANGELOG.md` is not the only file that describes a release. Two others are
+what anyone outside this repo actually reads:
+
+- **`README.md`** — the repo's front page: the current version, the layout
+  table, the tarball name, and the upgrade notes that name a version.
+- **`docs/index.html`** — the GitHub Pages site at
+  <https://meltface-80.github.io/MusicD-Server-v1/>: the header badge, the
+  `<meta name="description">` that link previews and search results show, the
+  footer, and the **What's new in X** section.
+
+Both sat **seven releases behind** — still announcing v1.1.20.0 after
+v1.1.27.0 had shipped — because `release.sh` did not touch them and no test
+checked them. Being told to remember is not a mechanism; that is why they were
+stale in the first place. So:
+
+**The version strings are mechanical.** `./scripts/release.sh <version>
+--apply` rewrites them in both files and its verify step reports a ✗ if a
+pattern matched nothing. `release-consistency.test.js` fails the suite if
+either file disagrees with `VERSION`. Neither needs remembering; both need
+not being worked around.
+
+**The prose is not, and is the part that gets skipped.** The script bumps the
+*heading* of the What's-new section; it cannot write the cards under it. A
+heading that says the new version over the last release's cards is **worse
+than a stale heading**, because it reads as current. So every release:
+
+- [ ] Rewrite the What's-new cards in `docs/index.html` from this release's
+      `CHANGELOG.md` entry. Same voice as the rest of the page: what changed
+      and why it matters to someone using the app, not what the code does.
+      Keep the card markup — `<div class="card new">`, a `<span class="tagline">`
+      of New / Changed / Fixed, an `<h3>` with an HTML entity glyph, then `<p>`s.
+- [ ] Carry forward the handful of earlier cards still worth showing, and drop
+      the ones nobody would read now. The section is a highlights reel, not an
+      archive — `CHANGELOG.md` is the archive.
+- [ ] Re-read `README.md`'s opening description. It describes the app, not the
+      release, so the sed does not touch it — and it goes stale silently as
+      features land.
+
+If a release genuinely changes nothing a user would notice, say so in one card
+rather than leaving the previous release's up.
 
 ## Development rules
 
