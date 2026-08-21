@@ -814,13 +814,14 @@ const s = {
     display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
     zIndex: 9999,
   },
-  diagSheet: { paddingBottom: 'var(--safe-bot)',
+  diagSheet: {
     width: '100%', maxWidth: 560,
     maxHeight: '85vh',
     overflowY: 'auto',
     background: 'var(--bg-elevated, #1a1a1a)',
     borderRadius: '14px 14px 0 0',
     padding: '18px 18px 24px',
+    paddingBottom: 'calc(24px + var(--safe-bot))',
     border: '1px solid var(--border)',
   },
   diagHeader: {

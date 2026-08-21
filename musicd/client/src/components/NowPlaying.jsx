@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useStore } from '../store'
 import { api } from '../api'
 import { Play, Pause, Speaker, Volume2 } from 'lucide-react'
+import VolumeSheet from './VolumeSheet'
 import NowPlayingFullScreen from './NowPlayingFullScreen'
 import RendererIcon from './RendererIcon'
 
@@ -16,7 +17,6 @@ export default function NowPlaying({ onArtistClick, onAlbumClick, onGenreClick }
   const {
     playerStatus, currentTrack, rendererId,
     setShowRenderers,
-    volume, outputMode, setPlayerState,
     renderers,
     zones, focusedZoneId,
     position, displayPosition,
@@ -27,11 +27,6 @@ export default function NowPlaying({ onArtistClick, onAlbumClick, onGenreClick }
   const handlePause = async () => {
     if (!rendererId) return
     try { await api.post('/player/pause', { rendererId }) } catch {}
-  }
-
-  const handleVolume = async (val) => {
-    setPlayerState({ volume: val })
-    try { await api.post('/player/volume', { rendererId, volume: val }) } catch {}
   }
 
   const isPlaying = playerStatus === 'playing'
@@ -69,22 +64,19 @@ export default function NowPlaying({ onArtistClick, onAlbumClick, onGenreClick }
         />
       )}
 
-      {/* Lightweight inline volume popup. We mount it from the mini bar so
-          users don't have to open full-screen NP just to nudge volume. */}
+      {/* v1.1.26.0 — the same volume sheet the full-screen Now Playing uses,
+          three settings buttons and all. This bar used to carry its own
+          stripped-down copy: a title, a "0", a slider and a number. Every
+          improvement since v54 — the DSP / Switch / Device row, the discrete
+          − / + steps, the Fixed Output state — landed on the other one only.
+          One component now, so that cannot happen again.
+
+          The fixed wrapper is what VolumeSheet's absolutely-positioned sheet
+          and destinations resolve against, and it keeps the z-index this
+          popup has always had (above the full-screen player at 500). */}
       {volumePopup && (
-        <div style={s.volOverlay} onClick={() => setVolumePopup(false)}>
-          <div style={s.volPopup} onClick={e => e.stopPropagation()}>
-            <div style={s.volTitle}>Volume</div>
-            <div style={s.volSliderWrap}>
-              <span style={s.volMin}>0</span>
-              <input
-                type="range" min={0} max={100} value={volume}
-                onChange={e => handleVolume(Number(e.target.value))}
-                style={s.volSlider}
-              />
-              <span style={s.volMax}>{volume}</span>
-            </div>
-          </div>
+        <div style={s.volLayer}>
+          <VolumeSheet onClose={() => setVolumePopup(false)} />
         </div>
       )}
 
@@ -184,28 +176,30 @@ export default function NowPlaying({ onArtistClick, onAlbumClick, onGenreClick }
             </div>
           )}
         </div>
-        {/* Volume slider hidden for fixed-mode renderers (#v1.1.0.8).
-            The downstream amp owns the volume; showing the slider would
-            be misleading.
-            v1.1.0.91: icon now matches the one on the full-screen
-            Now Playing — inline SVG of a tall device, drawn at 24px.
-            Both icons share the same function (open the volume bar)
-            so they should look the same. Size bumped from 18 to 24
-            to match the +50% bar height. */}
-        {outputMode !== 'fixed' && (
-          <button
-            style={s.iconBtn}
-            onClick={(e) => { e.stopPropagation(); setVolumePopup(true) }}
-            title="Volume"
-            aria-label="Volume"
-            disabled={!rendererId}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-              <rect x="5" y="3" width="14" height="18" rx="2"/>
-              <line x1="12" y1="18" x2="12" y2="18.01"/>
-            </svg>
-          </button>
-        )}
+        {/* v1.1.0.91: icon matches the one on the full-screen Now Playing —
+            inline SVG of a tall device, drawn at 24px. Both open the same
+            sheet, so they should look the same.
+
+            v1.1.26.0 — no longer hidden for fixed-output renderers. It used
+            to be (#v1.1.0.8), on the grounds that the downstream amp owns the
+            volume and a slider would mislead. That was right about the slider
+            and wrong about the button: the sheet behind it now carries DSP,
+            Switch and Device too, and it already handles fixed output by
+            showing "Fixed Output" in place of the slider. Hiding the button
+            was the only thing left putting those three out of reach from this
+            bar — which is the whole point of matching the two. */}
+        <button
+          style={s.iconBtn}
+          onClick={(e) => { e.stopPropagation(); setVolumePopup(true) }}
+          title="Volume and output"
+          aria-label="Volume and output"
+          disabled={!rendererId}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <rect x="5" y="3" width="14" height="18" rx="2"/>
+            <line x1="12" y1="18" x2="12" y2="18.01"/>
+          </svg>
+        </button>
       </div>
     </>
   )
@@ -330,23 +324,11 @@ const s = {
     pointerEvents: 'none',
   },
 
-  // Volume popup — same layout as the full-screen NP one for consistency.
-  volOverlay: {
+  // The layer the shared volume sheet renders into. Fixed and above the
+  // full-screen player, exactly where this bar's own popup used to sit; the
+  // sheet itself is absolutely positioned and resolves against this.
+  volLayer: {
     position: 'fixed', inset: 0, zIndex: 800,
-    display: 'flex', alignItems: 'flex-end',
-    background: 'rgba(0,0,0,0.3)',
+    display: 'flex', flexDirection: 'column',
   },
-  volPopup: {
-    background: 'var(--bg-surface)',
-    border: '1px solid var(--border)',
-    borderRadius: '20px 20px 0 0',
-    width: '100%', padding: '20px 24px 48px',
-    // v1.1.3.9 — clear the home indicator on top of the 48px.
-    paddingBottom: 'calc(48px + var(--safe-bot))',
-  },
-  volTitle: { fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 20, textAlign: 'center' },
-  volSliderWrap: { display: 'flex', alignItems: 'center', gap: 12 },
-  volSlider: { flex: 1, accentColor: 'var(--accent)' },
-  volMin: { fontSize: 11, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', width: 16 },
-  volMax: { fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', width: 28, textAlign: 'right' },
 }

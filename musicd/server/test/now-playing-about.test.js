@@ -63,8 +63,13 @@ test('nothing of the About panel is left in NowPlayingFullScreen', async (t) => 
     // the term would let the queue swipe fire underneath every other overlay.
     const guard = /if \(([^)]*shareCard)\) \{\s*screenTouchRef\.current\.active = false/.exec(src);
     assert.ok(guard, 'the overlay guard on the queue swipe is gone');
-    for (const term of ['showVolume', 'showRendererLocal', 'showDsp',
-                        'showDeviceSettings', 'showOverflow', 'shareCard']) {
+    // showDsp and showDeviceSettings were two of these until v1.1.26.0, when
+    // both overlays moved into the shared VolumeSheet and the screen started
+    // tracking them as one volumeOverlayOpen instead. The count changed; the
+    // rule — every overlay that can sit over this screen suppresses the swipe
+    // — did not.
+    for (const term of ['showVolume', 'showRendererLocal', 'volumeOverlayOpen',
+                        'showOverflow', 'shareCard']) {
       assert.ok(guard[1].includes(term), `the swipe guard no longer checks ${term}`);
     }
   });
