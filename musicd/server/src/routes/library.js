@@ -23,6 +23,11 @@ function cached(key, fn, ttlMs) {
 }
 function invalidateCache() { cache.clear(); }
 
+// How many albums one multi-select action may act on. A phone grid tops out
+// well below this; the cap is here so a hand-made request cannot ask the
+// server to assemble a hundred thousand tracks in one statement loop.
+const MULTI_SELECT_MAX_ALBUMS = 500;
+
 // Validation helper (#21)
 function clamp(val, min, max, defaultVal) {
   const n = parseInt(val);
@@ -477,6 +482,69 @@ router.get('/albums/random', (req, res) => {
     error: favOnly ? 'No favourited albums' : 'No albums in library'
   });
   res.json({ id: row.id });
+});
+
+// POST /api/library/albums/tracks — the tracks of several albums, in one
+// request (v1.1.29.0).
+//
+// Backs the album grids' multi-select: with eight albums ticked, "Play now"
+// needs every track of all eight, in album order, before it can build a queue.
+// One request rather than eight, because the client would otherwise have to
+// fan out and then reassemble the results in the order the user picked — and
+// get that ordering right on every one of the five actions.
+//
+// The album order is the order the ids arrive in, NOT the order the database
+// hands the rows back. That is the selection order, and shuffling it would
+// make "Play now" on a picked run of albums play them in some other sequence.
+router.post('/albums/tracks', (req, res) => {
+  const database = db.get();
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids : null;
+  if (!ids || ids.length === 0) {
+    return res.status(400).json({ error: 'ids array required' });
+  }
+  // De-duplicated, order preserved. A repeated id would otherwise queue the
+  // same album twice from one tap.
+  const wanted = [...new Set(ids.map(String))].slice(0, MULTI_SELECT_MAX_ALBUMS);
+
+  const albumStmt = database.prepare(
+    'SELECT id, title, album_artist FROM albums WHERE id = ?');
+  // The same query /albums/:id uses, including its fallback for tracks
+  // scanned before album_id existed — a half-migrated library must not
+  // silently return an empty album here while the detail page shows it fine.
+  const trackStmt = database.prepare(`
+    SELECT t.id, t.title, t.artist, t.album, t.album_artist,
+           t.track_number, t.disc_number, t.duration, t.format, t.codec,
+           t.sample_rate, t.bit_depth,
+           COALESCE(t.is_favorite, 0) as is_favorite,
+           COALESCE(t.user_rating, 0) as user_rating,
+           COALESCE(t.is_saved_for_later, 0) as is_saved_for_later
+    FROM tracks t
+    WHERE (
+      t.album_id = ?
+      OR (t.album_id IS NULL AND t.album = ? AND t.album_artist = ?)
+    )
+    AND t.excluded = 0
+    ORDER BY COALESCE(t.disc_number, 1) ASC, t.track_number ASC
+  `);
+
+  const tracks = [];
+  const missing = [];
+  for (const id of wanted) {
+    const album = albumStmt.get(id);
+    if (!album) { missing.push(id); continue; }
+    for (const t of trackStmt.all(album.id, album.title, album.album_artist)) {
+      tracks.push({
+        ...t,
+        is_favorite: !!t.is_favorite,
+        is_saved_for_later: !!t.is_saved_for_later,
+        album_id: album.id,
+      });
+    }
+  }
+
+  // 200 with what was found, not 404: an album deleted by a rescan between
+  // the tap and the request should cost the user that album, not the action.
+  res.json({ tracks, albums: wanted.length - missing.length, missing });
 });
 
 // GET /api/library/albums/random-set — N albums picked at random (v1.1.21.0).

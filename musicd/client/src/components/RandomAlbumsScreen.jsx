@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { api } from '../api'
 import { RefreshCw } from 'lucide-react'
+import {
+  useAlbumSelection, runSelectionAction,
+  SelectChip, SelectionBar, SelectionSheet, SelectionTick,
+} from './AlbumSelection'
 
 // The full Random-albums wall (v1.1.21.0).
 //
@@ -22,6 +26,30 @@ export default function RandomAlbumsScreen({ onAlbumSelect }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  // v1.1.29.0 — the same multi-select the album wall has, from the same
+  // module. Two grids drawing the same tiles with two implementations is how
+  // the volume sheet and the queue view each ended up in two copies.
+  const selection = useAlbumSelection()
+  const [selectionSheet, setSelectionSheet] = useState(false)
+  const [selectionBusy, setSelectionBusy] = useState(false)
+  const [selectionError, setSelectionError] = useState(null)
+
+  const runSelection = async (action) => {
+    setSelectionBusy(true)
+    setSelectionError(null)
+    const r = await runSelectionAction(action, selection.selected)
+    setSelectionBusy(false)
+    if (!r.ok) {
+      setSelectionError(
+        r.reason === 'no-renderer' ? 'Choose an output first (☰ → Output).'
+        : r.reason === 'no-tracks' ? 'Those albums have no playable tracks.'
+        : r.error || "That didn't work.")
+      return
+    }
+    setSelectionSheet(false)
+    selection.exit()
+  }
+
   const load = useCallback(() => {
     setLoading(true)
     setError(null)
@@ -36,16 +64,40 @@ export default function RandomAlbumsScreen({ onAlbumSelect }) {
     <div style={s.page}>
       <div style={s.titleRow}>
         <h1 style={s.heading}>Random albums</h1>
-        <button
-          style={{ ...s.refresh, ...(loading ? s.refreshBusy : {}) }}
-          onClick={load}
-          disabled={loading}
-          aria-label="Refresh"
-        >
-          <RefreshCw size={15} style={loading ? s.refreshSpin : undefined} />
-          <span>Refresh</span>
-        </button>
+        <div style={s.titleActions}>
+          {/* Refresh is hidden while selecting: re-rolling the wall would
+              throw away the albums the user has just ticked, and they would
+              have no way to get them back. */}
+          {!selection.selecting && (
+            <>
+              <SelectChip
+                selecting={selection.selecting}
+                onToggle={() => selection.enter()}
+                chipStyle={s.refresh}
+                activeStyle={s.refreshOn}
+              />
+              <button
+                style={{ ...s.refresh, ...(loading ? s.refreshBusy : {}) }}
+                onClick={load}
+                disabled={loading}
+                aria-label="Refresh"
+              >
+                <RefreshCw size={15} style={loading ? s.refreshSpin : undefined} />
+                <span>Refresh</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
+
+      {selection.selecting && (
+        <SelectionBar
+          count={selection.count}
+          busy={selectionBusy}
+          onCancel={() => { selection.exit(); setSelectionError(null) }}
+          onAct={() => { setSelectionError(null); setSelectionSheet(true) }}
+        />
+      )}
 
       {error && <div style={s.error}>{error}</div>}
 
@@ -59,13 +111,27 @@ export default function RandomAlbumsScreen({ onAlbumSelect }) {
               <AlbumTile
                 key={a.id}
                 album={a}
-                onClick={() => onAlbumSelect && onAlbumSelect(a.id)}
+                selecting={selection.selecting}
+                selected={selection.selected.has(a.id)}
+                onClick={() => {
+                  if (selection.selecting) { selection.toggle(a.id); return }
+                  onAlbumSelect && onAlbumSelect(a.id)
+                }}
               />
             ))}
       </div>
 
       {!loading && !error && albums.length === 0 && (
         <div style={s.empty}>No albums in the library yet.</div>
+      )}
+
+      {selectionSheet && (
+        <SelectionSheet
+          count={selection.count}
+          error={selectionError}
+          onClose={() => { setSelectionSheet(false); setSelectionError(null) }}
+          onPick={runSelection}
+        />
       )}
     </div>
   )
@@ -81,11 +147,12 @@ function SkeletonTile() {
   )
 }
 
-function AlbumTile({ album, onClick }) {
+function AlbumTile({ album, onClick, selecting = false, selected = false }) {
   const [imgErr, setImgErr] = useState(false)
   return (
-    <button style={s.tile} onClick={onClick}>
-      <div style={s.art}>
+    <button style={s.tile} onClick={onClick} aria-pressed={selecting ? selected : undefined}>
+      <div style={{ ...s.art, ...(selecting && !selected ? s.artDim : {}) }}>
+        {selecting && <SelectionTick on={selected} />}
         {album.cover_art && !imgErr
           ? <img
               src={album.cover_art}
@@ -119,6 +186,11 @@ const s = {
     fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
     cursor: 'pointer', whiteSpace: 'nowrap',
   },
+  titleActions: { display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 },
+  refreshOn: {
+    background: 'var(--accent)', borderColor: 'var(--accent)',
+    color: 'var(--on-accent)',
+  },
   refreshBusy: { opacity: 0.6, cursor: 'default' },
   refreshSpin: { animation: 'spin 0.8s linear infinite' },
 
@@ -140,6 +212,8 @@ const s = {
     textAlign: 'left', cursor: 'pointer', minWidth: 0,
   },
   art: {
+    // position: relative so the selection tick can sit over the artwork.
+    position: 'relative',
     width: '100%', aspectRatio: '1 / 1',
     borderRadius: 5, overflow: 'hidden',
     background: 'var(--bg-overlay)',
@@ -149,6 +223,9 @@ const s = {
   },
   artSkeleton: { background: 'var(--bg-elevated)' },
   artEmpty: { fontSize: 24, color: 'rgba(var(--tint-rgb), 0.2)' },
+  // Unpicked tiles step back while selecting. Opacity, not a wash: a wash
+  // tints the artwork, and telling covers apart is how you pick them.
+  artDim: { opacity: 0.45 },
   img: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
   title: {
     fontSize: 11, fontWeight: 700, color: 'var(--text-primary)',

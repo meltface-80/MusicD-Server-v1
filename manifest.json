@@ -29,50 +29,50 @@
   ],
   "manifestVersion": 1,
   "schema_version": 1,
-  "version": "1.1.28.0",
-  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-28-0.tar",
-  "tarSha256": "2c8145ab0088d15e28c215d4a976792e6e4731761baaef9a6d04f2b128738feb",
-  "releasedAt": "2026-08-21T21:15:00Z",
-  "releaseNotes": "Documentation only - no change to the app. README.md and the GitHub Pages site had been announcing v1.1.20.0 for seven releases; the release script now rewrites both and the build fails if either disagrees with the version being released.",
-  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-28-0.tar",
-  "tarball_sha256": "2c8145ab0088d15e28c215d4a976792e6e4731761baaef9a6d04f2b128738feb",
-  "released_at": "2026-08-21T21:15:00Z",
+  "version": "1.1.29.0",
+  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-29-0.tar",
+  "tarSha256": "926dc87865adba943989839c4bdf7a80b43f58d7264a95cd304c6f56beafe47f",
+  "releasedAt": "2026-08-21T23:05:00Z",
+  "releaseNotes": "Multi-select on the album walls. A Select chip on Albums, Favourites, Saved for later and the Random wall lets you tick albums and then Play now, Play next, Add to queue, Shuffle play or Save for later - the album page's own options, acting on every track of every ticked album in the order you picked them.",
+  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-29-0.tar",
+  "tarball_sha256": "926dc87865adba943989839c4bdf7a80b43f58d7264a95cd304c6f56beafe47f",
+  "released_at": "2026-08-21T23:05:00Z",
   "release_notes_url": "https://github.com/meltface-80/MusicD-Server-v1/blob/main/musicd/CHANGELOG.md",
   "channels": {
     "stable": {
-      "version": "1.1.28.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-28-0.tar",
-      "tarSha256": "2c8145ab0088d15e28c215d4a976792e6e4731761baaef9a6d04f2b128738feb",
-      "releasedAt": "2026-08-21T21:15:00Z",
-      "releaseNotes": "Documentation only - no change to the app. README.md and the GitHub Pages site had been announcing v1.1.20.0 for seven releases; the release script now rewrites both and the build fails if either disagrees with the version being released."
+      "version": "1.1.29.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-29-0.tar",
+      "tarSha256": "926dc87865adba943989839c4bdf7a80b43f58d7264a95cd304c6f56beafe47f",
+      "releasedAt": "2026-08-21T23:05:00Z",
+      "releaseNotes": "Multi-select on the album walls. A Select chip on Albums, Favourites, Saved for later and the Random wall lets you tick albums and then Play now, Play next, Add to queue, Shuffle play or Save for later - the album page's own options, acting on every track of every ticked album in the order you picked them."
     },
     "earlyAccess": {
-      "version": "1.1.28.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-28-0.tar",
-      "tarSha256": "2c8145ab0088d15e28c215d4a976792e6e4731761baaef9a6d04f2b128738feb",
-      "releasedAt": "2026-08-21T21:15:00Z",
-      "releaseNotes": "Documentation only - no change to the app. README.md and the GitHub Pages site had been announcing v1.1.20.0 for seven releases; the release script now rewrites both and the build fails if either disagrees with the version being released."
+      "version": "1.1.29.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-29-0.tar",
+      "tarSha256": "926dc87865adba943989839c4bdf7a80b43f58d7264a95cd304c6f56beafe47f",
+      "releasedAt": "2026-08-21T23:05:00Z",
+      "releaseNotes": "Multi-select on the album walls. A Select chip on Albums, Favourites, Saved for later and the Random wall lets you tick albums and then Play now, Play next, Add to queue, Shuffle play or Save for later - the album page's own options, acting on every track of every ticked album in the order you picked them."
     },
     "beta": {
-      "version": "1.1.28.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-28-0.tar",
-      "tarSha256": "2c8145ab0088d15e28c215d4a976792e6e4731761baaef9a6d04f2b128738feb",
-      "releasedAt": "2026-08-21T21:15:00Z",
-      "releaseNotes": "Documentation only - no change to the app. README.md and the GitHub Pages site had been announcing v1.1.20.0 for seven releases; the release script now rewrites both and the build fails if either disagrees with the version being released."
+      "version": "1.1.29.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-29-0.tar",
+      "tarSha256": "926dc87865adba943989839c4bdf7a80b43f58d7264a95cd304c6f56beafe47f",
+      "releasedAt": "2026-08-21T23:05:00Z",
+      "releaseNotes": "Multi-select on the album walls. A Select chip on Albums, Favourites, Saved for later and the Random wall lets you tick albums and then Play now, Play next, Add to queue, Shuffle play or Save for later - the album page's own options, acting on every track of every ticked album in the order you picked them."
     },
     "alpha": {
-      "version": "1.1.28.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-28-0.tar",
-      "tarSha256": "2c8145ab0088d15e28c215d4a976792e6e4731761baaef9a6d04f2b128738feb",
-      "releasedAt": "2026-08-21T21:15:00Z",
-      "releaseNotes": "Documentation only - no change to the app. README.md and the GitHub Pages site had been announcing v1.1.20.0 for seven releases; the release script now rewrites both and the build fails if either disagrees with the version being released."
+      "version": "1.1.29.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-29-0.tar",
+      "tarSha256": "926dc87865adba943989839c4bdf7a80b43f58d7264a95cd304c6f56beafe47f",
+      "releasedAt": "2026-08-21T23:05:00Z",
+      "releaseNotes": "Multi-select on the album walls. A Select chip on Albums, Favourites, Saved for later and the Random wall lets you tick albums and then Play now, Play next, Add to queue, Shuffle play or Save for later - the album page's own options, acting on every track of every ticked album in the order you picked them."
     },
     "legacy": {
-      "version": "1.1.28.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-28-0.tar",
-      "tarSha256": "2c8145ab0088d15e28c215d4a976792e6e4731761baaef9a6d04f2b128738feb",
-      "releasedAt": "2026-08-21T21:15:00Z",
-      "releaseNotes": "Documentation only - no change to the app. README.md and the GitHub Pages site had been announcing v1.1.20.0 for seven releases; the release script now rewrites both and the build fails if either disagrees with the version being released."
+      "version": "1.1.29.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-29-0.tar",
+      "tarSha256": "926dc87865adba943989839c4bdf7a80b43f58d7264a95cd304c6f56beafe47f",
+      "releasedAt": "2026-08-21T23:05:00Z",
+      "releaseNotes": "Multi-select on the album walls. A Select chip on Albums, Favourites, Saved for later and the Random wall lets you tick albums and then Play now, Play next, Add to queue, Shuffle play or Save for later - the album page's own options, acting on every track of every ticked album in the order you picked them."
     }
   },
   "channelMetadata": {
