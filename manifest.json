@@ -29,50 +29,50 @@
   ],
   "manifestVersion": 1,
   "schema_version": 1,
-  "version": "1.1.26.0",
-  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-26-0.tar",
-  "tarSha256": "31ec5bbd44be3c5ff6296f1edbd37451129ade3438e6ccf8f4312cc98f56fc1d",
-  "releasedAt": "2026-08-21T18:05:00Z",
-  "releaseNotes": "The mini transport bar's volume control is now the same sheet as the full-screen player's, three settings buttons and all - they were two copies and only one of them had been improved since v54. The artists screen is three across with a grid/list switch; list rows show a mini logo, the name and the album count. Home is at the top of the side menu. Also fixes six safe-area insets that a padding shorthand had been silently discarding, including the side-menu header under the status bar.",
-  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-26-0.tar",
-  "tarball_sha256": "31ec5bbd44be3c5ff6296f1edbd37451129ade3438e6ccf8f4312cc98f56fc1d",
-  "released_at": "2026-08-21T18:05:00Z",
+  "version": "1.1.27.0",
+  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-27-0.tar",
+  "tarSha256": "dbcc917d0197d4ee19e6f9241a9e04d738fb7f563fc5e51c81c6d15874aafff6",
+  "releasedAt": "2026-08-21T19:30:00Z",
+  "releaseNotes": "Fixes the Albums screen and Saved for later coming up blank on v1.1.25.0 and v1.1.26.0. One line of state was deleted by accident during the saved-focus removal - it belonged to the sort sheet, not to focuses - and the reference left behind threw the moment the screen rendered. Also adds the first test in this project that actually renders every screen, because no grep could have caught it.",
+  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-27-0.tar",
+  "tarball_sha256": "dbcc917d0197d4ee19e6f9241a9e04d738fb7f563fc5e51c81c6d15874aafff6",
+  "released_at": "2026-08-21T19:30:00Z",
   "release_notes_url": "https://github.com/meltface-80/MusicD-Server-v1/blob/main/musicd/CHANGELOG.md",
   "channels": {
     "stable": {
-      "version": "1.1.26.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-26-0.tar",
-      "tarSha256": "31ec5bbd44be3c5ff6296f1edbd37451129ade3438e6ccf8f4312cc98f56fc1d",
-      "releasedAt": "2026-08-21T18:05:00Z",
-      "releaseNotes": "The mini transport bar's volume control is now the same sheet as the full-screen player's, three settings buttons and all - they were two copies and only one of them had been improved since v54. The artists screen is three across with a grid/list switch; list rows show a mini logo, the name and the album count. Home is at the top of the side menu. Also fixes six safe-area insets that a padding shorthand had been silently discarding, including the side-menu header under the status bar."
+      "version": "1.1.27.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-27-0.tar",
+      "tarSha256": "dbcc917d0197d4ee19e6f9241a9e04d738fb7f563fc5e51c81c6d15874aafff6",
+      "releasedAt": "2026-08-21T19:30:00Z",
+      "releaseNotes": "Fixes the Albums screen and Saved for later coming up blank on v1.1.25.0 and v1.1.26.0. One line of state was deleted by accident during the saved-focus removal - it belonged to the sort sheet, not to focuses - and the reference left behind threw the moment the screen rendered. Also adds the first test in this project that actually renders every screen, because no grep could have caught it."
     },
     "earlyAccess": {
-      "version": "1.1.26.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-26-0.tar",
-      "tarSha256": "31ec5bbd44be3c5ff6296f1edbd37451129ade3438e6ccf8f4312cc98f56fc1d",
-      "releasedAt": "2026-08-21T18:05:00Z",
-      "releaseNotes": "The mini transport bar's volume control is now the same sheet as the full-screen player's, three settings buttons and all - they were two copies and only one of them had been improved since v54. The artists screen is three across with a grid/list switch; list rows show a mini logo, the name and the album count. Home is at the top of the side menu. Also fixes six safe-area insets that a padding shorthand had been silently discarding, including the side-menu header under the status bar."
+      "version": "1.1.27.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-27-0.tar",
+      "tarSha256": "dbcc917d0197d4ee19e6f9241a9e04d738fb7f563fc5e51c81c6d15874aafff6",
+      "releasedAt": "2026-08-21T19:30:00Z",
+      "releaseNotes": "Fixes the Albums screen and Saved for later coming up blank on v1.1.25.0 and v1.1.26.0. One line of state was deleted by accident during the saved-focus removal - it belonged to the sort sheet, not to focuses - and the reference left behind threw the moment the screen rendered. Also adds the first test in this project that actually renders every screen, because no grep could have caught it."
     },
     "beta": {
-      "version": "1.1.26.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-26-0.tar",
-      "tarSha256": "31ec5bbd44be3c5ff6296f1edbd37451129ade3438e6ccf8f4312cc98f56fc1d",
-      "releasedAt": "2026-08-21T18:05:00Z",
-      "releaseNotes": "The mini transport bar's volume control is now the same sheet as the full-screen player's, three settings buttons and all - they were two copies and only one of them had been improved since v54. The artists screen is three across with a grid/list switch; list rows show a mini logo, the name and the album count. Home is at the top of the side menu. Also fixes six safe-area insets that a padding shorthand had been silently discarding, including the side-menu header under the status bar."
+      "version": "1.1.27.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-27-0.tar",
+      "tarSha256": "dbcc917d0197d4ee19e6f9241a9e04d738fb7f563fc5e51c81c6d15874aafff6",
+      "releasedAt": "2026-08-21T19:30:00Z",
+      "releaseNotes": "Fixes the Albums screen and Saved for later coming up blank on v1.1.25.0 and v1.1.26.0. One line of state was deleted by accident during the saved-focus removal - it belonged to the sort sheet, not to focuses - and the reference left behind threw the moment the screen rendered. Also adds the first test in this project that actually renders every screen, because no grep could have caught it."
     },
     "alpha": {
-      "version": "1.1.26.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-26-0.tar",
-      "tarSha256": "31ec5bbd44be3c5ff6296f1edbd37451129ade3438e6ccf8f4312cc98f56fc1d",
-      "releasedAt": "2026-08-21T18:05:00Z",
-      "releaseNotes": "The mini transport bar's volume control is now the same sheet as the full-screen player's, three settings buttons and all - they were two copies and only one of them had been improved since v54. The artists screen is three across with a grid/list switch; list rows show a mini logo, the name and the album count. Home is at the top of the side menu. Also fixes six safe-area insets that a padding shorthand had been silently discarding, including the side-menu header under the status bar."
+      "version": "1.1.27.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-27-0.tar",
+      "tarSha256": "dbcc917d0197d4ee19e6f9241a9e04d738fb7f563fc5e51c81c6d15874aafff6",
+      "releasedAt": "2026-08-21T19:30:00Z",
+      "releaseNotes": "Fixes the Albums screen and Saved for later coming up blank on v1.1.25.0 and v1.1.26.0. One line of state was deleted by accident during the saved-focus removal - it belonged to the sort sheet, not to focuses - and the reference left behind threw the moment the screen rendered. Also adds the first test in this project that actually renders every screen, because no grep could have caught it."
     },
     "legacy": {
-      "version": "1.1.26.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-26-0.tar",
-      "tarSha256": "31ec5bbd44be3c5ff6296f1edbd37451129ade3438e6ccf8f4312cc98f56fc1d",
-      "releasedAt": "2026-08-21T18:05:00Z",
-      "releaseNotes": "The mini transport bar's volume control is now the same sheet as the full-screen player's, three settings buttons and all - they were two copies and only one of them had been improved since v54. The artists screen is three across with a grid/list switch; list rows show a mini logo, the name and the album count. Home is at the top of the side menu. Also fixes six safe-area insets that a padding shorthand had been silently discarding, including the side-menu header under the status bar."
+      "version": "1.1.27.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-27-0.tar",
+      "tarSha256": "dbcc917d0197d4ee19e6f9241a9e04d738fb7f563fc5e51c81c6d15874aafff6",
+      "releasedAt": "2026-08-21T19:30:00Z",
+      "releaseNotes": "Fixes the Albums screen and Saved for later coming up blank on v1.1.25.0 and v1.1.26.0. One line of state was deleted by accident during the saved-focus removal - it belonged to the sort sheet, not to focuses - and the reference left behind threw the moment the screen rendered. Also adds the first test in this project that actually renders every screen, because no grep could have caught it."
     }
   },
   "channelMetadata": {

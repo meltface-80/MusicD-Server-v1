@@ -12,6 +12,51 @@ Categories used per release:
 
 ---
 
+## v1.1.27.0 — 2026-08-21 — THE BLANK ALBUMS SCREEN
+
+### Fixed
+
+- **The Albums screen and Saved for later came up blank and needed the app
+  force-quitting.** One line was missing:
+
+  ```js
+  const [sortSheetOpen, setSortSheetOpen] = useState(false)
+  ```
+
+  It is the **sort sheet's** state and has nothing to do with saved focuses —
+  but it happened to sit between two of the save handlers removed in
+  v1.1.25.0, and the splice that took them took it as well. `AlbumGrid` then
+  referenced it at four sites with nothing declaring it, which is a
+  `ReferenceError` the first time the component renders. `AlbumGrid` is both
+  the Albums screen and Saved for later, which is exactly the pair reported.
+
+  The removal script asserted that the region it deleted *contained* the save
+  handlers. It never asserted that it contained nothing else.
+
+### Tests
+
+- `screens-render.test.js` — 31 assertions, and the first test in this suite
+  that **runs** the client instead of reading it. Nothing here could have
+  caught this: every existing check is a grep, `node --check` passes because
+  the file is syntactically perfect, and `vite build` passes because an
+  undeclared identifier is not a bundling error. Only rendering finds it.
+
+  esbuild (which ships with vite) bundles a generated entry importing every
+  screen, and `renderToStaticMarkup` executes their render bodies in-process.
+  No new dependency: React, react-dom and esbuild are already there. It covers
+  sixteen screens directly and every sidebar route through `App`, and asserts
+  that every section the sidebar offers is one `App` can actually render.
+
+  Its limit is stated rather than implied: `renderToStaticMarkup` does not run
+  effects, so a screen that fetches its data renders in its loading state and
+  the JSX below that early return is not exercised. This catches a screen that
+  cannot mount — the reported failure — not every bug below the fold.
+
+  The probe carries a self-test that reproduces v1.1.25.0's failure shape, and
+  the whole file was verified red by reintroducing the real bug.
+
+---
+
 ## v1.1.26.0 — 2026-08-21 — ONE VOLUME SHEET, AND AN ARTISTS LIST
 
 ### New
