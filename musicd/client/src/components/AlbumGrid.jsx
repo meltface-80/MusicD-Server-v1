@@ -7,6 +7,10 @@ import { useStore } from '../store'
 import { api } from '../api'
 import { Heart, Shuffle, Play, Plus, SlidersHorizontal, ArrowUp, ArrowDown } from 'lucide-react'
 import { FocusBar, FocusPills, FocusModal, useFocusState, FOCUS_SECTIONS, applySectionOrder } from './Focus'
+import {
+  useAlbumSelection, runSelectionAction,
+  SelectChip, SelectionBar, SelectionSheet, SelectionTick,
+} from './AlbumSelection'
 
 const PAGE_SIZE = 200
 
@@ -279,6 +283,32 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
       setSectionOrder(previous)
     }
   }, [sectionOrder])
+
+  // v1.1.29.0 — multi-select. The state and the actions are shared with the
+  // Random-albums wall (AlbumSelection.jsx); what lives here is only where the
+  // chip and the bar sit in this screen's header.
+  const selection = useAlbumSelection()
+  const [selectionSheet, setSelectionSheet] = useState(false)
+  const [selectionBusy, setSelectionBusy] = useState(false)
+  const [selectionError, setSelectionError] = useState(null)
+
+  const runSelection = async (action) => {
+    setSelectionBusy(true)
+    setSelectionError(null)
+    const r = await runSelectionAction(action, selection.selected)
+    setSelectionBusy(false)
+    if (!r.ok) {
+      setSelectionError(
+        r.reason === 'no-renderer' ? 'Choose an output first (☰ → Output).'
+        : r.reason === 'no-tracks' ? 'Those albums have no playable tracks.'
+        : r.error || "That didn't work.")
+      return
+    }
+    // Only a success closes up: leaving the sheet open on a failure is what
+    // lets the user read why and pick something else.
+    setSelectionSheet(false)
+    selection.exit()
+  }
 
   // The sort sheet. Open/closed only — the choice itself lives in sortView.
   //
@@ -590,9 +620,21 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
         <div style={s.titleRow}>
           <h1 style={s.heading}>{heading}</h1>
         </div>
+        {/* v1.1.29.0 — while selecting, the bar takes the chip row's place.
+            Leaving the chips there would let the user re-sort or re-filter the
+            wall out from under a selection made against the old one. */}
+        {selection.selecting && (
+          <SelectionBar
+            count={selection.count}
+            busy={selectionBusy}
+            onCancel={() => { selection.exit(); setSelectionError(null) }}
+            onAct={() => { setSelectionError(null); setSelectionSheet(true) }}
+          />
+        )}
+
         {/* Action row — different content for the dedicated Favourites screen
             vs the main Albums grid. Both share the chip styling. */}
-        {favoritesOnly ? (
+        {!selection.selecting && (favoritesOnly ? (
           // Favourites screen: Play All, Queue All, and a Random favourite.
           // No "show favourites only" chip here — the page is already that.
           <div className="jp-chip-row" style={s.actionRow}>
@@ -637,6 +679,12 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
               <Shuffle size={13} />
               <span>Random</span>
             </button>
+            <SelectChip
+              selecting={selection.selecting}
+              onToggle={() => selection.enter()}
+              chipStyle={s.iconChip}
+              activeStyle={s.iconChipActive}
+            />
           </div>
         ) : (
           // Main Albums screen: pill row (#v1.1.0.30) -- the sort chip,
@@ -698,8 +746,14 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
             >
               <SlidersHorizontal size={15} />
             </button>
+            <SelectChip
+              selecting={selection.selecting}
+              onToggle={() => selection.enter()}
+              chipStyle={s.iconChip}
+              activeStyle={s.iconChipActive}
+            />
           </div>
-        )}
+        ))}
         {/* v1.1.0.71 — tag chip strip. Only rendered on the main
             Albums screen (not Favourites or Saved-for-later) when
             there's at least one user tag with album-side usage.
@@ -792,6 +846,18 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
           />
         )}
       </div>
+
+      {/* v1.1.29.0 — the multi-select action sheet. The same five actions
+          here, on Favourites, on Saved for later and on the Random wall; see
+          AlbumSelection.jsx. */}
+      {selectionSheet && (
+        <SelectionSheet
+          count={selection.count}
+          error={selectionError}
+          onClose={() => { setSelectionSheet(false); setSelectionError(null) }}
+          onPick={runSelection}
+        />
+      )}
 
       {/* v1.1.11.0 — the sort sheet. One row per sort; the active row carries
           the direction arrow and re-picking it reverses. Reuses FocusModal so
@@ -909,7 +975,13 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
               <AlbumCard
                 key={album.id}
                 album={album}
+                selecting={selection.selecting}
+                selected={selection.selected.has(album.id)}
                 onClick={() => {
+                  // While selecting, a tap picks rather than opens. Same tap
+                  // target, so there is nothing new to learn and nothing to
+                  // aim at.
+                  if (selection.selecting) { selection.toggle(album.id); return }
                   // v1.1.1.2 diagnostic — logs every album tap so we
                   // can see in the browser console whether the
                   // handler fires.
@@ -1047,7 +1119,7 @@ function FirstScanProgress({ status }) {
   )
 }
 
-function AlbumCard({ album, onClick }) {
+function AlbumCard({ album, onClick, selecting = false, selected = false }) {
   const [imgSrc, setImgSrc] = useState(null)
   const [imgErr, setImgErr] = useState(false)
   const cardRef = useRef(null)
@@ -1077,12 +1149,17 @@ function AlbumCard({ album, onClick }) {
       // index.css exists to prevent. There is no app menu behind it any
       // more; this only stops the browser one.
       onContextMenu={e => e.preventDefault()}
+      aria-pressed={selecting ? selected : undefined}
     >
-      <div style={s.artBox}>
+      <div style={{ ...s.artBox, ...(selecting && !selected ? s.artBoxDim : {}) }}>
         {imgSrc && !imgErr
           ? <img src={imgSrc} alt="" style={s.art} onError={() => setImgErr(true)} loading="lazy" draggable={false} />
           : <div style={s.artEmpty}>♫</div>
         }
+        {/* Drawn only while selecting: an empty circle on every tile the rest
+            of the time would be a permanent piece of chrome over the artwork,
+            which is what this wall is for. */}
+        {selecting && <SelectionTick on={selected} />}
       </div>
       <div style={s.cardTitle}>{album.title}</div>
       <div style={s.cardArtist}>{album.album_artist || album.artist}</div>
@@ -1239,7 +1316,9 @@ const s = {
   // fallback so the absent-art state doesn't pop out as a charcoal
   // hole in the grid, and a more generous marginBottom (8px) so
   // the title has room to breathe.
-  artBox: { width: '100%', aspectRatio: '1/1', borderRadius: 4, overflow: 'hidden', background: 'var(--jp-bg-surface)', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  artBox: {
+    // position: relative so the selection tick can sit over the artwork.
+    position: 'relative', width: '100%', aspectRatio: '1/1', borderRadius: 4, overflow: 'hidden', background: 'var(--jp-bg-surface)', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   art: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
   artEmpty: { fontSize: 24, color: 'rgba(var(--tint-rgb), 0.18)' },
   // Title 13/500 (was 11/500) — large enough to read at arm's
@@ -1273,6 +1352,10 @@ const s = {
     flexWrap: 'nowrap',
     whiteSpace: 'nowrap',
   },
+  // While selecting, tiles that are not picked step back. Opacity rather
+  // than a grey wash: a wash would tint the artwork, and telling covers
+  // apart is how the user knows what they are picking.
+  artBoxDim: { opacity: 0.45 },
   tagChip: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '5px 10px',

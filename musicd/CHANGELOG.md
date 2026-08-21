@@ -12,6 +12,60 @@ Categories used per release:
 
 ---
 
+## v1.1.29.0 — 2026-08-21 — MULTI-SELECT ON THE ALBUM WALLS
+
+### New
+
+- **Tick albums and act on the lot.** A **Select** chip on the Albums wall,
+  Favourites, Saved for later and the Random-albums wall turns on selection;
+  tapping a tile picks it instead of opening it. The action sheet carries the
+  album page's own options, in its order: **Play now**, **Play next**, **Add to
+  queue**, **Shuffle play** — plus **Save for later**, so a selection can be
+  put aside from any of those screens.
+- All five act on **every track of every ticked album, in the order the albums
+  were ticked** — not the order the database happens to return them in.
+- **`POST /api/library/albums/tracks`** — the tracks of several albums in one
+  request. Eight ticked albums is one call, not eight, and the ordering is
+  settled server-side rather than reassembled on the client for each of the
+  five actions. It carries the same pre-`album_id` fallback `/albums/:id` has,
+  so a half-migrated library cannot show an album on its detail page and then
+  queue nothing from it.
+
+### Details worth knowing
+
+- **Entry is a chip, not a long press.** The long-press menu on album
+  thumbnails was removed at the owner's request and `artwork-longpress.test.js`
+  keeps it removed; putting selection back on that gesture would reintroduce
+  exactly what was taken away. The test asserts it stays off.
+- **While selecting, the controls that would undo a selection are hidden** —
+  the wall's sort and filter chips, and the Random wall's Refresh. Re-sorting
+  or re-rolling throws away what has been ticked with no way back.
+- **Add to queue and Save for later work with no output chosen.** The three
+  that start playback are disabled with a reason rather than failing after the
+  tap.
+- **A failed action leaves the sheet open** with what went wrong, so the user
+  can read it and pick something else.
+- Save for later never fetches the tracks — it is an album-level flag, and it
+  is the action most likely to be used on a big selection. One album failing
+  does not cost the rest of them.
+
+### Tests
+
+- `album-multiselect.test.js` — 23 assertions. The endpoint is run against
+  real SQLite rather than read, because "does this ORDER BY do what I think"
+  is exactly what reading cannot settle: selection order, disc-then-track
+  order, excluded tracks, the legacy fallback, duplicates, a deleted album,
+  and the cap.
+- The client half is about the two walls sharing **one** implementation. This
+  project has paid for the alternative twice — the volume sheet and the queue
+  view each existed in two copies, and both times every improvement landed on
+  only one of them — so the checks look for the tell-tales of a fork: a second
+  copy of the action list, a second fetch, four actions wired to one store
+  call.
+- Twenty mutations proven red-then-green.
+
+---
+
 ## v1.1.28.0 — 2026-08-21 — THE DOCS SHIP WITH THE RELEASE
 
 ### Fixed
