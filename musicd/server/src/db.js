@@ -193,6 +193,13 @@ function init() {
     -- name is unique per server (single-user assumption holds for
     -- now). Hard-cap of 20 rows enforced at the route layer; the
     -- DB schema doesn't need to know about it.
+    --
+    -- v1.1.25.0 — NOTHING READS THIS ANY MORE. The Focus library screen and
+    -- the /api/library/focus/saved routes are gone; a focus combination worth
+    -- keeping is a tag. The table stays because dropping it would destroy
+    -- whatever anyone had saved and gain a schema line, and because an install
+    -- that rolls back to an earlier version would find its rows still there.
+    -- Do not add reads or writes to it: it is a tombstone, not an API.
     CREATE TABLE IF NOT EXISTS saved_focuses (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
       name        TEXT NOT NULL UNIQUE,

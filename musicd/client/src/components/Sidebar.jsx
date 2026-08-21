@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useStore } from '../store'
 import { api } from '../api'
-import { Disc3, Mic2, ListMusic, Wifi, X, Tag, Settings, Heart, AlertCircle, Bookmark, SlidersHorizontal } from 'lucide-react'
+import { Disc3, Mic2, ListMusic, Wifi, X, Tag, Settings, Heart, AlertCircle, Bookmark } from 'lucide-react'
 import RendererIcon from './RendererIcon'
 
 export default function Sidebar({ onClose }) {
@@ -9,7 +9,6 @@ export default function Sidebar({ onClose }) {
     sidebarSection, setSidebarSection,
     setSelectedAlbum, setSearchQuery,
     renderers, rendererId, setShowRenderers,
-    setShowQueue,
     // v1.1.0.68 — reset the Settings sub-section when navigating
     // away via the sidebar. Without this, opening Settings → DSP,
     // tapping the hamburger and choosing Albums, then later coming
@@ -58,10 +57,15 @@ export default function Sidebar({ onClose }) {
   }, [])
 
   // Side menu order (#30.15): Albums first, then Artists, Genres, Favourites,
-  // Queue, Settings. Home was removed because the user always lands at Home
-  // by default; tapping the MusicD logo at the top of the menu also returns
-  // to Home. The previous "Library / Output" grouping remains because the
+  // Settings. Home was removed because the user always lands at Home by
+  // default; tapping the MusicD logo at the top of the menu also returns to
+  // Home. The previous "Library / Output" grouping remains because the
   // renderer picker visually belongs in its own section.
+  //
+  // v1.1.25.0 — Queue left too. It opened a second, separate queue screen; the
+  // one behind the Now Playing screen's tab switcher is the real one, and two
+  // views of the same queue that had drifted apart in what they could do was
+  // one more than anybody needed.
   const sections = [
     { id: 'albums', label: 'Albums', icon: Disc3 },
     { id: 'artists', label: 'Artists', icon: Mic2 },
@@ -77,12 +81,6 @@ export default function Sidebar({ onClose }) {
     // the library, like the two entries around it, not an admin screen.
     { id: 'tags', label: 'Tags', icon: Tag },
     { id: 'saved', label: 'Saved for later', icon: Bookmark },
-    // v1.1.0.82 — Focus Library lists the user's saved focus
-    // combinations (e.g. "Late Night Jazz"). Tap one to open the
-    // album grid filtered by that focus's picks. Shares the
-    // funnel/sliders icon used for the Focus button itself so the
-    // visual association is obvious.
-    { id: 'focusLibrary', label: 'Focus library', icon: SlidersHorizontal },
     // v1.1.19.0 — playlists. Sits after the other saved-collection entries
     // because it belongs with them rather than with the browse-by-metadata
     // ones above.
@@ -98,11 +96,6 @@ export default function Sidebar({ onClose }) {
     // v1.1.0.68 — drop any open Settings sub-section so re-opening
     // Settings always lands on the section list.
     setSettingsSubSection(null)
-    onClose()
-  }
-
-  const handleQueue = () => {
-    setShowQueue(true)
     onClose()
   }
 
@@ -161,9 +154,6 @@ export default function Sidebar({ onClose }) {
             )}
           </React.Fragment>
         ))}
-        <button style={s.navItem} onClick={handleQueue}>
-          <ListMusic size={16} strokeWidth={1.8} /><span>Queue</span>
-        </button>
         <button style={{ ...s.navItem, ...(sidebarSection === 'settings' ? s.navItemActive : {}) }}
           onClick={handleSettings}>
           <Settings size={16} strokeWidth={1.8} /><span>Settings</span>

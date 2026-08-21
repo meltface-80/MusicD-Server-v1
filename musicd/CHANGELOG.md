@@ -12,6 +12,58 @@ Categories used per release:
 
 ---
 
+## v1.1.25.0 — 2026-08-21 — TWO SIDE-MENU ENTRIES, AND WHAT WAS BEHIND THEM
+
+### Removed
+
+- **Queue.** It opened a second, separate queue screen. The one behind the Now
+  Playing screen's tab switcher is the real one — it has the skipped-run fold,
+  the now-playing pin, the multi-select and the ⋯ actions, and the modal had
+  none of them. Gone with it: the `showQueue` store flag (one writer, one
+  reader, both in the removed path) and `QueueModal.jsx`.
+- **Focus library — and saved focuses with it.** The owner's reason for
+  removing the menu entry removes the feature: a focus combination worth
+  keeping is a tag. That matters, because this screen was the **only** place a
+  saved focus could be listed, loaded, renamed or deleted. Removing just the
+  menu row would have left the album grid's "Save as new…" and "Update X"
+  buttons writing rows that nothing could ever read again — worse broken than
+  absent. So the whole path goes:
+  - `FocusLibraryScreen.jsx` and its route;
+  - `pendingFocusToLoad` / `setPendingFocusToLoad` in the store;
+  - the album grid's save modal, save/update handlers and error toast;
+  - `loadedFocus`, `isDirty`, `serialisePicks`, `loadSaved` and `markSaved`
+    from the focus hook, and the two save buttons from the focus bar;
+  - `GET` / `POST` / `PUT` / `DELETE /api/library/focus/saved`.
+
+  The client bundle drops ~21 kB.
+
+### Kept, deliberately
+
+- **The live focus filter is untouched.** Only *saving* a combination went;
+  filtering the library by one is the feature itself. The focus bar's
+  **Reset order** button and the `/focus/section-order` routes are a different
+  feature and stay.
+- **The `saved_focuses` table still exists.** Dropping it would destroy
+  whatever anyone had saved and gain one schema line, and an install that
+  rolls back to an earlier version would find its rows still there. It is
+  marked in `db.js` as a tombstone — nothing may read or write it again.
+
+### Tests
+
+- `menu-removals.test.js` — 19 assertions. Both removals reach through the
+  sidebar, the app router, the store, a component file and (for focus) the
+  album grid, the focus hook, the focus bar and four server routes; every one
+  of those is a place a leftover can hide, so the sweep is the test. It also
+  pins what must NOT have gone: the real queue view, the live focus filter, the
+  column-order feature, and every other side-menu entry.
+- Fifteen mutations proven red-then-green. Two did not bite on the first pass
+  and are worth naming because they were the same mistake twice: both
+  assertions matched a **prefix**, so renaming
+  `/focus/section-order` → `…orderX` and `saved_focuses` → `saved_focuses_x`
+  satisfied checks on things that no longer existed. Both are anchored now.
+
+---
+
 ## v1.1.24.0 — 2026-08-21 — FOUR THEMES, AND A QUEUE MENU OF ITS OWN
 
 ### New

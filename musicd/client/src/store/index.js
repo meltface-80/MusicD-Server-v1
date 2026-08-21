@@ -192,7 +192,6 @@ export const useStore = create((set, get) => ({
   selectedAlbumId: null,
   showSignalPath: false,
   showRenderers: false,
-  showQueue: false,
   renderers: [],
   searchQuery: '',
   sidebarSection: 'home',
@@ -205,26 +204,15 @@ export const useStore = create((set, get) => ({
   // and it has to live in App because that's where the topbar is.
   settingsSubSection: null,
   serverVersion: null,
-  // v1.1.0.82 — when the user taps a saved focus on the Focus
-  // Library screen, this is set to that focus row. The Focus
-  // Library handler also flips sidebarSection to 'albums', causing
-  // App.jsx to mount AlbumGrid; AlbumGrid reads pendingFocusToLoad
-  // on mount, hydrates the picks via focus.loadSaved, and clears
-  // the pending field via setPendingFocusToLoad(null). This avoids
-  // prop-drilling the saved-focus through App.jsx's render switch.
-  pendingFocusToLoad: null,
 
   setPlayerState: (s) => set(s),
   setSelectedAlbum: (id) => set({ selectedAlbumId: id }),
   setShowSignalPath: (v) => set({ showSignalPath: v }),
   setShowRenderers: (v) => set({ showRenderers: v }),
-  setShowQueue: (v) => set({ showQueue: v }),
   setRenderers: (r) => set({ renderers: r }),
   setSearchQuery: (q) => set({ searchQuery: q }),
   setSidebarSection: (s) => set({ sidebarSection: s }),
   setSettingsSubSection: (s) => set({ settingsSubSection: s }),
-  // v1.1.0.82 — saved focus pickup (see field comment above)
-  setPendingFocusToLoad: (row) => set({ pendingFocusToLoad: row }),
   setRendererId: (id) => set({ rendererId: id }),
 
   // Focus a zone (#v1.1.0.9). Brings that zone's state into the legacy

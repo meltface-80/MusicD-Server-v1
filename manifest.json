@@ -29,50 +29,50 @@
   ],
   "manifestVersion": 1,
   "schema_version": 1,
-  "version": "1.1.24.0",
-  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-24-0.tar",
-  "tarSha256": "512a0c0f1df8d4d931e785f19a10d68ac89e63129c529c7a14e8aeee1ee66b50",
-  "releasedAt": "2026-08-21T02:40:00Z",
-  "releaseNotes": "Four themes - Dark, Light, Copper and Brass - with a new Settings > Appearance picker below Backup; the choice is stored per device. The queue screen's overflow menu now acts on a multi-selection with Play now, Play next and Clear selected from queue, and no longer shows the album links or Suggestions that belong to the Now Playing menu.",
-  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-24-0.tar",
-  "tarball_sha256": "512a0c0f1df8d4d931e785f19a10d68ac89e63129c529c7a14e8aeee1ee66b50",
-  "released_at": "2026-08-21T02:40:00Z",
+  "version": "1.1.25.0",
+  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-25-0.tar",
+  "tarSha256": "d92f8847d490981f71ad73a7329d29961eb1c6c429d65ad86f1cc611ba455dac",
+  "releasedAt": "2026-08-21T14:10:00Z",
+  "releaseNotes": "Removes two side-menu entries. Queue opened a second queue screen; the one behind the Now Playing tab switcher is the real one and has the fold, the pinning and the multi-select actions the modal never had. Focus library goes with the whole saved-focus feature - it was the only place a saved focus could be listed, loaded, renamed or deleted, so the album grid's Save buttons went too rather than write rows nothing can read. The live focus filter and the column-order reset are untouched.",
+  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-25-0.tar",
+  "tarball_sha256": "d92f8847d490981f71ad73a7329d29961eb1c6c429d65ad86f1cc611ba455dac",
+  "released_at": "2026-08-21T14:10:00Z",
   "release_notes_url": "https://github.com/meltface-80/MusicD-Server-v1/blob/main/musicd/CHANGELOG.md",
   "channels": {
     "stable": {
-      "version": "1.1.24.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-24-0.tar",
-      "tarSha256": "512a0c0f1df8d4d931e785f19a10d68ac89e63129c529c7a14e8aeee1ee66b50",
-      "releasedAt": "2026-08-21T02:40:00Z",
-      "releaseNotes": "Four themes - Dark, Light, Copper and Brass - with a new Settings > Appearance picker below Backup; the choice is stored per device. The queue screen's overflow menu now acts on a multi-selection with Play now, Play next and Clear selected from queue, and no longer shows the album links or Suggestions that belong to the Now Playing menu."
+      "version": "1.1.25.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-25-0.tar",
+      "tarSha256": "d92f8847d490981f71ad73a7329d29961eb1c6c429d65ad86f1cc611ba455dac",
+      "releasedAt": "2026-08-21T14:10:00Z",
+      "releaseNotes": "Removes two side-menu entries. Queue opened a second queue screen; the one behind the Now Playing tab switcher is the real one and has the fold, the pinning and the multi-select actions the modal never had. Focus library goes with the whole saved-focus feature - it was the only place a saved focus could be listed, loaded, renamed or deleted, so the album grid's Save buttons went too rather than write rows nothing can read. The live focus filter and the column-order reset are untouched."
     },
     "earlyAccess": {
-      "version": "1.1.24.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-24-0.tar",
-      "tarSha256": "512a0c0f1df8d4d931e785f19a10d68ac89e63129c529c7a14e8aeee1ee66b50",
-      "releasedAt": "2026-08-21T02:40:00Z",
-      "releaseNotes": "Four themes - Dark, Light, Copper and Brass - with a new Settings > Appearance picker below Backup; the choice is stored per device. The queue screen's overflow menu now acts on a multi-selection with Play now, Play next and Clear selected from queue, and no longer shows the album links or Suggestions that belong to the Now Playing menu."
+      "version": "1.1.25.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-25-0.tar",
+      "tarSha256": "d92f8847d490981f71ad73a7329d29961eb1c6c429d65ad86f1cc611ba455dac",
+      "releasedAt": "2026-08-21T14:10:00Z",
+      "releaseNotes": "Removes two side-menu entries. Queue opened a second queue screen; the one behind the Now Playing tab switcher is the real one and has the fold, the pinning and the multi-select actions the modal never had. Focus library goes with the whole saved-focus feature - it was the only place a saved focus could be listed, loaded, renamed or deleted, so the album grid's Save buttons went too rather than write rows nothing can read. The live focus filter and the column-order reset are untouched."
     },
     "beta": {
-      "version": "1.1.24.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-24-0.tar",
-      "tarSha256": "512a0c0f1df8d4d931e785f19a10d68ac89e63129c529c7a14e8aeee1ee66b50",
-      "releasedAt": "2026-08-21T02:40:00Z",
-      "releaseNotes": "Four themes - Dark, Light, Copper and Brass - with a new Settings > Appearance picker below Backup; the choice is stored per device. The queue screen's overflow menu now acts on a multi-selection with Play now, Play next and Clear selected from queue, and no longer shows the album links or Suggestions that belong to the Now Playing menu."
+      "version": "1.1.25.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-25-0.tar",
+      "tarSha256": "d92f8847d490981f71ad73a7329d29961eb1c6c429d65ad86f1cc611ba455dac",
+      "releasedAt": "2026-08-21T14:10:00Z",
+      "releaseNotes": "Removes two side-menu entries. Queue opened a second queue screen; the one behind the Now Playing tab switcher is the real one and has the fold, the pinning and the multi-select actions the modal never had. Focus library goes with the whole saved-focus feature - it was the only place a saved focus could be listed, loaded, renamed or deleted, so the album grid's Save buttons went too rather than write rows nothing can read. The live focus filter and the column-order reset are untouched."
     },
     "alpha": {
-      "version": "1.1.24.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-24-0.tar",
-      "tarSha256": "512a0c0f1df8d4d931e785f19a10d68ac89e63129c529c7a14e8aeee1ee66b50",
-      "releasedAt": "2026-08-21T02:40:00Z",
-      "releaseNotes": "Four themes - Dark, Light, Copper and Brass - with a new Settings > Appearance picker below Backup; the choice is stored per device. The queue screen's overflow menu now acts on a multi-selection with Play now, Play next and Clear selected from queue, and no longer shows the album links or Suggestions that belong to the Now Playing menu."
+      "version": "1.1.25.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-25-0.tar",
+      "tarSha256": "d92f8847d490981f71ad73a7329d29961eb1c6c429d65ad86f1cc611ba455dac",
+      "releasedAt": "2026-08-21T14:10:00Z",
+      "releaseNotes": "Removes two side-menu entries. Queue opened a second queue screen; the one behind the Now Playing tab switcher is the real one and has the fold, the pinning and the multi-select actions the modal never had. Focus library goes with the whole saved-focus feature - it was the only place a saved focus could be listed, loaded, renamed or deleted, so the album grid's Save buttons went too rather than write rows nothing can read. The live focus filter and the column-order reset are untouched."
     },
     "legacy": {
-      "version": "1.1.24.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-24-0.tar",
-      "tarSha256": "512a0c0f1df8d4d931e785f19a10d68ac89e63129c529c7a14e8aeee1ee66b50",
-      "releasedAt": "2026-08-21T02:40:00Z",
-      "releaseNotes": "Four themes - Dark, Light, Copper and Brass - with a new Settings > Appearance picker below Backup; the choice is stored per device. The queue screen's overflow menu now acts on a multi-selection with Play now, Play next and Clear selected from queue, and no longer shows the album links or Suggestions that belong to the Now Playing menu."
+      "version": "1.1.25.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-25-0.tar",
+      "tarSha256": "d92f8847d490981f71ad73a7329d29961eb1c6c429d65ad86f1cc611ba455dac",
+      "releasedAt": "2026-08-21T14:10:00Z",
+      "releaseNotes": "Removes two side-menu entries. Queue opened a second queue screen; the one behind the Now Playing tab switcher is the real one and has the fold, the pinning and the multi-select actions the modal never had. Focus library goes with the whole saved-focus feature - it was the only place a saved focus could be listed, loaded, renamed or deleted, so the album grid's Save buttons went too rather than write rows nothing can read. The live focus filter and the column-order reset are untouched."
     }
   },
   "channelMetadata": {

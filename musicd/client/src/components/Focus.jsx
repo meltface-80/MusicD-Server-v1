@@ -82,24 +82,18 @@ export function applySectionOrder(customOrder) {
 // Picks shape:
 //   { genre: { include: Set<string>, exclude: Set<string> }, ... }
 //
-// v1.1.0.82 — also tracks the currently-loaded saved focus (id +
-// the picks-snapshot at load time). Exposed via `loadedFocus` and
-// `isDirty`. Used by the Focus bar to surface "Update X" / "Save
-// as new" buttons when the user has loaded a saved focus and
-// then modified its picks.
+// v1.1.25.0 — this used to track the currently-loaded SAVED focus as well,
+// and expose a dirty flag so the bar could offer "Update X" / "Save as new".
+// Saved focuses are gone: the only screen that could list, load, rename or
+// delete one was the Focus library, and a focus combination worth keeping is
+// a tag. What is left is the live focus, which is all the album grid ever
+// reads.
 export function useFocusState() {
   const [picks, setPicks] = useState(() => {
     const init = {}
     for (const s of FOCUS_SECTIONS) init[s.key] = { include: new Set(), exclude: new Set() }
     return init
   })
-  // The currently-loaded saved focus, if any. Shape:
-  //   { id, name, picksSnapshot: serialised plain-JSON picks }
-  // The snapshot is what we compare against `picks` for the dirty
-  // check — comparing against a fresh fetch would be a network
-  // call we don't need.
-  const [loadedFocus, setLoadedFocus] = useState(null)
-
   // togglePick — primary action: tickbox in a column.
   // Adds the value to `include` if not present, removes any include/exclude
   // entry if present (so a second tap on the same row clears it).
@@ -159,70 +153,7 @@ export function useFocusState() {
       for (const s of FOCUS_SECTIONS) init[s.key] = { include: new Set(), exclude: new Set() }
       return init
     })
-    // Clearing all picks also clears any loaded saved-focus association.
-    // From the user's perspective: "I'm starting fresh, this isn't
-    // 'Late Night Jazz' anymore."
-    setLoadedFocus(null)
   }, [])
-
-  // v1.1.0.82 — serialise picks to plain JSON (Sets → arrays).
-  // The server stores this verbatim; the queryString builder is
-  // separate (URL-encodable form), this one is for persistence.
-  const serialisePicks = useCallback((picksToSerialise = picks) => {
-    const out = {}
-    for (const k of Object.keys(picksToSerialise)) {
-      out[k] = {
-        include: [...picksToSerialise[k].include],
-        exclude: [...picksToSerialise[k].exclude],
-      }
-    }
-    return out
-  }, [picks])
-
-  // v1.1.0.82 — hydrate picks from a saved focus row. Server
-  // returned arrays; we convert back to Sets so the rest of the
-  // component code (which expects Set methods) doesn't change.
-  // Unknown sub-section keys are silently dropped — that lets a
-  // saved focus from an older client survive after a future
-  // release renames a section.
-  const loadSaved = useCallback((savedRow) => {
-    if (!savedRow || !savedRow.picks) return
-    const next = {}
-    for (const s of FOCUS_SECTIONS) {
-      const sec = savedRow.picks[s.key] || { include: [], exclude: [] }
-      next[s.key] = {
-        include: new Set(sec.include || []),
-        exclude: new Set(sec.exclude || []),
-      }
-    }
-    setPicks(next)
-    setLoadedFocus({
-      id: savedRow.id,
-      name: savedRow.name,
-      // Snapshot the serialised form for dirty-check. Using JSON
-      // text keeps the comparison cheap (one stringify on read,
-      // one stringify on dirty check, one string compare).
-      picksSnapshotJson: JSON.stringify(savedRow.picks),
-    })
-  }, [])
-
-  // Mark the loaded focus as the new clean baseline (used after
-  // POST/PUT succeeds).
-  const markSaved = useCallback((savedRow) => {
-    if (!savedRow) return
-    setLoadedFocus({
-      id: savedRow.id,
-      name: savedRow.name,
-      picksSnapshotJson: JSON.stringify(savedRow.picks),
-    })
-  }, [])
-
-  // Dirty: compare current serialised picks against the snapshot
-  // taken at load time. False when no focus is loaded.
-  const isDirty = useMemo(() => {
-    if (!loadedFocus) return false
-    return JSON.stringify(serialisePicks()) !== loadedFocus.picksSnapshotJson
-  }, [loadedFocus, serialisePicks])
 
   // Query-string fragment for /api/library/albums. Keys mirror the
   // server-side parser in server/src/routes/library.js.
@@ -281,12 +212,6 @@ export function useFocusState() {
     clearAll,
     queryString,
     anyPicks,
-    // v1.1.0.82 — saved-focus integration
-    loadedFocus,
-    isDirty,
-    serialisePicks,
-    loadSaved,
-    markSaved,
   }
 }
 
@@ -618,12 +543,6 @@ export function FocusBar({
   options,
   onTogglePick,
   onClose,
-  // v1.1.0.82 — saved-focus integration
-  loadedFocus = null,
-  isDirty = false,
-  anyPicks = false,
-  onSaveAsNew = null,
-  onUpdateLoaded = null,
   // v1.1.0.83 — column reorder
   sections = FOCUS_SECTIONS,
   onReorder = null,
@@ -648,8 +567,6 @@ export function FocusBar({
     )
   }
 
-  const showUpdate = !!(loadedFocus && isDirty && onUpdateLoaded)
-  const showSaveAsNew = !!(anyPicks && onSaveAsNew)
   const showResetOrder = !!(isOrderCustomised && onResetOrder)
 
   return (
@@ -663,35 +580,15 @@ export function FocusBar({
         <X size={16} />
       </button>
 
-      {(showUpdate || showSaveAsNew || showResetOrder) && (
+      {showResetOrder && (
         <div style={S.barSaveActions}>
-          {showResetOrder && (
-            <button
-              style={S.barSaveBtn}
-              onClick={onResetOrder}
-              title="Reset column order to default"
-            >
-              Reset order
-            </button>
-          )}
-          {showUpdate && (
-            <button
-              style={{ ...S.barSaveBtn, ...S.barSaveBtnPrimary }}
-              onClick={onUpdateLoaded}
-              title={`Save your changes to "${loadedFocus.name}"`}
-            >
-              Update “{loadedFocus.name}”
-            </button>
-          )}
-          {showSaveAsNew && (
-            <button
-              style={S.barSaveBtn}
-              onClick={onSaveAsNew}
-              title="Save current picks as a new focus"
-            >
-              Save as new…
-            </button>
-          )}
+          <button
+            style={S.barSaveBtn}
+            onClick={onResetOrder}
+            title="Reset column order to default"
+          >
+            Reset order
+          </button>
         </div>
       )}
 
@@ -978,12 +875,6 @@ const S = {
     whiteSpace: 'nowrap',
     maxWidth: 180,
     overflow: 'hidden', textOverflow: 'ellipsis',
-  },
-  barSaveBtnPrimary: {
-    background: 'var(--jp-accent)',
-    color: 'var(--jp-bg)',
-    borderColor: 'var(--jp-accent)',
-    fontWeight: 600,
   },
   barColumns: {
     display: 'flex',
