@@ -65,6 +65,32 @@ function isDspEligible(rendererProtocol) {
 // applied between PEQ and FIR. clipping_indicator is computed by
 // saveProfile() based on PEQ peak + headroom + IR peaks; it's a cached
 // boolean the UI checks to flash the signal-path orb red.
+// v1.1.32.0 — volume levelling used to be three GLOBAL settings rows. It is
+// per zone now, but the columns are nullable and NULL means "this zone has
+// never been set" — which resolves to what the global said. That is what
+// makes the upgrade silent: every existing zone keeps behaving exactly as it
+// did, and diverges only when the user changes it.
+//
+// The global rows are never written again (their UI is gone), so they are
+// frozen at whatever they were and act as the seed for zones nobody has
+// touched. Lazily required: loudness pulls in a good deal and this module is
+// loaded from the streaming path.
+const VL_DEFAULTS = { vl_enabled: false, vl_mode: 'track', vl_target_lufs: -18 };
+function globalVl() {
+  try {
+    const loudness = require('../loudness');
+    return {
+      vl_enabled:     !!loudness.getSetting('vl_enabled', VL_DEFAULTS.vl_enabled),
+      vl_mode:        loudness.getSetting('vl_mode', VL_DEFAULTS.vl_mode),
+      vl_target_lufs: Number(loudness.getSetting('vl_target_lufs', VL_DEFAULTS.vl_target_lufs)),
+    };
+  } catch {
+    // Boot order or a partial install. The published defaults are the same
+    // ones the global settings fall back to, so this is the same answer.
+    return { ...VL_DEFAULTS };
+  }
+}
+
 function getProfile(rendererId) {
   const row = db.get().prepare(`
     SELECT * FROM renderer_dsp WHERE renderer_id = ?
@@ -88,6 +114,11 @@ function getProfile(rendererId) {
     crossfeed_enabled:  !!row.crossfeed_enabled,
     crossfeed_profile:  row.crossfeed_profile || null,
     autoeq_model:       row.autoeq_model || null,
+    // NULL → the frozen global. See globalVl() above.
+    vl_enabled:         row.vl_enabled == null ? globalVl().vl_enabled : !!row.vl_enabled,
+    vl_mode:            row.vl_mode == null ? globalVl().vl_mode : row.vl_mode,
+    vl_target_lufs:     row.vl_target_lufs == null
+                          ? globalVl().vl_target_lufs : Number(row.vl_target_lufs),
     updated_at:         row.updated_at || 0,
   };
 }
@@ -109,6 +140,8 @@ function defaultProfile(rendererId) {
     crossfeed_enabled:  false,
     crossfeed_profile:  null,
     autoeq_model:       null,
+    // No row at all for this renderer — the same answer as a row of NULLs.
+    ...globalVl(),
     updated_at:         0,
   };
 }
@@ -140,6 +173,20 @@ function saveProfile(rendererId, patch) {
   if (merged.headroom_db > 0)   merged.headroom_db = 0;
   if (merged.headroom_db < -12) merged.headroom_db = -12;
 
+  // Same treatment for the levelling target: the slider publishes -23..-14,
+  // and a malformed client must not be able to ask for a gain the encoder
+  // then has to clip away.
+  let lufs = Number(merged.vl_target_lufs);
+  if (!Number.isFinite(lufs)) lufs = -18;
+  if (lufs > -14) lufs = -14;
+  if (lufs < -23) lufs = -23;
+  merged.vl_target_lufs = lufs;
+  // Normalise the MERGED value, not just the bind below: the caller gets this
+  // object back and renders from it, so writing 'track' while returning
+  // 'nonsense' would leave the UI showing a mode the database does not hold.
+  merged.vl_mode = merged.vl_mode === 'album' ? 'album' : 'track';
+  merged.vl_enabled = !!merged.vl_enabled;
+
   // Predict clipping. Reads the per-IR peak metadata we cached at
   // upload time; if no IRs are loaded for this renderer, the worst-IR
   // peak is 0 (no boost) and the indicator is just driven by PEQ.
@@ -167,8 +214,9 @@ function saveProfile(rendererId, patch) {
       renderer_id, master_enabled, peq_enabled, peq_filters, peq_preamp_db,
       headroom_enabled, headroom_db, clipping_indicator,
       conv_enabled, conv_irs, conv_dry_db, conv_wet_db,
-      crossfeed_enabled, crossfeed_profile, autoeq_model, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch())
+      crossfeed_enabled, crossfeed_profile, autoeq_model,
+      vl_enabled, vl_mode, vl_target_lufs, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch())
     ON CONFLICT(renderer_id) DO UPDATE SET
       master_enabled     = excluded.master_enabled,
       peq_enabled        = excluded.peq_enabled,
@@ -184,6 +232,9 @@ function saveProfile(rendererId, patch) {
       crossfeed_enabled  = excluded.crossfeed_enabled,
       crossfeed_profile  = excluded.crossfeed_profile,
       autoeq_model       = excluded.autoeq_model,
+      vl_enabled         = excluded.vl_enabled,
+      vl_mode            = excluded.vl_mode,
+      vl_target_lufs     = excluded.vl_target_lufs,
       updated_at         = unixepoch()
   `).run(
     merged.renderer_id,
@@ -201,6 +252,13 @@ function saveProfile(rendererId, patch) {
     merged.crossfeed_enabled ? 1 : 0,
     merged.crossfeed_profile,
     merged.autoeq_model,
+    // Written explicitly from here on: the first save of any DSP setting on a
+    // zone pins its levelling too, at whatever it was already resolving to.
+    // That is deliberate — a zone the user has configured should not later
+    // shift because a global they cannot see changed.
+    merged.vl_enabled ? 1 : 0,
+    merged.vl_mode,
+    merged.vl_target_lufs,
   );
   return merged;
 }

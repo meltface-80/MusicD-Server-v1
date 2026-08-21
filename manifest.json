@@ -29,50 +29,50 @@
   ],
   "manifestVersion": 1,
   "schema_version": 1,
-  "version": "1.1.31.0",
-  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-31-0.tar",
-  "tarSha256": "32493e62e2671d5946b97c77eb6c66c2e24904acb03035b34affd4ca6c242756",
-  "releasedAt": "2026-08-22T02:20:00Z",
-  "releaseNotes": "The heart chip leaves the album wall's top row and becomes a Focus section of its own - Favourites and Not favourites, ticking like every other column and combining with genre, decade or format. Four chips fit where five had to scroll. Your place in the wall is still kept when you open an album and come back, and Random still picks a favourite when favourites are the filter.",
-  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-31-0.tar",
-  "tarball_sha256": "32493e62e2671d5946b97c77eb6c66c2e24904acb03035b34affd4ca6c242756",
-  "released_at": "2026-08-22T02:20:00Z",
+  "version": "1.1.32.0",
+  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-32-0.tar",
+  "tarSha256": "7725efac9fc098b68d97bf14087f3d95e7af4dd815662fd6ed759d326efe66f2",
+  "releasedAt": "2026-08-22T05:40:00Z",
+  "releaseNotes": "The DSP page is now one category per heading with its switch on the right - on opens it, off folds it away - with the zone picker at the top and AutoEQ moved in at the bottom. Volume levelling is per zone rather than one global setting applied to every zone at once; nothing changes when you update until you change a zone yourself.",
+  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-32-0.tar",
+  "tarball_sha256": "7725efac9fc098b68d97bf14087f3d95e7af4dd815662fd6ed759d326efe66f2",
+  "released_at": "2026-08-22T05:40:00Z",
   "release_notes_url": "https://github.com/meltface-80/MusicD-Server-v1/blob/main/musicd/CHANGELOG.md",
   "channels": {
     "stable": {
-      "version": "1.1.31.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-31-0.tar",
-      "tarSha256": "32493e62e2671d5946b97c77eb6c66c2e24904acb03035b34affd4ca6c242756",
-      "releasedAt": "2026-08-22T02:20:00Z",
-      "releaseNotes": "The heart chip leaves the album wall's top row and becomes a Focus section of its own - Favourites and Not favourites, ticking like every other column and combining with genre, decade or format. Four chips fit where five had to scroll. Your place in the wall is still kept when you open an album and come back, and Random still picks a favourite when favourites are the filter."
+      "version": "1.1.32.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-32-0.tar",
+      "tarSha256": "7725efac9fc098b68d97bf14087f3d95e7af4dd815662fd6ed759d326efe66f2",
+      "releasedAt": "2026-08-22T05:40:00Z",
+      "releaseNotes": "The DSP page is now one category per heading with its switch on the right - on opens it, off folds it away - with the zone picker at the top and AutoEQ moved in at the bottom. Volume levelling is per zone rather than one global setting applied to every zone at once; nothing changes when you update until you change a zone yourself."
     },
     "earlyAccess": {
-      "version": "1.1.31.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-31-0.tar",
-      "tarSha256": "32493e62e2671d5946b97c77eb6c66c2e24904acb03035b34affd4ca6c242756",
-      "releasedAt": "2026-08-22T02:20:00Z",
-      "releaseNotes": "The heart chip leaves the album wall's top row and becomes a Focus section of its own - Favourites and Not favourites, ticking like every other column and combining with genre, decade or format. Four chips fit where five had to scroll. Your place in the wall is still kept when you open an album and come back, and Random still picks a favourite when favourites are the filter."
+      "version": "1.1.32.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-32-0.tar",
+      "tarSha256": "7725efac9fc098b68d97bf14087f3d95e7af4dd815662fd6ed759d326efe66f2",
+      "releasedAt": "2026-08-22T05:40:00Z",
+      "releaseNotes": "The DSP page is now one category per heading with its switch on the right - on opens it, off folds it away - with the zone picker at the top and AutoEQ moved in at the bottom. Volume levelling is per zone rather than one global setting applied to every zone at once; nothing changes when you update until you change a zone yourself."
     },
     "beta": {
-      "version": "1.1.31.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-31-0.tar",
-      "tarSha256": "32493e62e2671d5946b97c77eb6c66c2e24904acb03035b34affd4ca6c242756",
-      "releasedAt": "2026-08-22T02:20:00Z",
-      "releaseNotes": "The heart chip leaves the album wall's top row and becomes a Focus section of its own - Favourites and Not favourites, ticking like every other column and combining with genre, decade or format. Four chips fit where five had to scroll. Your place in the wall is still kept when you open an album and come back, and Random still picks a favourite when favourites are the filter."
+      "version": "1.1.32.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-32-0.tar",
+      "tarSha256": "7725efac9fc098b68d97bf14087f3d95e7af4dd815662fd6ed759d326efe66f2",
+      "releasedAt": "2026-08-22T05:40:00Z",
+      "releaseNotes": "The DSP page is now one category per heading with its switch on the right - on opens it, off folds it away - with the zone picker at the top and AutoEQ moved in at the bottom. Volume levelling is per zone rather than one global setting applied to every zone at once; nothing changes when you update until you change a zone yourself."
     },
     "alpha": {
-      "version": "1.1.31.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-31-0.tar",
-      "tarSha256": "32493e62e2671d5946b97c77eb6c66c2e24904acb03035b34affd4ca6c242756",
-      "releasedAt": "2026-08-22T02:20:00Z",
-      "releaseNotes": "The heart chip leaves the album wall's top row and becomes a Focus section of its own - Favourites and Not favourites, ticking like every other column and combining with genre, decade or format. Four chips fit where five had to scroll. Your place in the wall is still kept when you open an album and come back, and Random still picks a favourite when favourites are the filter."
+      "version": "1.1.32.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-32-0.tar",
+      "tarSha256": "7725efac9fc098b68d97bf14087f3d95e7af4dd815662fd6ed759d326efe66f2",
+      "releasedAt": "2026-08-22T05:40:00Z",
+      "releaseNotes": "The DSP page is now one category per heading with its switch on the right - on opens it, off folds it away - with the zone picker at the top and AutoEQ moved in at the bottom. Volume levelling is per zone rather than one global setting applied to every zone at once; nothing changes when you update until you change a zone yourself."
     },
     "legacy": {
-      "version": "1.1.31.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-31-0.tar",
-      "tarSha256": "32493e62e2671d5946b97c77eb6c66c2e24904acb03035b34affd4ca6c242756",
-      "releasedAt": "2026-08-22T02:20:00Z",
-      "releaseNotes": "The heart chip leaves the album wall's top row and becomes a Focus section of its own - Favourites and Not favourites, ticking like every other column and combining with genre, decade or format. Four chips fit where five had to scroll. Your place in the wall is still kept when you open an album and come back, and Random still picks a favourite when favourites are the filter."
+      "version": "1.1.32.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-32-0.tar",
+      "tarSha256": "7725efac9fc098b68d97bf14087f3d95e7af4dd815662fd6ed759d326efe66f2",
+      "releasedAt": "2026-08-22T05:40:00Z",
+      "releaseNotes": "The DSP page is now one category per heading with its switch on the right - on opens it, off folds it away - with the zone picker at the top and AutoEQ moved in at the bottom. Volume levelling is per zone rather than one global setting applied to every zone at once; nothing changes when you update until you change a zone yourself."
     }
   },
   "channelMetadata": {

@@ -13,7 +13,7 @@ import HelpTooltip from './HelpTooltip'
 // under the 96 kHz slot the server rejects it (rate mismatch); we surface
 // that error inline. This protects against the silent-stretch failure mode
 // that ruins room correction.
-export default function FirSection({ rendererId, profile, onProfileChange }) {
+export default function FirSection({ rendererId, profile, onProfileChange, enabled = false }) {
   // Default sample-rate list used when no renderer is selected, when
   // the renderer has no FIR data yet, or when the API call fails for
   // any reason. v1.1.3.1: previously the default lived only inside
@@ -36,7 +36,12 @@ export default function FirSection({ rendererId, profile, onProfileChange }) {
   // Local edit state for the dry/wet/enable controls — saved with the
   // shared "Save FIR" button at the bottom. dryDb default of -120 means
   // "no dry signal at all" (full wet, normal for correction filters).
-  const [enabled, setEnabled] = useState(false)
+  // v1.1.32.0 — `enabled` is a PROP now, not draft state with a checkbox in
+  // this body. The switch lives on the section's heading and writes straight
+  // through, because a toggle that collapses its own section would otherwise
+  // hide the Save button needed to commit it. This section no longer sends
+  // conv_enabled at all: saveProfile merges a patch, so leaving the key out is what
+  // keeps the heading's value authoritative.
   const [dryDb, setDryDb] = useState(-120)
   const [wetDb, setWetDb] = useState(0)
   const [saving, setSaving] = useState(false)
@@ -87,7 +92,6 @@ export default function FirSection({ rendererId, profile, onProfileChange }) {
   // Sync local edit state from the loaded profile
   useEffect(() => {
     if (!profile) return
-    setEnabled(!!profile.conv_enabled)
     setDryDb(profile.conv_dry_db ?? -120)
     setWetDb(profile.conv_wet_db ?? 0)
   }, [profile])
@@ -161,7 +165,6 @@ export default function FirSection({ rendererId, profile, onProfileChange }) {
     setSaving(true)
     try {
       const r = await api.put(`/dsp/profile/${encodeURIComponent(rendererId)}`, {
-        conv_enabled: enabled,
         conv_dry_db: dryDb,
         conv_wet_db: wetDb,
       })
@@ -172,8 +175,7 @@ export default function FirSection({ rendererId, profile, onProfileChange }) {
   }
 
   const dirty = profile && (
-    enabled !== !!profile.conv_enabled
-    || Math.abs(dryDb - (profile.conv_dry_db ?? -120)) > 0.001
+    Math.abs(dryDb - (profile.conv_dry_db ?? -120)) > 0.001
     || Math.abs(wetDb - (profile.conv_wet_db ?? 0)) > 0.001
   )
 
@@ -295,17 +297,6 @@ export default function FirSection({ rendererId, profile, onProfileChange }) {
       </div>
 
       {/* Convolution master + dry/wet */}
-      <div style={s.row}>
-        <label style={s.label}>
-          <input type="checkbox"
-            checked={enabled}
-            onChange={e => setEnabled(e.target.checked)}
-            style={s.checkbox}
-            disabled={populatedCount === 0}
-          />
-          <span>Enable convolution</span>
-        </label>
-      </div>
 
       <div style={s.row}>
         <label style={s.subLabel}>Dry signal</label>

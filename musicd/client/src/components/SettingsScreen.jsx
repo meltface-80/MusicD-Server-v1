@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useStore } from '../store'
 import { api } from '../api'
-import { Volume2, Play, Square, Download, RefreshCw, ChevronRight, ChevronLeft, User, Sliders, Headphones, Folder, Save, Image as ImageIcon, Radio, LogOut, Cable, Key, Home, Power, Cpu, Palette } from 'lucide-react'
+import { Volume2, Play, Square, Download, RefreshCw, ChevronRight, ChevronLeft, User, Sliders, Folder, Save, Image as ImageIcon, Radio, LogOut, Cable, Key, Home, Power, Cpu, Palette } from 'lucide-react'
 import DspTab from './DspTab'
-import AutoEqTab from './AutoEqTab'
 import LibraryScopeSection from './LibraryScopeSection'
 import HelpTooltip from './HelpTooltip'
 import {
@@ -545,7 +544,6 @@ export default function SettingsScreen({ onBack }) {
     { id: 'home',       title: 'Home Screen',      icon: <Home size={14} style={{ marginRight: 8 }} /> },
     { id: 'audio',      title: 'Audio Devices',    icon: <Cable size={14} style={{ marginRight: 8 }} /> },
     { id: 'dsp',        title: 'DSP',              icon: <Sliders size={14} style={{ marginRight: 8 }} /> },
-    { id: 'autoeq',     title: 'AutoEQ',           icon: <Headphones size={14} style={{ marginRight: 8 }} /> },
     { id: 'metadata',   title: 'Metadata',         icon: <User size={14} style={{ marginRight: 8 }} /> },
     { id: 'scrobbling', title: 'LastFM Scrobbler', icon: <Radio size={14} style={{ marginRight: 8 }} /> },
     { id: 'backup',     title: 'Backup',           icon: <Save size={14} style={{ marginRight: 8 }} /> },
@@ -645,49 +643,11 @@ export default function SettingsScreen({ onBack }) {
 
       <Section id="dsp" title="DSP" icon={<Sliders size={14} style={{ marginRight: 8 }} />} openSection={openSection} setOpenSection={setOpenSection}>
 
-        {/* Volume-levelling settings (#v1.1.0.27). Moved here from the
-            standalone Volume Levelling section, which has been retired.
-            The scanner that processes track tags lives on the Metadata
-            screen now -- it's a library operation. The toggle, mode,
-            and target LUFS are signal-processing concerns, so they
-            sit at the top of DSP, above the per-renderer DSP tab. */}
-        <div style={s.subSectionTitle}>Volume levelling</div>
-        <Row label="Enable">
-          <Toggle on={settings.vl_enabled} onChange={v => update('vl_enabled', v)} />
-        </Row>
-        <Row label="Gain mode">
-          <div style={s.segControl}>
-            {['track', 'album'].map(m => (
-              <button
-                key={m}
-                style={{ ...s.segBtn, ...(settings.vl_mode === m ? s.segBtnActive : {}) }}
-                onClick={() => update('vl_mode', m)}
-              >
-                {m === 'track' ? 'Track' : 'Album'}
-              </button>
-            ))}
-          </div>
-        </Row>
-        <Row label="Target LUFS">
-          <div style={s.targetRow}>
-            <input type="range" min="-23" max="-14" step="1" value={settings.vl_target_lufs}
-              onChange={e => update('vl_target_lufs', parseInt(e.target.value))}
-              style={s.slider} />
-            <span style={s.valLabel}>{settings.vl_target_lufs} LUFS</span>
-          </div>
-        </Row>
-        <div style={s.helpRow}>
-          <HelpTooltip>
-          Album mode preserves relative track dynamics within an album; Track mode normalises each track independently. To populate the database with loudness values, run the scan in <strong>Settings → Metadata</strong>.
-          </HelpTooltip>
-        </div>
-        <div style={{ ...s.divider, margin: '14px 0 10px' }} />
-
+        {/* v1.1.32.0 — volume levelling used to sit here, above DspTab, as
+            three GLOBAL settings applied to every zone at once. It is per zone
+            now and lives inside DspTab with the rest of that zone's chain.
+            See renderer_dsp in db.js. */}
         <DspTab />
-      </Section>
-
-      <Section id="autoeq" title="AutoEQ" icon={<Headphones size={14} style={{ marginRight: 8 }} />} openSection={openSection} setOpenSection={setOpenSection}>
-        <AutoEqTab />
       </Section>
 
       <Section id="metadata" title="Metadata" icon={<User size={14} style={{ marginRight: 8 }} />} openSection={openSection} setOpenSection={setOpenSection}>

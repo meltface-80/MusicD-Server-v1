@@ -55,6 +55,8 @@ const SCREENS = [
   ['TagsScreen',               './components/TagsScreen.jsx',         '{}'],
   ['UnmatchedScreen',          './components/UnmatchedScreen.jsx',    '{}'],
   ['SettingsScreen',           './components/SettingsScreen.jsx',     '{ onBack: () => {} }'],
+  ['DspTab',                   './components/DspTab.jsx',             '{}'],
+  ['AutoEqTab (in DSP page)',  './components/AutoEqTab.jsx',          "{ rendererId: 'r1' }"],
   ['Sidebar',                  './components/Sidebar.jsx',            '{ onClose: () => {} }'],
   ['NowPlaying',               './components/NowPlaying.jsx',         '{}'],
   ['VolumeSheet',              './components/VolumeSheet.jsx',        '{ onClose: () => {} }'],
@@ -90,6 +92,13 @@ async function bundle() {
      '{ count: 3, onCancel: () => {}, onAct: () => {} }'],
     ['SelectionSheet', 'AlbumSelection.jsx', 'SelectionSheet',
      '{ count: 3, onClose: () => {}, onPick: () => {} }'],
+    // v1.1.32.0 — a DSP category with its body open. Every category is
+    // collapsed until its switch is on, so the default render of the DSP page
+    // reaches none of their bodies: exactly the blind spot the queue tab had.
+    ['DSP Category (open)', 'DspTab.jsx', 'Category',
+     "{ title: 'T', on: true, onToggle: () => {}, children: null }"],
+    ['DSP Category (shut)', 'DspTab.jsx', 'Category',
+     "{ title: 'T', on: false, onToggle: () => {}, children: null }"],
   ];
 
   // One throwaway copy per file, with `export` added to the inner components

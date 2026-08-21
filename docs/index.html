@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MusicD Server v1 — self-hosted music server</title>
-<meta name="description" content="MusicD Server v1.1.31.0 — a self-hosted music server with a Roon-inspired web UI, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
+<meta name="description" content="MusicD Server v1.1.32.0 — a self-hosted music server with a Roon-inspired web UI, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
 <style>
   :root {
     --bg:        #1b1d1f;   /* charcoal */
@@ -263,7 +263,7 @@
   presets, FIR convolution and a per-stream signal path you can actually
   read.</p>
   <div class="badges">
-    <span class="badge">v1.1.31.0</span>
+    <span class="badge">v1.1.32.0</span>
     <span class="badge">Node 20 &middot; Express &middot; SQLite</span>
     <span class="badge">React SPA &middot; PWA</span>
     <span class="badge plain">Docker &middot; port 32700</span>
@@ -275,11 +275,41 @@
 
 <section id="whats-new" aria-labelledby="whats-new-h">
   <div class="wrap">
-    <h2 id="whats-new-h">What&rsquo;s new in 1.1.31.0</h2>
-    <p class="lead">Favourites moves into Focus and the album wall's top row
-    fits again &mdash; and below it, album multi-select, four themes and a Home
-    screen you choose the shape of.</p>
+    <h2 id="whats-new-h">What&rsquo;s new in 1.1.32.0</h2>
+    <p class="lead">A DSP page you can actually read, with levelling set per
+    zone &mdash; and below it, album multi-select, four themes and a Home screen
+    you choose the shape of.</p>
     <div class="grid">
+
+      <div class="card new">
+        <span class="tagline">Changed</span>
+        <h3><span class="em" aria-hidden="true">&#127914;</span>The DSP page, tidied</h3>
+        <p>Every category &mdash; <b>Volume levelling</b>, <b>Headroom</b>,
+        <b>FIR Convolution</b>, <b>Parametric EQ</b> and <b>AutoEQ</b> &mdash;
+        is a heading with its switch on the right. Switch one on and it opens;
+        switch it off and it folds away, so the page shows what you are using
+        rather than everything at once. The zone picker sits at the top, above
+        everything it governs.</p>
+        <p><b>AutoEQ has moved onto this page</b>, at the bottom. It always
+        edited a zone's EQ, so it belongs with the rest of that zone's chain
+        &mdash; and it no longer carries a second zone picker that could point
+        somewhere other than the EQ it was about to overwrite. Loading a preset
+        now refreshes the Parametric EQ section above it, which used to keep
+        drawing the curve the preset had just replaced.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">Changed</span>
+        <h3><span class="em" aria-hidden="true">&#128266;</span>Volume levelling is per zone</h3>
+        <p>It was one setting applied to every zone at once, sitting on the
+        Settings page above everything that was already per zone. It is part of
+        each zone's DSP now, with its own category at the top of the page.</p>
+        <p><b>Nothing changes when you update.</b> Every zone carries on doing
+        exactly what it did until you change one of them &mdash; and it works on
+        Sonos too, which bypasses the EQ but can still be levelled, because
+        levelling is a gain applied before the encoder rather than part of the
+        filter chain.</p>
+      </div>
 
       <div class="card new">
         <span class="tagline">Changed</span>
@@ -432,31 +462,6 @@
         <p>All four are off on a new install, and off means off &mdash; not
         fetched-and-hidden. With nothing enabled the server makes no request to
         any of those sites and schedules no background refresh at all.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">Fixed</span>
-        <h3><span class="em" aria-hidden="true">&#127925;</span>Bandcamp releases show their own covers</h3>
-        <p>Every new release from Bandcamp Daily showed the same artwork
-        &mdash; the article&rsquo;s header image, handed to all of them &mdash;
-        with titles and artists to match: a Patsy Cline record credited to
-        &ldquo;Cleopatrarecords&rdquo;.</p>
-        <p>Each release is now looked up on its own Bandcamp page, so the row
-        shows the real cover, title and artist, and anything that cannot be
-        identified is left out rather than guessed at.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">Changed</span>
-        <h3><span class="em" aria-hidden="true">&#8597;</span>The album wall&rsquo;s sort suite</h3>
-        <p>One chip opens a sheet with <b>Album name</b>, <b>Artist</b>,
-        <b>Release year</b>, <b>Recently added</b>, <b>Most played</b>,
-        <b>Last played</b> and <b>Random</b>. Picking the sort you are already
-        on reverses it; picking Random again reshuffles.</p>
-        <p>Each list keeps its own sort, and the choice is written down the
-        moment you change it &mdash; iOS discards a backgrounded web app
-        without warning, and a tidy-up-on-close handler is exactly what does
-        not run when that happens.</p>
       </div>
 
     </div>
@@ -843,7 +848,7 @@
       <code>-e MUSICD_MANIFEST_URL=https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json</code>
       to your <code>docker run</code>, restart, then <b>Check for updates</b>.
       The older parser understands this manifest, so it installs normally. Drop
-      the variable afterwards &mdash; v1.1.31.0 has the same URL as its own
+      the variable afterwards &mdash; v1.1.32.0 has the same URL as its own
       default.
     </div>
   </div>
@@ -916,7 +921,7 @@
 </main>
 
 <footer>
-  MusicD Server v1.1.31.0 &mdash; self-hosted music, one user, one library, one home network.
+  MusicD Server v1.1.32.0 &mdash; self-hosted music, one user, one library, one home network.
   <br>MIT licence &middot; <a href="https://github.com/meltface-80/MusicD-Server-v1">Source on GitHub</a>
 </footer>
 
