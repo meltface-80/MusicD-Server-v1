@@ -477,7 +477,11 @@ img {
  */
 .jp-artist-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* v1.1.26.0 — three on a phone, not two. Two gave each avatar a lot of
+     presence and put very few artists on screen; three matches .album-grid
+     above, so the two library walls read as the same app. The larger
+     breakpoints are unchanged. */
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
 @media (min-width: 600px) {

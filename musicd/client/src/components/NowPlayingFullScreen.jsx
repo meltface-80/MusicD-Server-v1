@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
 import { useStore } from '../store'
 import { api } from '../api'
-import { ChevronLeft, Play, Pause, SkipBack, SkipForward, ChevronDown, Trash2, Speaker, Check, Music, ListMusic, Sliders, Cast, Settings, X, Plus, Minus, Volume2, Share2, MoreHorizontal, Heart, Disc, User, Tag, Bookmark, Star, Sparkles, SkipForward as SkipIcon, ChevronRight } from 'lucide-react'
+import { ChevronLeft, Play, Pause, SkipBack, SkipForward, ChevronDown, Trash2, Check, Music, ListMusic, X, Share2, MoreHorizontal, Heart, Disc, User, Tag, Bookmark, Star, Sparkles, SkipForward as SkipIcon, ChevronRight } from 'lucide-react'
 import RendererModal from './RendererModal'
+import VolumeSheet from './VolumeSheet'
 import TagPicker from './TagPicker'
 import AddToPlaylistSheet from './AddToPlaylistSheet'
 import { foldSkippedRuns, playNextTarget } from '../queueFold'
@@ -11,8 +12,6 @@ import { cornerRect, isLightSample } from '../artLuminance'
 // inside the component bodies. Vite doesn't provide require() in the
 // browser bundle, so the v55 in-function requires threw at runtime
 // and the overlays never opened.
-import DspTab from './DspTab'
-import { DeviceSettingsPage } from './AudioSection'
 // v57: pull FormatBadge from AlbumDetail (named export added in v57)
 // so the format strip under the transport row uses the same visual
 // language as the per-track rows in the album view.
@@ -22,11 +21,6 @@ function fmtTime(s) {
   if (!s || s < 0) return '0:00'
   return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
 }
-
-// v1.1.3.8 — step used by the − / + volume buttons beside the slider.
-// One increment per tap: these are for fine adjustment, and the slider
-// is already there for coarse moves.
-const VOLUME_STEP = 1
 
 function pathOrbColor(signalPath) {
   if (!signalPath || signalPath.length === 0) return '#444'
@@ -49,7 +43,7 @@ function pathClipping(signalPath) {
 export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, onAlbumClick, onGenreClick }) {
   const {
     playerStatus, currentTrack, queue, queueIndex,
-    position, displayPosition, renderers, rendererId, volume, outputMode, signalPath,
+    position, displayPosition, renderers, rendererId, signalPath,
     setPlayerState, setShowSignalPath,
     playNext, playPrev,
   } = useStore()
@@ -98,8 +92,9 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
   const [showRendererLocal, setShowRendererLocal] = useState(false)
   // v54: DSP overlay + device-settings overlay both open over NowPlaying
   // and close back to it. Triggered from the volume popover icon row.
-  const [showDsp, setShowDsp] = useState(false)
-  const [showDeviceSettings, setShowDeviceSettings] = useState(false)
+  // v1.1.26.0 — DSP and device settings moved into VolumeSheet, which owns
+  // them for both bars. All this screen needs is to know when one is up.
+  const [volumeOverlayOpen, setVolumeOverlayOpen] = useState(false)
   // v57: ⋯ overflow menu (top-right). Opens a small dropdown with
   // track-context actions.
   //
@@ -127,7 +122,7 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
   // don't fight for the gesture.
   const screenTouchRef = useRef({ x: 0, y: 0, t: 0, active: false })
   const onScreenTouchStart = (e) => {
-    if (showVolume || showRendererLocal || showDsp || showDeviceSettings || showOverflow || shareCard) {
+    if (showVolume || showRendererLocal || volumeOverlayOpen || showOverflow || shareCard) {
       screenTouchRef.current.active = false
       return
     }
@@ -180,21 +175,6 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
   // listening session (Psychedelic Furs / Come All Ye Faithful).
   const orbClipping = pathClipping(signalPath) && playerStatus === 'playing'
 
-  const handleVolume = async (val) => {
-    setPlayerState({ volume: val })
-    try { await api.post('/player/volume', { rendererId, volume: val }) } catch {}
-  }
-
-  // v1.1.3.8 — discrete volume steps for the − / + buttons beside the
-  // slider. Routed through handleVolume so the optimistic store update
-  // and the POST stay in one place, and clamped to the same 0–100
-  // range the slider enforces. Bails when already at a rail so a tap
-  // on a disabled rail can't fire a pointless request.
-  const handleVolumeStep = (delta) => {
-    const next = Math.max(0, Math.min(100, volume + delta))
-    if (next === volume) return
-    handleVolume(next)
-  }
 
   // v1.1.3.8 — share the current track as a card. The server renders
   // the PNG for whatever is playing right now, so there's nothing to
@@ -247,89 +227,15 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
         <div style={{ ...s.bgWash, backgroundImage: `url(/api/library/tracks/${currentTrack.id}/cover)` }} />
       )}
 
-      {/* Volume popup — overlays this screen only */}
+      {/* Volume sheet. Shared with the mini transport bar since v1.1.26.0 —
+          see VolumeSheet.jsx. It owns the three destinations behind its icon
+          row, and tells us when one is up so the queue swipe stays suppressed
+          while something is stacked over this screen. */}
       {showVolume && (
-        <div style={s.volOverlay} onClick={() => setShowVolume(false)}>
-          <div style={s.volPopup} onClick={e => e.stopPropagation()}>
-            {/* Icon row above the slider (#v1.1.0.54). Three actions:
-                DSP shortcut, switch-output device, device-settings cog.
-                Each closes the volume popover when used so the user
-                isn't left with two overlays stacked. */}
-            <div style={s.volIconRow}>
-              <button
-                style={s.volIconBtn}
-                onClick={() => { setShowVolume(false); setShowDsp(true); }}
-                title="DSP settings"
-                aria-label="Open DSP settings"
-              >
-                <Sliders size={18} />
-                <span style={s.volIconLabel}>DSP</span>
-              </button>
-              <button
-                style={s.volIconBtn}
-                onClick={() => { setShowVolume(false); setShowRendererLocal(true); }}
-                title="Switch output device"
-                aria-label="Switch output device"
-              >
-                <Cast size={18} />
-                <span style={s.volIconLabel}>Switch</span>
-              </button>
-              <button
-                style={s.volIconBtn}
-                onClick={() => { setShowVolume(false); setShowDeviceSettings(true); }}
-                title="Audio device settings"
-                aria-label="Audio device settings"
-              >
-                <Settings size={18} />
-                <span style={s.volIconLabel}>Device</span>
-              </button>
-            </div>
-
-            {/* Volume slider — only shown when the renderer's output
-                is variable. Fixed-output devices show a static label
-                instead so the user understands the popover is still
-                useful for the icon row even though the slider is
-                inert. */}
-            {outputMode !== 'fixed' ? (
-              <div style={s.volSliderWrap}>
-                <Volume2 size={16} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
-                <input
-                  type="range" min={0} max={100} value={volume}
-                  onChange={e => handleVolume(Number(e.target.value))}
-                  style={s.volSlider}
-                />
-                <span style={s.volMax}>{volume}</span>
-                {/* v1.1.3.8 — discrete − / + steps at the right end of
-                    the row, for people who'd rather tap than drag. Bound
-                    to onClick only (no touch handlers) so one tap fires
-                    exactly once and nothing races the slider's own drag,
-                    which is left completely untouched. */}
-                <div style={s.volStepGroup}>
-                  <button
-                    style={{ ...s.volStepBtn, opacity: volume > 0 ? 1 : 0.3 }}
-                    onClick={() => handleVolumeStep(-VOLUME_STEP)}
-                    disabled={volume <= 0}
-                    title="Volume down"
-                    aria-label="Volume down"
-                  >
-                    <Minus size={16} />
-                  </button>
-                  <button
-                    style={{ ...s.volStepBtn, opacity: volume < 100 ? 1 : 0.3 }}
-                    onClick={() => handleVolumeStep(VOLUME_STEP)}
-                    disabled={volume >= 100}
-                    title="Volume up"
-                    aria-label="Volume up"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div style={s.volFixedLabel}>Fixed Output</div>
-            )}
-          </div>
-        </div>
+        <VolumeSheet
+          onClose={() => setShowVolume(false)}
+          onOverlayChange={setVolumeOverlayOpen}
+        />
       )}
 
       {/* v1.1.3.8 — share-card sheet. Bottom sheet with the rendered
@@ -352,27 +258,6 @@ export default function NowPlayingFullScreen({ onClose, onPause, onArtistClick, 
             {/* v1.1.19.0 — no Download button; see the note on shareOverlay. */}
             <div style={s.shareHint}>Touch and hold the card to save or share it</div>
           </div>
-        </div>
-      )}
-
-      {/* DSP overlay (#v1.1.0.54). Opens above NowPlaying showing the
-          DSP settings for the active renderer. Closing returns here. */}
-      {showDsp && (
-        <div style={s.modalOverlay}>
-          <DspOverlay rendererId={rendererId} onClose={() => setShowDsp(false)} />
-        </div>
-      )}
-
-      {/* Audio-device-settings overlay (#v1.1.0.54). Opens the device
-          settings page for the currently-playing renderer over
-          NowPlaying. Closes back to NowPlaying. */}
-      {showDeviceSettings && (
-        <div style={s.modalOverlay}>
-          <DeviceSettingsOverlay
-            rendererId={rendererId}
-            renderer={activeRenderer}
-            onClose={() => setShowDeviceSettings(false)}
-          />
         </div>
       )}
 
@@ -1179,119 +1064,6 @@ function BulkMenu({ children, onClose }) {
   )
 }
 
-// v54: DSP overlay opens above NowPlaying. Lazy import to avoid a
-// circular dependency between NowPlaying and DspTab (DspTab pulls the
-// store, store pulls modal state, etc).
-function DspOverlay({ rendererId, onClose }) {
-  // v56: switched from CommonJS require() to ES import at the top of
-  // the module. Vite (the client bundler) doesn't expose require() in
-  // the browser, so the v55 build threw "require is not defined" the
-  // moment the user tapped DSP — overlay never mounted, looked dead.
-  return (
-    <div style={s.dspOverlay}>
-      <div style={s.dspOverlayHeader}>
-        <button style={s.dspOverlayClose} onClick={onClose} aria-label="Close DSP">
-          <X size={22} />
-        </button>
-        <span style={s.dspOverlayTitle}>DSP</span>
-        <div style={{ width: 36 }} />
-      </div>
-      <div style={s.dspOverlayBody}>
-        {/* Pass forceRendererId so DspTab locks to the active renderer
-            and hides its own dropdown. Without this, the user could
-            switch which renderer they're editing while playing through
-            a different one — confusing. */}
-        <DspTab forceRendererId={rendererId} />
-      </div>
-    </div>
-  )
-}
-
-// v54: device-settings overlay. Mirrors the per-device settings page
-// from Settings → Audio Devices, but opened over NowPlaying for the
-// currently playing renderer. Closes back to NowPlaying.
-function DeviceSettingsOverlay({ rendererId, renderer, onClose }) {
-  // v56: switched from require() to top-level ES import. Same Vite
-  // browser-runtime issue as DspOverlay — v55's require call broke
-  // the overlay before it could render.
-  const [device, setDevice] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-
-  const load = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const r = await api.get('/audio/all')
-      const d = (r.devices || []).find(x => x.id === rendererId)
-      if (!d) {
-        setError('not-found')
-      } else {
-        setDevice(d)
-      }
-    } catch (e) {
-      setError(e?.message || 'load failed')
-    } finally {
-      setLoading(false)
-    }
-  }
-  useEffect(() => { load() }, [rendererId])
-
-  // Optimistic local update + server persistence — same wiring as the
-  // Audio Devices section uses.
-  const updateSettings = async (id, patch) => {
-    setDevice(prev => (prev ? { ...prev, ...patch } : prev))
-    try {
-      await api.post(`/audio/renderers/${encodeURIComponent(id)}/settings`, patch)
-    } catch (e) {
-      console.warn('Settings update failed:', e)
-      load()
-    }
-  }
-
-  return (
-    <div style={s.dspOverlay}>
-      <div style={s.dspOverlayHeader}>
-        <button style={s.dspOverlayClose} onClick={onClose} aria-label="Close">
-          <X size={22} />
-        </button>
-        <span style={s.dspOverlayTitle}>{device?.name || renderer?.name || 'Device'}</span>
-        <div style={{ width: 36 }} />
-      </div>
-      <div style={s.dspOverlayBody}>
-        {loading && (
-          <div style={{ padding: '24px 18px', color: 'var(--text-tertiary)', fontSize: 13 }}>
-            Loading…
-          </div>
-        )}
-        {!loading && error === 'not-found' && (
-          <div style={{ padding: '14px 18px', color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6 }}>
-            <b>{renderer?.name || 'This device'}</b> doesn't expose per-device audio settings.
-            Sonos, DLNA, and other network renderers are configured at the device itself —
-            try the Sonos app or your renderer's web UI.
-          </div>
-        )}
-        {!loading && error && error !== 'not-found' && (
-          <div style={{ padding: '14px 18px', color: 'var(--red, #f47174)', fontSize: 13 }}>
-            Couldn't load device settings: {error}
-          </div>
-        )}
-        {!loading && !error && device && (
-          // Pass a no-op onBack — the overlay's X button handles close.
-          // DeviceSettingsPage's internal back button will appear and
-          // call onBack; we make it close the overlay too so the user
-          // has two consistent ways out.
-          <DeviceSettingsPage
-            device={device}
-            onBack={onClose}
-            onUpdate={updateSettings}
-          />
-        )}
-      </div>
-    </div>
-  )
-}
-
 // v57: ⋯ overflow menu. Small dropdown anchored under the top-right
 // ⋯ button. The first three items navigate (Album / Artist / Genre);
 // "Add to Favorites" toggles the *album* favourite for now (track-
@@ -1710,52 +1482,6 @@ const s = {
     filter: 'blur(80px) saturate(0.5) brightness(0.10)',
     opacity: 0.18,
   },
-  volOverlay: {
-    position: 'absolute', inset: 0, zIndex: 600,
-    display: 'flex', alignItems: 'flex-end',
-    background: 'rgba(0,0,0,0.3)',
-  },
-  volPopup: {
-    background: 'var(--jp-bg-surface)',
-    border: '1px solid rgba(var(--tint-rgb), 0.1)',
-    borderRadius: '20px 20px 0 0',
-    width: '100%',
-    // v1.1.0.91: trimmed bottom padding 48 → 28, top 20 → 16. Popup
-    // reads slightly more compact without losing breathing room.
-    padding: '16px 24px 28px',
-    // v1.1.3.8: the slider sat too low, so drag gestures collided with
-    // the iOS swipe-up-to-close gesture. Clear the home indicator, then
-    // 44px of actual breathing room on top of it.
-    //
-    // This padding belongs to the popup, never to the app shell. Putting
-    // an inset on the root grid instead reserves a visible band at the
-    // bottom of every screen and pushes the top controls out of reach —
-    // that was the v1.1.3.8 regression. Components pad themselves; the
-    // shell stays edge to edge.
-    paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 44px)',
-  },
-  volTitle: { fontSize: 14, fontWeight: 600, color: 'var(--jp-text)', marginBottom: 20, textAlign: 'center' },
-  volSliderWrap: { display: 'flex', alignItems: 'center', gap: 12 },
-  volSlider: { flex: 1, accentColor: 'var(--accent)' },
-  volMin: { fontSize: 11, color: 'rgba(var(--tint-rgb), 0.3)', fontFamily: 'var(--font-mono)', width: 16 },
-  volMax: { fontSize: 11, color: 'rgba(var(--tint-rgb), 0.5)', fontFamily: 'var(--font-mono)', width: 28, textAlign: 'right' },
-  // v1.1.3.8 — circular − / + volume steps at the right end of the
-  // slider row. Same 36px circle as deviceIconBtn so every round
-  // control on this screen reads as one family. touch-action
-  // manipulation kills the double-tap-zoom delay so a quick series of
-  // taps registers as a series of single taps.
-  volStepGroup: { display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 },
-  volStepBtn: {
-    width: 36, height: 36,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    color: 'rgba(var(--tint-rgb), 0.85)',
-    background: 'rgba(var(--tint-rgb), 0.08)',
-    border: '1px solid rgba(var(--tint-rgb), 0.12)',
-    borderRadius: 999,
-    cursor: 'pointer',
-    flexShrink: 0,
-    touchAction: 'manipulation',
-  },
 
   inner: { position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', height: '100%', padding: '0 20px' },
 
@@ -1946,73 +1672,6 @@ const s = {
     boxShadow: '0 20px 60px rgba(0,0,0,0.55)',
   },
 
-  // v54: volume popover icon row + fixed-output label + slider tweaks.
-  // The icon row is three buttons evenly spaced above the slider,
-  // each one a small icon + label so the user can read what they do.
-  // v1.1.0.91: borderBottom removed — the divider was reading too
-  // hard against the dark popup background. The row sits directly
-  // above the slider with just margin-spacing now, which is cleaner
-  // and matches the JPLAY flat aesthetic.
-  volIconRow: {
-    display: 'flex', justifyContent: 'space-around',
-    paddingBottom: 8, marginBottom: 14,
-  },
-  volIconBtn: {
-    display: 'inline-flex', flexDirection: 'column', alignItems: 'center',
-    gap: 4, padding: '6px 14px',
-    background: 'transparent',
-    border: 'none',
-    color: 'var(--text-secondary)',
-    cursor: 'pointer',
-  },
-  volIconLabel: { fontSize: 11, fontWeight: 500, letterSpacing: '0.02em' },
-  volFixedLabel: {
-    textAlign: 'center', padding: '12px 0',
-    fontSize: 13, fontWeight: 500,
-    color: 'var(--text-tertiary)',
-    fontFamily: 'var(--font-mono)',
-  },
-
-  // v54: full-screen modal overlay sliding up over NowPlaying. Used
-  // for the DSP overlay and the device-settings overlay.
-  modalOverlay: {
-    position: 'absolute', inset: 0, zIndex: 700,
-    background: 'var(--bg-base)',
-    display: 'flex', flexDirection: 'column',
-    animation: 'settings-slide-in 0.2s ease',
-  },
-  dspOverlay: {
-    position: 'absolute', inset: 0,
-    background: 'var(--bg-base)',
-    display: 'flex', flexDirection: 'column',
-    overflow: 'hidden',
-  },
-  dspOverlayHeader: { paddingTop: 'calc(14px + var(--safe-top))',
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '14px 14px 10px',
-    borderBottom: '1px solid var(--border)',
-    flexShrink: 0,
-  },
-  dspOverlayClose: {
-    width: 36, height: 36,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: 'none', border: 'none',
-    color: 'var(--text-primary)',
-    cursor: 'pointer', borderRadius: 6,
-  },
-  dspOverlayTitle: {
-    fontSize: 14, fontWeight: 700,
-    color: 'var(--text-primary)',
-    letterSpacing: '0.02em',
-  },
-  dspOverlayBody: {
-    flex: 1, overflowY: 'auto',
-    padding: '8px 14px 80px',
-  },
-
-  // v54: queue redesign. Informational rows; per-row actions removed.
-  // Two-line layout (title / artist · album), clamped to 1 line each
-  // with ellipsis. Phone vs tablet differs only in horizontal padding.
   queueRadioRow: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '10px 4px 14px',
@@ -2245,12 +1904,13 @@ const s = {
     display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
     animation: 'fadeIn 0.18s ease',
   },
-  overflowBox: { paddingBottom: 'var(--safe-bot)',
+  overflowBox: {
     width: '100%', maxWidth: 480,
     background: 'var(--jp-bg-surface)',
     border: '1px solid rgba(var(--tint-rgb), 0.10)',
     borderRadius: '20px 20px 0 0',
     padding: '8px 0 32px',
+    paddingBottom: 'calc(32px + var(--safe-bot))',
     boxShadow: '0 -10px 40px rgba(0,0,0,0.5)',
   },
   overflowHeader: {

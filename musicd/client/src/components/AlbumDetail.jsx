@@ -1543,11 +1543,15 @@ const s = {
     display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
     animation: 'sheetFade 0.18s ease',
   },
-  sheetPanel: { paddingBottom: 'var(--safe-bot)',
+  // paddingBottom AFTER the shorthand: React writes these in order, so a
+  // `padding` set later resets all four sides and this inset had never once
+  // applied. Same trap fixed at five other sites in v1.1.26.0.
+  sheetPanel: {
     width: '100%', maxWidth: 520,
     background: '#15151c',
     borderTopLeftRadius: 18, borderTopRightRadius: 18,
     padding: '8px 0 24px',
+    paddingBottom: 'calc(24px + var(--safe-bot))',
     boxShadow: '0 -8px 30px rgba(0,0,0,0.5)',
     animation: 'sheetSlide 0.22s ease',
   },

@@ -12,6 +12,68 @@ Categories used per release:
 
 ---
 
+## v1.1.26.0 — 2026-08-21 — ONE VOLUME SHEET, AND AN ARTISTS LIST
+
+### New
+
+- **The artists wall is three across**, matching the album grid; the larger
+  breakpoints are unchanged. A **grid / list switch** sits at the top of the
+  screen, and the choice is remembered per device — that screen unmounts every
+  time you open an artist, so component state would forget it immediately.
+- **List rows** show a 40px circular logo, the artist's name and the album
+  count. The name is written **even for artists whose logo is the real
+  artwork**: the grid hides it in that case because the logo says the name, but
+  at 40px beside a line of text it does not, and a column of unlabelled circles
+  is not a list.
+- **Home** at the top of the side menu. Tapping the MusicD wordmark has always
+  done this, but a wordmark is not an obvious button. Same handler, so the two
+  cannot diverge.
+
+### Changed
+
+- **One volume sheet, shared by the mini transport bar and the full-screen
+  player.** There were two. The full-screen one grew the DSP / Switch / Device
+  row, discrete − / + steps and a "Fixed Output" state; the mini bar's kept a
+  title, a "0", a slider and a number — under a comment claiming it was "the
+  same layout as the full-screen NP one for consistency". Every improvement
+  since v54 landed on one of them. `VolumeSheet.jsx` is now the only copy, and
+  it owns its three destinations rather than taking callbacks: what "Switch
+  output" means must not depend on which bar you opened it from.
+- **The mini bar's volume button no longer hides on fixed-output renderers.**
+  That was right about the slider and wrong about the button — the sheet
+  already swaps the slider for a "Fixed Output" label, and hiding the button
+  was the last thing putting DSP, Switch and Device out of reach from that bar.
+- The **"LIBRARY" heading** over the side-menu list is gone. With Home at the
+  top it was labelling a list that is not only the library. The "Output"
+  heading stays — it labels a genuinely different group.
+
+### Fixed
+
+- **Six safe-area insets that had never once applied.** Each was a
+  `paddingTop` / `paddingBottom` written at the *front* of a style object that
+  already carried a `padding` shorthand. React writes style keys in insertion
+  order, so the shorthand reset all four sides and the inset was silently
+  discarded. On a notched phone that is the **side-menu header under the status
+  bar**, and the **DSP overlay header**, the **Library-scope page header**, the
+  **album-detail sheet**, the **audio-diagnostics sheet** and the **⋯ overflow
+  box** running under the home indicator. All six are reordered.
+
+### Tests
+
+- `shell-controls.test.js` — 24 assertions, including a detector for the
+  shorthand-override bug above with its own four-case self-test (it must find
+  the bug, must NOT flag the fix, must not confuse two sibling objects, and
+  must cover margin/border/background too). The rest pin that neither bar keeps
+  a copy of the sheet — asserted on the markup, not just the component name,
+  because a second `type="range"` wired to `/player/volume` *is* the fork
+  coming back.
+- Seventeen mutations proven red-then-green. One did not bite first time, and
+  it was the same prefix-match mistake as last release: `indexOf('s.viewToggle')`
+  is satisfied by `s.viewToggleX`. Anchored, and re-mutated by genuinely moving
+  the control rather than renaming it.
+
+---
+
 ## v1.1.25.0 — 2026-08-21 — TWO SIDE-MENU ENTRIES, AND WHAT WAS BEHIND THEM
 
 ### Removed

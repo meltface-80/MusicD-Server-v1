@@ -406,9 +406,10 @@ const s = {
     background: 'var(--bg-base)',
     display: 'flex', flexDirection: 'column',
   },
-  fullPageHeader: { paddingTop: 'calc(14px + var(--safe-top))',
+  fullPageHeader: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '14px 12px 10px',
+    paddingTop: 'calc(14px + var(--safe-top))',
     borderBottom: '1px solid var(--border)',
   },
   fullPageTitle: { fontSize: 17, fontWeight: 700 },

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useStore } from '../store'
 import { api } from '../api'
-import { Disc3, Mic2, ListMusic, Wifi, X, Tag, Settings, Heart, AlertCircle, Bookmark } from 'lucide-react'
+import { Disc3, Mic2, ListMusic, Wifi, X, Tag, Settings, Heart, AlertCircle, Bookmark, Home as HomeIcon } from 'lucide-react'
 import RendererIcon from './RendererIcon'
 
 export default function Sidebar({ onClose }) {
@@ -60,7 +60,9 @@ export default function Sidebar({ onClose }) {
   // Settings. Home was removed because the user always lands at Home by
   // default; tapping the MusicD logo at the top of the menu also returns to
   // Home. The previous "Library / Output" grouping remains because the
-  // renderer picker visually belongs in its own section.
+  // renderer picker visually belongs in its own section. The "LIBRARY"
+  // heading over this list went in v1.1.26.0 — with Home at the top it was
+  // labelling a list that is not only the library.
   //
   // v1.1.25.0 — Queue left too. It opened a second, separate queue screen; the
   // one behind the Now Playing screen's tab switcher is the real one, and two
@@ -131,7 +133,14 @@ export default function Sidebar({ onClose }) {
       </div>
 
       <nav style={s.nav}>
-        <div style={s.navLabel}>Library</div>
+        {/* v1.1.26.0 — Home, explicitly. Tapping the MusicD logo above has
+            always done this, but a wordmark is not an obvious button; the row
+            says so. Same handler, so the two cannot diverge. */}
+        <button
+          style={{ ...s.navItem, ...(sidebarSection === 'home' ? s.navItemActive : {}) }}
+          onClick={handleHome}>
+          <HomeIcon size={16} strokeWidth={1.8} /><span>Home</span>
+        </button>
         {sections.map(({ id, label, icon: Icon }, i) => (
           <React.Fragment key={id}>
             <button
@@ -190,7 +199,11 @@ const s = {
   // the otherwise monochrome menu read as a leftover. The "D" stays
   // visually distinct via weight, not colour.
   sidebar: { height: '100%', background: 'var(--jp-bg)', borderRight: '1px solid var(--jp-border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' },
-  header: { paddingTop: 'calc(18px + var(--safe-top))', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 16px', borderBottom: '1px solid var(--jp-border)', flexShrink: 0 },
+  // paddingTop comes AFTER the padding shorthand on purpose. React writes
+  // these keys in insertion order, so a shorthand set later resets all four
+  // sides — this inset was written first and had been silently discarded ever
+  // since, leaving the menu header under the status bar on a notched phone.
+  header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 16px', paddingTop: 'calc(18px + var(--safe-top))', borderBottom: '1px solid var(--jp-border)', flexShrink: 0 },
   logoBtn: { display: 'flex', alignItems: 'center', gap: 10, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' },
   logoText: { fontSize: 16, fontWeight: 600, letterSpacing: '-0.3px', display: 'inline-flex', color: 'var(--jp-text)' },
   logoMusic: { color: 'var(--jp-text)', fontWeight: 500 },
