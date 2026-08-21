@@ -2546,8 +2546,9 @@ const s = {
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
   },
   // Inline picker that appears below the toolbar when the zone chip is tapped.
-  // Mirrors QueueModal's picker so users get a consistent zone-switch UX in
-  // either place.
+  // It was mirrored from the side menu's queue modal so the two queue screens
+  // felt the same; that modal is gone as of v1.1.25.0 and this is now the only
+  // place a zone is switched from the queue.
   queueZonePicker: {
     margin: '0 0 12px',
     padding: '10px 8px',

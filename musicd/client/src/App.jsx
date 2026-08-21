@@ -10,7 +10,6 @@ import NowPlaying from './components/NowPlaying'
 import SignalPathModal from './components/SignalPathModal'
 import RendererModal from './components/RendererModal'
 import SearchResults from './components/SearchResults'
-import QueueModal from './components/QueueModal'
 import ArtistAlbums from './components/ArtistAlbums'
 import GenreScreen from './components/GenreScreen'
 import ArtistList from './components/ArtistList'
@@ -19,7 +18,6 @@ import DemoBanner from './components/DemoBanner'
 import SettingsScreen from './components/SettingsScreen'
 import HomeScreen from './components/HomeScreen'
 import UnmatchedScreen from './components/UnmatchedScreen'
-import FocusLibraryScreen from './components/FocusLibraryScreen'
 import PlaylistsScreen from './components/PlaylistsScreen'
 import TagsScreen from './components/TagsScreen'
 import RandomAlbumsScreen from './components/RandomAlbumsScreen'
@@ -39,7 +37,7 @@ export default function App() {
   const {
     initWebSocket, setRenderers, setSelectedAlbum, setSidebarSection,
     setRendererId,
-    selectedAlbumId, showSignalPath, showRenderers, showQueue,
+    selectedAlbumId, showSignalPath, showRenderers,
     searchQuery, setSearchQuery, sidebarSection,
     settingsSubSection, setSettingsSubSection,
   } = useStore()
@@ -284,10 +282,6 @@ export default function App() {
     // /library/albums); the grid is otherwise identical to Albums.
     if (sidebarSection === 'saved') return <AlbumGrid onAlbumSelect={handleSetSelectedAlbum} savedOnly={true} />
     if (sidebarSection === 'unmatched') return <UnmatchedScreen />
-    // v1.1.0.82 — Focus Library: list of saved focus combinations.
-    // Tapping one routes back to Albums with the focus loaded via
-    // pendingFocusToLoad in the store.
-    if (sidebarSection === 'focusLibrary') return <FocusLibraryScreen />
     if (sidebarSection === 'playlists') return <PlaylistsScreen />
     if (sidebarSection === 'tags') return <TagsScreen />
     // v1.1.21.0 — the full 3-across Random-albums wall, opened by tapping the
@@ -331,7 +325,6 @@ export default function App() {
 
       {showSignalPath && <SignalPathModal />}
       {showRenderers && <RendererModal />}
-      {showQueue && <QueueModal />}
     </div>
   )
 }

@@ -135,14 +135,6 @@ function albumsViewKey({ sort, dir, seed, showOnlyFavorites, savedOnly, tagFilte
 // the Saved-for-later screen, where favoritesOnly will be false.
 export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedOnly = false, headingOverride = null }) {
   const { setSelectedAlbum, libraryStatus, rendererId, playQueue, appendToQueue } = useStore()
-  // v1.1.0.82 — pickup hatch for saved focuses loaded from the
-  // Focus Library screen. The screen sets this then routes to
-  // 'albums'; AlbumGrid mounts, sees the pending row, hydrates the
-  // focus picks, and clears the pending field. We deliberately
-  // separate the read and the setter calls so the effect runs once
-  // per pending value, not on every render.
-  const pendingFocusToLoad = useStore(s => s.pendingFocusToLoad)
-  const setPendingFocusToLoad = useStore(s => s.setPendingFocusToLoad)
   const selectAlbum = onAlbumSelect || setSelectedAlbum
   // Which of the three grids this is. Albums, Favourites and Saved-for-later
   // are separate lists browsed to separate depths, so each keeps its own
@@ -288,57 +280,6 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
     }
   }, [sectionOrder])
 
-  // v1.1.0.82 — saved-focus save flow.
-  // saveModal: null (closed) or { name: '', error: null, busy: false }
-  // The modal sets `name` as the user types and surfaces validation
-  // errors inline. The Focus Library screen handles loading; we
-  // just need to support "save current picks under a new name" and
-  // "update the currently-loaded one" from here.
-  const [saveModal, setSaveModal] = useState(null)
-  // The sort sheet. Open/closed only — the choice itself lives in sortView.
-  const [sortSheetOpen, setSortSheetOpen] = useState(false)
-  const [saveError, setSaveError] = useState(null)
-
-  const handleSaveAsNew = useCallback(() => {
-    setSaveError(null)
-    setSaveModal({ name: '', busy: false })
-  }, [])
-
-  const handleConfirmSave = useCallback(async () => {
-    const name = (saveModal?.name || '').trim()
-    if (!name) {
-      setSaveModal(prev => prev ? { ...prev, error: 'Name required' } : prev)
-      return
-    }
-    setSaveModal(prev => prev ? { ...prev, busy: true, error: null } : prev)
-    try {
-      const r = await api.post('/library/focus/saved', {
-        name,
-        picks: focus.serialisePicks(),
-      })
-      // After save, mark this as the new loaded focus so subsequent
-      // edits are dirty against the right baseline.
-      focus.markSaved(r.row)
-      setSaveModal(null)
-    } catch (e) {
-      const msg = e?.message || 'Save failed'
-      setSaveModal(prev => prev ? { ...prev, busy: false, error: msg } : prev)
-    }
-  }, [saveModal, focus])
-
-  const handleUpdateLoaded = useCallback(async () => {
-    if (!focus.loadedFocus) return
-    setSaveError(null)
-    try {
-      const r = await api.put(`/library/focus/saved/${focus.loadedFocus.id}`, {
-        picks: focus.serialisePicks(),
-      })
-      focus.markSaved(r.row)
-    } catch (e) {
-      setSaveError(e?.message || 'Update failed')
-    }
-  }, [focus])
-
   // Fetch focus options on first mount when needed. The endpoint
   // computes from the live library, so we re-fetch when the bar
   // opens — that way picks reflect any albums added since the
@@ -362,18 +303,6 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
     })
     return () => { cancelled = true }
   }, [focusEnabled, focusOpen])
-
-  // v1.1.0.82 — consume pendingFocusToLoad set by the Focus Library
-  // screen. Hydrate the focus state once, then clear the pending
-  // value so a subsequent navigation doesn't re-load. Deliberately
-  // doesn't open the focus bar — the picks become visible via the
-  // pills row, which is enough to confirm the load succeeded.
-  useEffect(() => {
-    if (!focusEnabled) return
-    if (!pendingFocusToLoad) return
-    focus.loadSaved(pendingFocusToLoad)
-    setPendingFocusToLoad(null)
-  }, [focusEnabled, pendingFocusToLoad])
 
   const showOnlyFavorites = favoritesOnly || filterFavorites
 
@@ -838,18 +767,14 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
           />
         )}
         {/* v1.1.0.80 — Focus bar. Renders only when funnel is open.
-            v1.1.0.82 adds save/update buttons inside the bar. */}
+            v1.1.25.0: the save/update buttons v82 put inside it are gone with
+            the rest of saved focuses; only the column-order reset remains. */}
         {focusEnabled && focusOpen && (
           <FocusBar
             picks={focus.picks}
             options={focusOptions}
             onTogglePick={focus.togglePick}
             onClose={() => setFocusOpen(false)}
-            loadedFocus={focus.loadedFocus}
-            isDirty={focus.isDirty}
-            anyPicks={focus.anyPicks}
-            onSaveAsNew={handleSaveAsNew}
-            onUpdateLoaded={handleUpdateLoaded}
             sections={orderedSections}
             onReorder={handleReorder}
             onResetOrder={handleResetOrder}
@@ -904,85 +829,7 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
         </div>
       </FocusModal>
 
-      {/* v1.1.0.82 — save-as-new modal. Renders into a portal-style
-          fixed overlay so it doesn't get clipped by the sticky
-          header. */}
-      <FocusModal
-        open={!!saveModal}
-        onCancel={() => !saveModal?.busy && setSaveModal(null)}
-        title="Save focus"
-      >
-        {saveModal && (
-          <div>
-            <input
-              type="text"
-              autoFocus
-              value={saveModal.name}
-              onChange={e => setSaveModal(prev => prev ? { ...prev, name: e.target.value, error: null } : prev)}
-              onKeyDown={e => { if (e.key === 'Enter' && !saveModal.busy) handleConfirmSave() }}
-              placeholder="Name (e.g. Late Night Jazz)"
-              maxLength={60}
-              disabled={saveModal.busy}
-              style={{
-                width: '100%', boxSizing: 'border-box',
-                padding: 10,
-                fontSize: 13,
-                background: 'var(--jp-bg-surface)',
-                border: '1px solid var(--jp-border)',
-                borderRadius: 6,
-                color: 'var(--jp-text)',
-                marginBottom: 6,
-              }}
-            />
-            {saveModal.error && (
-              <div style={{ fontSize: 11, color: '#ff8a9a', marginBottom: 6 }}>
-                {saveModal.error}
-              </div>
-            )}
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 10 }}>
-              <button
-                onClick={() => setSaveModal(null)}
-                disabled={saveModal.busy}
-                style={{
-                  padding: '7px 14px',
-                  background: 'transparent',
-                  border: '1px solid var(--jp-border)', borderRadius: 6,
-                  color: 'var(--jp-text-2)', fontSize: 12, cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmSave}
-                disabled={saveModal.busy || !saveModal.name.trim()}
-                style={{
-                  padding: '7px 14px',
-                  background: 'var(--jp-accent)',
-                  border: 'none', borderRadius: 6,
-                  color: 'var(--jp-bg)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                  opacity: (saveModal.busy || !saveModal.name.trim()) ? 0.5 : 1,
-                }}
-              >
-                {saveModal.busy ? 'Saving…' : 'Save'}
-              </button>
-            </div>
-          </div>
-        )}
-      </FocusModal>
 
-      {saveError && (
-        <div style={{
-          position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
-          padding: '8px 14px',
-          background: 'rgba(255,59,92,0.18)',
-          border: '1px solid rgba(255,59,92,0.36)',
-          borderRadius: 6,
-          color: '#ff8a9a', fontSize: 12,
-          zIndex: 100,
-        }}>
-          {saveError}
-        </div>
-      )}
 
       {loading ? (
         <div style={s.loadWrap}><div style={s.spinner} /></div>
