@@ -12,6 +12,58 @@ Categories used per release:
 
 ---
 
+## v1.1.28.0 — 2026-08-21 — THE DOCS SHIP WITH THE RELEASE
+
+### Fixed
+
+- **`README.md` and the GitHub Pages site were seven releases behind.** Both
+  still announced v1.1.20.0 after v1.1.27.0 had shipped: the repo front page,
+  the site's header badge, its `<meta name="description">` — the text link
+  previews and search results show — its footer, and its entire *What's new*
+  section. `CHANGELOG.md` was the only file being kept current.
+
+  The cause was that nothing made it happen. `release.sh` did not touch either
+  file and no test looked at them, so keeping them current depended on
+  remembering to — which is exactly why they were stale.
+
+### Changed
+
+- **`release.sh` now rewrites both files** and reports a ✗ if any of its
+  patterns matched nothing, the same way it already did for `install.sh`. It
+  rewrites only the *current-release* references: both files also discuss
+  v1.1.3.7 and v1.1.9.0 in upgrade notes, and those are history.
+- **`CLAUDE.md` gained a section, *The published face of a release*,** and a
+  checklist line above it. It draws the line the script cannot: the version
+  strings are mechanical and enforced, but the *What's-new cards are written
+  by hand* from the changelog entry. A heading bumped over the previous
+  release's cards is worse than a stale heading, because it reads as current.
+- The Pages site's *What's new* is rewritten for v1.1.27.0: the blank-screen
+  fix, the four themes, the configurable Home screen, the queue's
+  multi-select, the artists list view, the single volume sheet, the shorter
+  side menu, and the long-press and safe-area fixes.
+
+### Tests
+
+- `release-consistency.test.js` gains 15 assertions across three areas.
+  Both files are checked against `VERSION` at every anchor `release.sh`
+  rewrites — front-page line, layout table, tarball name, upgrade notes,
+  badge, meta description, footer, *What's new* heading — plus that the README
+  names no tarball that does not exist, that the *What's new* section has
+  cards and each is well-formed, and that no earlier release is still sitting
+  at any of those anchors.
+- **`release.sh` is now run, not read.** A throwaway tree carrying only the
+  files it edits is bumped to a version nothing else uses, and the run must
+  report a clean verify — with every expected ✓ present, so a check quietly
+  dropped from the script fails too. Reading the script would only prove the
+  patterns are written down, not that they still match the files.
+- Ten mutations proven red-then-green. Two did not bite first time: one
+  because the mutation was weaker than the assertion (a single card renamed,
+  where the check is that the section is not empty), and one because the test
+  asserted the outcome without asserting the script had reported it. The
+  second was a real gap and is now covered.
+
+---
+
 ## v1.1.27.0 — 2026-08-21 — THE BLANK ALBUMS SCREEN
 
 ### Fixed

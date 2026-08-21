@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MusicD Server v1 — self-hosted music server</title>
-<meta name="description" content="MusicD Server v1.1.20.0 — a self-hosted music server with a Roon-inspired web UI, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
+<meta name="description" content="MusicD Server v1.1.28.0 — a self-hosted music server with a Roon-inspired web UI, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
 <style>
   :root {
     --bg:        #1b1d1f;   /* charcoal */
@@ -263,7 +263,7 @@
   presets, FIR convolution and a per-stream signal path you can actually
   read.</p>
   <div class="badges">
-    <span class="badge">v1.1.20.0</span>
+    <span class="badge">v1.1.28.0</span>
     <span class="badge">Node 20 &middot; Express &middot; SQLite</span>
     <span class="badge">React SPA &middot; PWA</span>
     <span class="badge plain">Docker &middot; port 32700</span>
@@ -275,158 +275,173 @@
 
 <section id="whats-new" aria-labelledby="whats-new-h">
   <div class="wrap">
-    <h2 id="whats-new-h">What&rsquo;s new in 1.1.20.0</h2>
-    <p class="lead">Seven ways to sort the album wall, each reversible, and the
-    choice is still there when you come back to the app.</p>
+    <h2 id="whats-new-h">What&rsquo;s new in 1.1.28.0</h2>
+    <p class="lead">Nothing in the app changed in 1.1.28.0 &mdash; this page did.
+    Below it, the release that did: four themes, a Home screen you choose the
+    shape of, a queue that does what you tell it, and the fix for the blank
+    Albums screen.</p>
     <div class="grid">
 
       <div class="card new">
-        <span class="tagline">New</span>
-        <h3><span class="em" aria-hidden="true">&#8597;</span>A full sort suite on the album wall</h3>
-        <p>The three Title / Artist / Year pills are now one chip that opens a
-        sheet: <b>Album name</b>, <b>Artist</b>, <b>Release year</b>,
-        <b>Recently added</b>, <b>Most played</b>, <b>Last played</b> and
-        <b>Random</b>.</p>
-        <p>Each opens the way you would expect it to &mdash; alphabetical sorts
-        A&nbsp;&rarr;&nbsp;Z, everything else with the newest or the most first
-        &mdash; and <b>picking the sort you are already on reverses it</b>. The
-        arrow on the active row is the whole direction control; there is no
-        second one to find. Random is the one row with nothing to reverse, so
-        picking it again reshuffles.</p>
-        <p>Favourites has the chip too, and each list keeps its own sort:
-        putting Favourites in Most played order leaves the main wall alone.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">New</span>
-        <h3><span class="em" aria-hidden="true">&#128190;</span>The sort is still there when you come back</h3>
-        <p>It is written down the moment you change it, not when the screen
-        closes &mdash; iOS throws away a backgrounded web app without warning,
-        and a tidy-up-on-close handler is exactly what does not run when that
-        happens. Relaunch from the home screen and the wall is as you left
-        it.</p>
+        <span class="tagline">Fixed</span>
+        <h3><span class="em" aria-hidden="true">&#128220;</span>This page keeps up now</h3>
+        <p>It had been announcing v1.1.20.0 for seven releases &mdash; badge,
+        description, footer and everything under this heading. So had the
+        README. The changelog was the only file being kept current.</p>
+        <p>Nothing made it happen: the release script did not touch either
+        file and no test looked at them, so it depended on remembering. The
+        script rewrites them now and the build fails if either disagrees with
+        the version being released. <b>No change to the app itself in this
+        release.</b></p>
       </div>
 
       <div class="card new">
         <span class="tagline">Fixed</span>
-        <h3><span class="em" aria-hidden="true">&#10067;</span>Albums with no year stay out of the way</h3>
-        <p>An album the scanner could not read a year for is <i>unknown</i>,
-        not year zero. It sits at the end of the list whichever way you point
-        Release year &mdash; otherwise asking for oldest-first would fill the
-        top of the wall with every undated album you own.</p>
+        <h3><span class="em" aria-hidden="true">&#9888;&#65039;</span>The blank Albums screen</h3>
+        <p>On 1.1.25.0 and 1.1.26.0 the <b>Albums</b> screen and <b>Saved for
+        later</b> opened blank and the app had to be force-quit. One line of
+        state was deleted by accident during an unrelated tidy-up, and the
+        reference left behind threw the moment either screen tried to draw.</p>
+        <p>Both are the same component, which is why both went. Fixed in
+        1.1.27.0, along with the first test in this project that actually
+        renders every screen rather than reading the source of it &mdash;
+        nothing that only reads the code could have caught this.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">New</span>
+        <h3><span class="em" aria-hidden="true">&#127912;</span>Four themes</h3>
+        <p><b>Dark</b> and <b>Light</b>, plus <b>Copper</b> &mdash; the colours
+        from the MusicD site &mdash; and <b>Brass</b>, copper in daylight.
+        <b>Settings &rarr; Appearance</b>, below Backup. Each row in the picker
+        previews its own palette rather than describing it.</p>
+        <p>The choice is kept per device, not on the server: a phone at night
+        and a desktop in daylight want different answers, and one shared
+        setting would force them to agree.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">New</span>
+        <h3><span class="em" aria-hidden="true">&#127968;</span>A Home screen you choose the shape of</h3>
+        <p><b>Recently added</b> and <b>Recently played</b> are two carousels
+        now instead of one row behind tabs, so you can see both at once. A
+        third shows <b>albums at random</b> &mdash; tap its heading for a full
+        page of them with a Refresh button.</p>
+        <p>All three have switches in <b>Settings &rarr; Home Screen</b>, above
+        a line separating them from the music-news sources. They read your own
+        library, so they are on by default and cost nothing outside your
+        network. The library counters stay at the top either way.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">New</span>
+        <h3><span class="em" aria-hidden="true">&#9776;</span>The queue takes instructions</h3>
+        <p>Tick rows in the queue and the &ctdot; menu offers <b>Play now</b>,
+        <b>Play next</b> and <b>Clear selected from queue</b>. Play next moves
+        the whole selection to just after the track playing, keeping the order
+        it already had; Play now does the same and then starts it.</p>
+        <p>That menu is no longer the Now Playing one wearing a different hat.
+        The album and artist links it used to lead with described whatever
+        happened to be playing, which is not what the queue screen is about.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">New</span>
+        <h3><span class="em" aria-hidden="true">&#128100;</span>Artists, three across or as a list</h3>
+        <p>The artists wall is three columns now, matching the album grid, with
+        a <b>grid / list</b> switch at the top of the screen. List rows show a
+        small circular logo, the artist&rsquo;s name and how many albums you
+        have. The choice is remembered.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">Changed</span>
+        <h3><span class="em" aria-hidden="true">&#128266;</span>One volume control, not two</h3>
+        <p>The volume sheet on the mini player is now the same one the
+        full-screen player uses &mdash; <b>DSP</b>, <b>Switch&nbsp;output</b>
+        and <b>Device</b> buttons included, along with the discrete
+        &minus;&nbsp;/&nbsp;+ steps and the fixed-output state.</p>
+        <p>There had been two copies, and every improvement since the icon row
+        shipped had landed on only one of them.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">Changed</span>
+        <h3><span class="em" aria-hidden="true">&#128465;&#65039;</span>A shorter side menu</h3>
+        <p><b>Home</b> is at the top of it now. <b>Queue</b> has gone &mdash;
+        the queue behind the Now&nbsp;Playing tab switcher is the real one, and
+        the menu opened a second, lesser copy. <b>Focus library</b> has gone
+        too: a set of filters worth keeping is a tag.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">Fixed</span>
+        <h3><span class="em" aria-hidden="true">&#128072;</span>Touch and hold does nothing again</h3>
+        <p>Holding a finger on a settings label, an album title or a track name
+        selected the text and raised the system <i>Copy / Look&nbsp;Up /
+        Translate</i> bar. Nothing in the app sits behind that gesture, so it
+        read as the app misbehaving.</p>
+        <p>It is suppressed everywhere now, with two deliberate exceptions: the
+        share card, where holding it is how you save it to Photos, and text
+        fields, which keep the caret and the Paste menu.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">Fixed</span>
+        <h3><span class="em" aria-hidden="true">&#128241;</span>Six safe-area insets that never applied</h3>
+        <p>The side-menu header sat under the status bar, and four bottom
+        sheets ran under the home indicator. Each had been given the right
+        inset; each had it silently thrown away by a shorthand written on the
+        next line. All six are fixed, and a check now fails the build if the
+        pattern comes back.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">New</span>
+        <h3><span class="em" aria-hidden="true">&#127925;</span>Playlists, and the menu rows that were greyed out</h3>
+        <p>Build playlists and play them: a <b>Playlists</b> entry in the menu,
+        and <b>Add to Playlist</b> on any track&rsquo;s &ctdot; menu. The sheet
+        ticks the playlists a track is already in, and making a new one adds
+        the track at the same time.</p>
+        <p><b>Add to Tag</b> and <b>Save for later</b> work from that menu too,
+        and <b>Tags</b> has moved out of Settings into the side menu, alongside
+        the other ways through your library.</p>
       </div>
 
       <div class="card new">
         <span class="tagline">New</span>
         <h3><span class="em" aria-hidden="true">&#128274;</span>Music News is opt-in</h3>
-        <p>Four switches in <b>Settings &rarr; Home Screen</b>, one per row:
-        new releases from Qobuz, new releases from Bandcamp, Pitchfork reviews,
-        and Bandcamp Daily reviews.</p>
+        <p>Four switches in <b>Settings &rarr; Home Screen</b>: new releases
+        from Qobuz, new releases from Bandcamp, Pitchfork reviews, and Bandcamp
+        Daily reviews.</p>
         <p>All four are off on a new install, and off means off &mdash; not
         fetched-and-hidden. With nothing enabled the server makes no request to
-        any of those sites and schedules no background refresh at all. Turn the
-        last one off and the fetching stops again.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">Changed</span>
-        <h3><span class="em" aria-hidden="true">&#127991;&#65039;</span>Tags is in the menu now</h3>
-        <p>Tags has moved out of Settings and into the side menu, under
-        Favourites, alongside the other ways through your library.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">New</span>
-        <h3><span class="em" aria-hidden="true">&#127925;</span>Playlists</h3>
-        <p>Build playlists and play them: a <b>Playlists</b> entry in the menu,
-        and <b>Add to Playlist</b> on any track&rsquo;s &ctdot; menu. The sheet
-        ticks the playlists a track is already in, and making a new one adds
-        the track at the same time.</p>
-        <p><b>Add to Tag</b> and <b>Save for later</b> work from that menu too
-        &mdash; both had been greyed out waiting for features that already
-        existed everywhere else in the app.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">Fixed</span>
-        <h3><span class="em" aria-hidden="true">&#128228;</span>The share card is out from under the player</h3>
-        <p>It opened as a bottom sheet, so the mini player sat on top of it.
-        It now opens in the middle of the screen. The Download button is gone
-        &mdash; touch and hold the card to save or share it with the usual iOS
-        sheet.</p>
+        any of those sites and schedules no background refresh at all.</p>
       </div>
 
       <div class="card new">
         <span class="tagline">Fixed</span>
         <h3><span class="em" aria-hidden="true">&#127925;</span>Bandcamp releases show their own covers</h3>
         <p>Every new release from Bandcamp Daily showed the same artwork
-        &mdash; the article&rsquo;s header image, handed to all of them. The
-        titles and artists were wrong too: &ldquo;final album&rdquo; by
-        &ldquo;Lavendercountry&rdquo;, or a Patsy Cline record credited to
+        &mdash; the article&rsquo;s header image, handed to all of them &mdash;
+        with titles and artists to match: a Patsy Cline record credited to
         &ldquo;Cleopatrarecords&rdquo;.</p>
-        <p>None of that was in the article to read. Each release is now looked
-        up on its own Bandcamp page, so the row shows the real cover, the real
-        album title and the real artist &mdash; and anything that cannot be
+        <p>Each release is now looked up on its own Bandcamp page, so the row
+        shows the real cover, title and artist, and anything that cannot be
         identified is left out rather than guessed at.</p>
       </div>
 
       <div class="card new">
-        <span class="tagline">Fixed</span>
-        <h3><span class="em" aria-hidden="true">&#128027;</span>Bug reports bring the file with them</h3>
-        <p>Reporting a bug now offers a <b>Save report file</b> button that puts
-        the report straight onto your device &mdash; on iOS into Files &rarr;
-        Downloads &mdash; so you can attach it to the email instead of hunting
-        for it on the server.</p>
-        <p>The screen also stops blaming your browser. Attaching in a single tap
-        needs an API that browsers only offer over HTTPS, and MusicD runs over
-        plain HTTP on your own network; it now says so, rather than implying
-        the browser is at fault. &ldquo;Copy as text&rdquo; works there again
-        too.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">Fixed</span>
-        <h3><span class="em" aria-hidden="true">&#128444;&#65039;</span>Album art fills its frame</h3>
-        <p>The now-playing cover sat in a box taller than itself, leaving grey
-        bands above and below it. Every cover now fills the same square frame,
-        whatever shape the file is.</p>
-        <p>The share button in the corner reads the artwork underneath it and
-        switches between a light and a dark treatment, so it stays visible on a
-        bright yellow sleeve as readily as on a black one.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">New</span>
-        <h3><span class="em" aria-hidden="true">&#9776;</span>A queue screen that stays where you are</h3>
-        <p>The playing track sits at the top of the queue and stays there as
-        playback moves on. Tracks you have heard pass up out of the way, still
-        there if you scroll back for them.</p>
-        <p>Tracks you skipped collapse into a single <b>&ldquo;3
-        skipped&rdquo;</b> row you can tap to open, so a long session does not
-        bury the queue under things you chose not to hear. And tapping any
-        track &mdash; whether it has played or is still to come &mdash; asks
-        whether you want it <b>now</b> or <b>next</b>, rather than guessing.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">Fixed</span>
-        <h3><span class="em" aria-hidden="true">&#11015;&#65039;</span>In-app updates keep your setup</h3>
-        <p>Updating in the app now carries over everything the container was
-        started with &mdash; your music folder, your data directory, host
-        networking, your USB DAC and its audio group &mdash; whatever you
-        chose to call the container. The update log lists each of them as it
-        goes, so you can see it happen rather than take it on trust.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">Fixed</span>
-        <h3><span class="em" aria-hidden="true">&#128290;</span>Scrolling a long list cannot repeat albums</h3>
-        <p>The wall loads a page at a time. When lots of albums share a sort
-        value &mdash; the same release year, or never played &mdash; the
-        database was free to hand them back in a different order for each
-        page, so consecutive pages could overlap: an album shown twice and
-        another never shown at all. Every sort now ends in a tiebreaker that
-        makes the order exact.</p>
+        <span class="tagline">Changed</span>
+        <h3><span class="em" aria-hidden="true">&#8597;</span>The album wall&rsquo;s sort suite</h3>
+        <p>One chip opens a sheet with <b>Album name</b>, <b>Artist</b>,
+        <b>Release year</b>, <b>Recently added</b>, <b>Most played</b>,
+        <b>Last played</b> and <b>Random</b>. Picking the sort you are already
+        on reverses it; picking Random again reshuffles.</p>
+        <p>Each list keeps its own sort, and the choice is written down the
+        moment you change it &mdash; iOS discards a backgrounded web app
+        without warning, and a tidy-up-on-close handler is exactly what does
+        not run when that happens.</p>
       </div>
 
     </div>
@@ -813,7 +828,7 @@
       <code>-e MUSICD_MANIFEST_URL=https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json</code>
       to your <code>docker run</code>, restart, then <b>Check for updates</b>.
       The older parser understands this manifest, so it installs normally. Drop
-      the variable afterwards &mdash; v1.1.20.0 has the same URL as its own
+      the variable afterwards &mdash; v1.1.28.0 has the same URL as its own
       default.
     </div>
   </div>
@@ -886,7 +901,7 @@
 </main>
 
 <footer>
-  MusicD Server v1.1.20.0 &mdash; self-hosted music, one user, one library, one home network.
+  MusicD Server v1.1.28.0 &mdash; self-hosted music, one user, one library, one home network.
   <br>MIT licence &middot; <a href="https://github.com/meltface-80/MusicD-Server-v1">Source on GitHub</a>
 </footer>
 
