@@ -151,6 +151,18 @@ router.get('/albums', tierMiddleware.clampLimit('library_size_limit'), (req, res
   const VALID_ALBUM_TYPES = new Set(['main', 'ep', 'single', 'soundtrack', 'deluxe', 'limited']);
   const focusAlbumTypeIn = parseList(req.query.focus_album_type).filter(v => VALID_ALBUM_TYPES.has(v));
   const focusAlbumTypeEx = parseList(req.query.focus_album_type_excl).filter(v => VALID_ALBUM_TYPES.has(v));
+  // v1.1.31.0 — favourites as a focus sub-section. It used to be a separate
+  // heart chip in the top row with its own ?favorites=1 param; that param
+  // still exists and still backs the dedicated Favourites SCREEN, which is a
+  // different thing (a whole screen, not a filter on this one).
+  //
+  // The values are the strings 'yes' and 'no' rather than a boolean, so the
+  // section behaves like every other one: OR within the section (ticking both
+  // is "favourite or not", i.e. everything), AND across sections, and the
+  // pill's +/- turns an include into an exclude with no special case.
+  const VALID_FAVOURITE = new Set(['yes', 'no']);
+  const focusFavouriteIn = parseList(req.query.focus_favourite).filter(v => VALID_FAVOURITE.has(v));
+  const focusFavouriteEx = parseList(req.query.focus_favourite_excl).filter(v => VALID_FAVOURITE.has(v));
   // For last-played / added-on we treat the param as a single value
   // even if a list comes through — pick the first valid.
   const validRange = (v) => ['day', 'week', 'month', 'longer'].includes(v) ? v : null;
@@ -225,6 +237,19 @@ router.get('/albums', tierMiddleware.clampLimit('library_size_limit'), (req, res
   if (focusAlbumTypeEx.length > 0) {
     focusParts.push(`(album_type IS NULL OR album_type NOT IN (${focusAlbumTypeEx.map(() => '?').join(',')}))`);
     focusParams.push(...focusAlbumTypeEx);
+  }
+  // v1.1.31.0 — favourite clauses. The CASE turns the flag into the same
+  // shape every other section uses, so IN / NOT IN carry the OR and AND-NOT
+  // semantics without a boolean special case. COALESCE because is_favorite is
+  // NULL on rows that predate the column.
+  const FAVOURITE_EXPR = "(CASE WHEN COALESCE(is_favorite, 0) = 1 THEN 'yes' ELSE 'no' END)";
+  if (focusFavouriteIn.length > 0) {
+    focusParts.push(`${FAVOURITE_EXPR} IN (${focusFavouriteIn.map(() => '?').join(',')})`);
+    focusParams.push(...focusFavouriteIn);
+  }
+  if (focusFavouriteEx.length > 0) {
+    focusParts.push(`${FAVOURITE_EXPR} NOT IN (${focusFavouriteEx.map(() => '?').join(',')})`);
+    focusParams.push(...focusFavouriteEx);
   }
   // Genre: alias-aware match. We expand each canonical name to its
   // raw aliases, then build a string-level test (genre column stores
@@ -1676,7 +1701,22 @@ router.get('/focus/options', (req, res) => {
         count: albumTypeCounts[t],
       }));
 
+    // v1.1.31.0 — favourites, counted both ways so the column can show what
+    // each pick would give you. Rows with a zero count are still listed:
+    // unlike a genre nobody has, "no favourites yet" is a state the user can
+    // change, and a column that empties itself would look broken.
+    const favouriteRow = database.prepare(`
+      SELECT SUM(CASE WHEN COALESCE(is_favorite, 0) = 1 THEN 1 ELSE 0 END) AS yes,
+             SUM(CASE WHEN COALESCE(is_favorite, 0) = 1 THEN 0 ELSE 1 END) AS no
+      FROM albums WHERE excluded = 0
+    `).get();
+    const favourites = [
+      { value: 'yes', label: 'Favourites',     count: favouriteRow?.yes || 0 },
+      { value: 'no',  label: 'Not favourites', count: favouriteRow?.no || 0 },
+    ];
+
     return {
+      favourites,
       formats,
       decades,
       bitDepths,

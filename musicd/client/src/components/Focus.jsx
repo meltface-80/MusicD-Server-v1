@@ -36,6 +36,13 @@ import { api } from '../api'
 // them and the schema migration is in place — so they're now part of
 // the normal section list.
 export const FOCUS_SECTIONS = [
+  // v1.1.31.0 — favourites. It was a heart chip of its own in the top pill
+  // row; with the sort chip, Random, the funnel and Select up there it no
+  // longer fitted without scrolling, and it was the one chip that was really
+  // a filter like these. First in the default order because it is the most
+  // used. A saved custom order from before this release will not mention it,
+  // so applySectionOrder appends it at the end for those users — see there.
+  { key: 'favourite',      label: 'Favourites' },
   { key: 'genre',          label: 'Genre' },
   { key: 'albumType',      label: 'Type' },
   { key: 'format',         label: 'Audio format' },
@@ -88,10 +95,26 @@ export function applySectionOrder(customOrder) {
 // delete one was the Focus library, and a focus combination worth keeping is
 // a tag. What is left is the live focus, which is all the album grid ever
 // reads.
-export function useFocusState() {
+// `seed` is an optional { sectionKey: { include: [...], exclude: [...] } } used
+// ONCE, at mount. It exists because focus picks are component state and this
+// component unmounts every time an album is opened — so without it, a filter
+// the user set is gone when they come back, and the album grid's page cache
+// (which refuses to store a focus-filtered list precisely because the picks
+// would not come back with it) drops what it had.
+//
+// AlbumGrid seeds only the favourites pick, from its own cache entry, which is
+// exactly how it already restores the tag chips. Read once, like the cache
+// entry itself: re-reading on later renders would fight the user.
+export function useFocusState(seed = null) {
   const [picks, setPicks] = useState(() => {
     const init = {}
-    for (const s of FOCUS_SECTIONS) init[s.key] = { include: new Set(), exclude: new Set() }
+    for (const s of FOCUS_SECTIONS) {
+      const from = seed && seed[s.key]
+      init[s.key] = {
+        include: new Set((from && from.include) || []),
+        exclude: new Set((from && from.exclude) || []),
+      }
+    }
     return init
   })
   // togglePick — primary action: tickbox in a column.
@@ -164,6 +187,9 @@ export function useFocusState() {
       if (set.size === 0) return
       parts.push(`${paramName}=${[...set].map(encodeURIComponent).join(',')}`)
     }
+    // v1.1.31.0 — favourites. Values are 'yes' / 'no'; see the server note.
+    addList('focus_favourite',        picks.favourite.include)
+    addList('focus_favourite_excl',   picks.favourite.exclude)
     addList('focus_format',           picks.format.include)
     addList('focus_format_excl',      picks.format.exclude)
     // v1.1.0.81 — audio quality params. Same shape as everything
@@ -204,8 +230,18 @@ export function useFocusState() {
     return false
   }, [picks])
 
+  // Which sections currently carry any pick. AlbumGrid uses it to tell a
+  // favourites-only focus (which its page cache can restore) from any other
+  // focus (which it cannot). Kept general rather than answering that one
+  // question, so the hook does not need to know what a favourite is.
+  const sectionsWithPicks = useMemo(
+    () => FOCUS_SECTIONS.map(s => s.key)
+      .filter(k => picks[k] && (picks[k].include.size > 0 || picks[k].exclude.size > 0)),
+    [picks])
+
   return {
     picks,
+    sectionsWithPicks,
     togglePick,
     togglePillSign,
     removePill,
@@ -640,6 +676,7 @@ function optionsForSection(sectionKey, options) {
   if (sectionKey === 'addedOn')       return options.addedOn     || []
   if (sectionKey === 'artist')        return options.artists     || []
   if (sectionKey === 'albumType')     return options.albumTypes  || []
+  if (sectionKey === 'favourite')     return options.favourites  || []
   return []
 }
 

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MusicD Server v1 — self-hosted music server</title>
-<meta name="description" content="MusicD Server v1.1.30.0 — a self-hosted music server with a Roon-inspired web UI, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
+<meta name="description" content="MusicD Server v1.1.31.0 — a self-hosted music server with a Roon-inspired web UI, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
 <style>
   :root {
     --bg:        #1b1d1f;   /* charcoal */
@@ -263,7 +263,7 @@
   presets, FIR convolution and a per-stream signal path you can actually
   read.</p>
   <div class="badges">
-    <span class="badge">v1.1.30.0</span>
+    <span class="badge">v1.1.31.0</span>
     <span class="badge">Node 20 &middot; Express &middot; SQLite</span>
     <span class="badge">React SPA &middot; PWA</span>
     <span class="badge plain">Docker &middot; port 32700</span>
@@ -275,25 +275,25 @@
 
 <section id="whats-new" aria-labelledby="whats-new-h">
   <div class="wrap">
-    <h2 id="whats-new-h">What&rsquo;s new in 1.1.30.0</h2>
-    <p class="lead">The fix for the blank queue screen, and below it the run of
-    releases that brought album multi-select, four themes and a Home screen you
-    choose the shape of.</p>
+    <h2 id="whats-new-h">What&rsquo;s new in 1.1.31.0</h2>
+    <p class="lead">Favourites moves into Focus and the album wall's top row
+    fits again &mdash; and below it, album multi-select, four themes and a Home
+    screen you choose the shape of.</p>
     <div class="grid">
 
       <div class="card new">
-        <span class="tagline">Fixed</span>
-        <h3><span class="em" aria-hidden="true">&#9888;&#65039;</span>The blank queue screen</h3>
-        <p>On 1.1.26.0 through 1.1.29.0 the <b>queue</b> behind the Now Playing
-        tab switcher came up blank. Two icons had been dropped from an import
-        line while the volume sheet was being moved into its own file &mdash;
-        the volume sheet used them, and so did the queue's &minus;&nbsp;/&nbsp;+
-        controls.</p>
-        <p>The same shape as the blank Albums screen a few releases back, and
-        the test written for that had a hole in exactly this spot: it draws
-        each screen in its starting state, and the queue sits behind a tab. It
-        now draws what is behind the tabs too, and a second check refuses any
-        component used on screen but imported nowhere.</p>
+        <span class="tagline">Changed</span>
+        <h3><span class="em" aria-hidden="true">&#9825;</span>Favourites is a Focus section now</h3>
+        <p>The heart has left the album wall's top row. With the sort chip,
+        Random, the funnel and Select up there, five controls no longer fitted
+        without scrolling &mdash; and the heart was the one that was really a
+        filter like the ones inside the funnel.</p>
+        <p>Open <b>Focus</b> and it is the first column: <b>Favourites</b> and
+        <b>Not favourites</b>, ticking and un-ticking like every other column,
+        and combining with genre, decade or format the way they combine with
+        each other. Your place in the wall is still kept when you open an album
+        and come back, exactly as the heart used to manage, and <b>Random</b>
+        still picks a favourite when favourites are the filter.</p>
       </div>
 
       <div class="card new">
@@ -843,7 +843,7 @@
       <code>-e MUSICD_MANIFEST_URL=https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json</code>
       to your <code>docker run</code>, restart, then <b>Check for updates</b>.
       The older parser understands this manifest, so it installs normally. Drop
-      the variable afterwards &mdash; v1.1.30.0 has the same URL as its own
+      the variable afterwards &mdash; v1.1.31.0 has the same URL as its own
       default.
     </div>
   </div>
@@ -916,7 +916,7 @@
 </main>
 
 <footer>
-  MusicD Server v1.1.30.0 &mdash; self-hosted music, one user, one library, one home network.
+  MusicD Server v1.1.31.0 &mdash; self-hosted music, one user, one library, one home network.
   <br>MIT licence &middot; <a href="https://github.com/meltface-80/MusicD-Server-v1">Source on GitHub</a>
 </footer>
 
