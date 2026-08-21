@@ -69,15 +69,69 @@ const SECTIONS = ['home', 'albums', 'artists', 'genres', 'favorites', 'tags',
 let built = null;
 async function bundle() {
   if (built) return built;
+  // Inner components that live behind state the probe cannot reach. The queue
+  // is the reason this exists: it sits behind activeTab === 'queue', so
+  // rendering NowPlayingFullScreen in its default state never touches it, and
+  // a ReferenceError in it shipped twice unseen. Each is exported into a
+  // throwaway copy of its file, which is deleted again below.
+  const INNER = [
+    ['QueueView', 'NowPlayingFullScreen.jsx', 'QueueView',
+     '{ queue: PROBE_QUEUE, queueIndex: 2, onSelectTrack: () => {}, onSelectionChange: () => {} }'],
+    ['QueueView (empty)', 'NowPlayingFullScreen.jsx', 'QueueView',
+     '{ queue: [], queueIndex: 0, onSelectTrack: () => {}, onSelectionChange: () => {} }'],
+    ['TrackOverflowMenu (now playing)', 'NowPlayingFullScreen.jsx', 'TrackOverflowMenu',
+     "{ track: PROBE_TRACK, onClose: () => {} }"],
+    ['TrackOverflowMenu (queue)', 'NowPlayingFullScreen.jsx', 'TrackOverflowMenu',
+     "{ track: PROBE_TRACK, variant: 'queue', selection: { count: 2 }, onClose: () => {} }"],
+    ['DspOverlay', 'VolumeSheet.jsx', 'DspOverlay', "{ rendererId: 'r1', onClose: () => {} }"],
+    ['DeviceSettingsOverlay', 'VolumeSheet.jsx', 'DeviceSettingsOverlay',
+     "{ rendererId: 'r1', renderer: { name: 'Test' }, onClose: () => {} }"],
+    ['SelectionBar', 'AlbumSelection.jsx', 'SelectionBar',
+     '{ count: 3, onCancel: () => {}, onAct: () => {} }'],
+    ['SelectionSheet', 'AlbumSelection.jsx', 'SelectionSheet',
+     '{ count: 3, onClose: () => {}, onPick: () => {} }'],
+  ];
+
+  // One throwaway copy per file, with `export` added to the inner components
+  // named above. Rewriting rather than importing privately, because these are
+  // deliberately not part of any module's public surface.
+  const copies = new Map();
+  for (const [, file, name] of INNER) {
+    if (!copies.has(file)) {
+      const from = path.join(CLIENT, 'src', 'components', file);
+      copies.set(file, { src: fs.readFileSync(from, 'utf8'), names: new Set() });
+    }
+    copies.get(file).names.add(name);
+  }
+  const written = [];
+  for (const [file, { src: original, names }] of copies) {
+    let out = original;
+    for (const name of names) {
+      const decl = `function ${name}(`;
+      assert.ok(out.includes(decl), `${file} no longer defines ${name}`);
+      if (!out.includes(`export ${decl}`)) out = out.replace(decl, `export ${decl}`);
+    }
+    const probeName = `__probe_${file}`;
+    fs.writeFileSync(path.join(CLIENT, 'src', 'components', probeName), out);
+    written.push(path.join(CLIENT, 'src', 'components', probeName));
+  }
+
   const entry = path.join(CLIENT, 'src', '__render_probe.jsx');
-  const imports = SCREENS.map(([, p], i) => `import C${i} from '${p}'`).join('\n');
-  const cases = SCREENS.map(([n, , props], i) => `  [${JSON.stringify(n)}, C${i}, ${props}],`).join('\n');
+  const imports = SCREENS.map(([, p], i) => `import C${i} from '${p}'`).join('\n')
+    + '\n' + INNER.map(([, file, name], i) =>
+        `import { ${name} as I${i} } from './components/__probe_${file.replace('.jsx', '')}'`).join('\n');
+  const cases = SCREENS.map(([n, , props], i) => `  [${JSON.stringify(n)}, C${i}, ${props}],`).join('\n')
+    + '\n' + INNER.map(([n, , , props], i) => `  [${JSON.stringify(n)}, I${i}, ${props}],`).join('\n');
   fs.writeFileSync(entry, `
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import App from './App'
 import { useStore } from './store'
 ${imports}
+const PROBE_QUEUE = Array.from({ length: 6 }, (_, i) => ({
+  id: 't' + i, title: 'Track ' + i, artist: 'A', album: 'Alb', duration: 200,
+}))
+const PROBE_TRACK = { id: 't1', title: 'Track', artist: 'A', album: 'Alb', genre: 'G' }
 export const CASES = [
 ${cases}
 ]
@@ -99,11 +153,80 @@ export function renderOne(Comp, props) {
     });
   } finally {
     fs.unlinkSync(entry);
+    for (const f of written) { try { fs.unlinkSync(f) } catch { /* already gone */ } }
   }
   test.after(() => { try { fs.unlinkSync(outfile) } catch { /* already gone */ } });
   built = require(outfile);
   return built;
 }
+
+// Every <Capitalised /> in a client file must be imported into that file or
+// defined in it (v1.1.30.0).
+//
+// This is the cheap half of the same problem the render probe below solves
+// expensively, and it exists because the probe MISSED one. v1.1.26.0 moved the
+// volume sheet out of NowPlayingFullScreen and retyped its lucide import line
+// in the process, dropping Plus and Minus — which the volume sheet used AND
+// the QUEUE view used. The queue tab threw ReferenceError on render.
+//
+// The probe could not see it: it renders each screen in its default state, and
+// the queue is behind activeTab === 'queue'. This check does not care what
+// state a branch is behind — an identifier used in JSX and imported nowhere is
+// wrong whether or not anything renders it today.
+function jsxReferences(src) {
+  const clean = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const declared = new Set(['React']);
+  for (const m of clean.matchAll(/import\s+([^;]*?)\s+from/g)) {
+    for (const n of m[1].replace(/[{}]/g, ' ').split(',')) {
+      declared.add(n.split(/\s+as\s+/).pop().trim());
+    }
+  }
+  for (const m of clean.matchAll(/^(?:export )?(?:default )?(?:async )?function ([A-Z]\w*)/gm)) declared.add(m[1]);
+  for (const m of clean.matchAll(/(?:const|let|var) ([A-Z]\w*)\s*=/g)) declared.add(m[1]);
+  // Destructured renames — ({ icon: Icon }) — where the JSX name is the alias.
+  for (const m of clean.matchAll(/\w+:\s*([A-Z]\w*)/g)) declared.add(m[1]);
+  const used = new Set([...clean.matchAll(/<([A-Z]\w*)[\s/>]/g)].map(m => m[1]));
+  return [...used].filter(n => !declared.has(n));
+}
+
+test('the JSX-reference check bites', async (t) => {
+  await t.test('it finds a component used and imported nowhere', () => {
+    // The exact shape of the v1.1.26.0 bug.
+    const bad = `import { Play } from 'lucide-react'\nconst A = () => <Minus size={16} />`;
+    assert.deepEqual(jsxReferences(bad), ['Minus']);
+  });
+  await t.test('an import satisfies it', () => {
+    const good = `import { Play, Minus } from 'lucide-react'\nconst A = () => <Minus />`;
+    assert.deepEqual(jsxReferences(good), []);
+  });
+  await t.test('so does a local definition, an alias, or a destructured rename', () => {
+    for (const ok of [
+      `function Row() { return null }\nconst A = () => <Row />`,
+      `import { X as Close } from 'l'\nconst A = () => <Close />`,
+      `const A = ({ icon: Icon }) => <Icon />`,
+    ]) assert.deepEqual(jsxReferences(ok), [], ok);
+  });
+  await t.test('and a name inside a comment does not count as a use', () => {
+    assert.deepEqual(jsxReferences(`// renders <Ghost /> one day\nconst A = 1`), []);
+  });
+});
+
+test('every component the client renders is imported or defined', () => {
+  const guilty = [];
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) { walk(p); continue }
+      if (!/\.jsx?$/.test(e.name)) continue;
+      const missing = jsxReferences(fs.readFileSync(p, 'utf8'));
+      if (missing.length) guilty.push(`${e.name}: ${missing.join(', ')}`);
+    }
+  };
+  walk(path.join(CLIENT, 'src'));
+  assert.deepEqual(guilty, [],
+    'these are rendered but imported nowhere — a ReferenceError on first paint:\n  '
+    + guilty.join('\n  '));
+});
 
 test('the probe fails when a screen cannot render', async () => {
   // Prove it bites, with the shape of the bug it was written for: an
@@ -121,7 +244,8 @@ test('the probe fails when a screen cannot render', async () => {
 test('every screen renders', async (t) => {
   const { CASES, renderOne } = await bundle();
 
-  assert.equal(CASES.length, SCREENS.length, 'a screen went missing from the probe');
+  assert.ok(CASES.length > SCREENS.length,
+    'the inner state-gated components are not being rendered');
 
   for (const [name, Comp, props] of CASES) {
     await t.test(name, () => {
