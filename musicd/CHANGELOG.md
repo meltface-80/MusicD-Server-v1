@@ -12,6 +12,59 @@ Categories used per release:
 
 ---
 
+## v1.1.31.0 — 2026-08-22 — FAVOURITES MOVES INTO FOCUS
+
+### Changed
+
+- **The heart chip is gone from the album wall's top row; favourites is a
+  Focus section of its own.** With the sort chip, Random, the funnel and
+  Select up there, five controls no longer fitted without scrolling — and of
+  everything in that row the heart was the one thing that was really a filter
+  like the ones inside the funnel. The row is back to four and fits.
+- The section carries **Favourites** and **Not favourites** rather than a
+  boolean, so it behaves like every other section: OR within it (ticking both
+  is "favourite or not", i.e. everything), AND across sections, and the pill's
+  `+` / `−` turns include into exclude with no special case. It sits first in
+  the default order; a saved custom column order from before this release gets
+  it appended at the end, which is what `applySectionOrder` has always done
+  with a section it does not know.
+
+### Kept working, deliberately
+
+- **The page cache still carries a favourites filter.** This is the part that
+  could have regressed silently. The album grid refuses to cache a
+  focus-filtered list, because focus picks do not survive opening an album —
+  the list would come back filtered with an empty focus bar. The heart chip
+  was not a focus pick and the cache *did* carry it, so moving favourites into
+  focus had to carry the restore too: the pick is stored in the cache entry and
+  seeded back on mount, exactly as the tag chips already are. Anything ticked
+  alongside it still drops the entry.
+- **Random still gives a favourite** when favourites are focused — and not
+  when "Not favourites" is ticked, or both, which are not questions
+  "a random favourite" answers.
+- **The dedicated Favourites screen is untouched.** It is a screen, not a
+  filter on this one, and still runs on `?favorites=1`. A favourites *focus*
+  must not also send that param, or "Not favourites" would AND itself into
+  "favourites".
+
+### Tests
+
+- `focus-favourites.test.js` — 20 assertions. The filter runs against real
+  SQLite, including the case a boolean implementation would have had to
+  special-case (both ticked = everything) and the one a missing `COALESCE`
+  would break (albums whose favourite flag predates the column).
+- `library-scroll.test.js`'s cache rule now pins the **one** exemption and the
+  three things that make it safe: the seed, the entry recording the query its
+  seed will rebuild, and the mount key reading it back.
+- Fifteen mutations proven red-then-green. Four missed on the first pass and
+  two of those were real gaps, both worth naming: the SQL test lifted only the
+  CASE expression and **rebuilt the IN / NOT IN itself**, so a clause bug in
+  the shipping route passed; and the Random check asserted source text, so
+  short-circuiting the condition to `false` passed. Both now lift and run the
+  real thing.
+
+---
+
 ## v1.1.30.0 — 2026-08-21 — THE QUEUE TAB THREW ON RENDER
 
 ### Fixed

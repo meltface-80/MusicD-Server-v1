@@ -5,7 +5,7 @@ import {
 } from '../librarySort'
 import { useStore } from '../store'
 import { api } from '../api'
-import { Heart, Shuffle, Play, Plus, SlidersHorizontal, ArrowUp, ArrowDown } from 'lucide-react'
+import { Shuffle, Play, Plus, SlidersHorizontal, ArrowUp, ArrowDown } from 'lucide-react'
 import { FocusBar, FocusPills, FocusModal, useFocusState, FOCUS_SECTIONS, applySectionOrder } from './Focus'
 import {
   useAlbumSelection, runSelectionAction,
@@ -65,10 +65,11 @@ const _albumPagesCache = new Map();
 const ALBUM_PAGES_CACHE_TTL_MS = 30 * 60 * 1000;
 
 // The view key as it will be at first render: the stored sort, and the
-// filters the cached entry itself restores (tag picks and the favourites
-// chip come back from the entry, focus picks never do). Computed before the
-// component's state exists, which is why it reads the entry rather than the
-// state.
+// filters the cached entry itself restores. Tag picks come back from the
+// entry, and so does the FAVOURITES focus pick (v1.1.31.0) — every other focus
+// pick never does, and an entry carrying one is never written. Computed before
+// the component's state exists, which is why it reads the entry rather than
+// the state.
 function mountViewKey(key, sortView) {
   const hit = _albumPagesCache.get(key);
   if (!hit) return null;
@@ -76,10 +77,13 @@ function mountViewKey(key, sortView) {
     sort: sortView.sort,
     dir: sortView.dir,
     seed: sortView.seed,
-    showOnlyFavorites: hit.filterFavorites || key === 'favorites',
+    showOnlyFavorites: key === 'favorites',
     savedOnly: key === 'saved',
     tagFilter: new Set(hit.tagIds || []),
-    focusQuery: '',
+    // The fragment the seeded favourites pick will produce once the component
+    // is up. It has to match, or the entry is discarded as stale the moment
+    // its own filter is restored.
+    focusQuery: hit.favQuery || '',
   });
 }
 
@@ -172,11 +176,10 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
   const [reloading, setReloading] = useState(false)
   const [offset, setOffset] = useState(restoredView ? restoredView.offset : 0)
   const [hasMore, setHasMore] = useState(restoredView ? restoredView.hasMore : true)
-  // Local heart-filter chip (#19). Combined with the favoritesOnly *prop*
-  // (set when this grid is rendered as the dedicated Favourites screen) via
-  // OR — either route makes us show only favourites.
-  const [filterFavorites, setFilterFavorites] = useState(
-    restoredView ? restoredView.filterFavorites : false)
+  // v1.1.31.0 — the heart chip is gone; favourites is a Focus section now.
+  // What is left here is the favoritesOnly *prop*, set when this grid is
+  // rendered as the dedicated Favourites SCREEN — a different thing from a
+  // filter on this one, and still driven by ?favorites=1.
   const [randomBusy, setRandomBusy] = useState(false)
   // Busy flag shared by Play All / Queue All on the Favourites screen so we
   // can disable both while the bulk track fetch is in flight.
@@ -210,7 +213,12 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
   // open. Pills render whenever any picks exist, regardless of bar
   // state — closing the bar preserves selections per spec.
   const focusEnabled = !favoritesOnly && !savedOnly
-  const focus = useFocusState()
+  // Seeded from the cache entry, so a favourites focus survives opening an
+  // album and coming back — which is what the heart chip used to do, and what
+  // this must not lose. Only favourites: every other focus pick is still
+  // dropped on unmount, and the entry is dropped with it (see the mirror).
+  const focus = useFocusState(restoredView && restoredView.favourite
+    ? { favourite: restoredView.favourite } : null)
   const [focusOpen, setFocusOpen] = useState(false)
   // v1.1.0.94 — initialise from module-level cache so navigating
   // back to this screen doesn't show "Loading focus options…".
@@ -344,7 +352,10 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
     return () => { cancelled = true }
   }, [focusEnabled, focusOpen])
 
-  const showOnlyFavorites = favoritesOnly || filterFavorites
+  // The dedicated Favourites screen only. A favourites FOCUS goes through the
+  // focus query like every other pick, so it must not also set ?favorites=1 —
+  // that would silently turn "not favourites" into "favourites".
+  const showOnlyFavorites = favoritesOnly
 
   // The view the albums currently in state were actually fetched under.
   // Stamped by fetchPage when a response lands, compared by the mirror
@@ -522,12 +533,17 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
     // has moved and the fetch for it has not landed. Writing now would
     // label this list with a view it was never fetched under.
     if (loadedViewKey.current !== currentViewKey) return
-    if (focusEnabled && focus.queryString) {
-      // Focus picks live in component state and do NOT survive the remount,
-      // so a focus-filtered list must never be restored into a grid whose
-      // focus bar has come back empty: the user would be looking at a
-      // filtered list with nothing on screen explaining the filter. A stale
-      // grid is worse than a lost scroll position — drop the entry.
+    // Focus picks live in component state and do NOT survive the remount, so
+    // a focus-filtered list must never be restored into a grid whose focus bar
+    // has come back empty: the user would be looking at a filtered list with
+    // nothing on screen explaining the filter. A stale grid is worse than a
+    // lost scroll position — drop the entry.
+    //
+    // v1.1.31.0 — favourites is the exception, and only because it is seeded
+    // back (see useFocusState). It carried the page cache when it was a chip
+    // and it still does; anything ticked ALONGSIDE it drops the entry as
+    // before.
+    if (focusEnabled && focus.sectionsWithPicks.some(k => k !== 'favourite')) {
       _albumPagesCache.delete(cacheKey)
       return
     }
@@ -538,13 +554,17 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
       sort,
       dir: sortDir,
       seed: sortSeed,
-      filterFavorites,
+      favourite: {
+        include: [...focus.picks.favourite.include],
+        exclude: [...focus.picks.favourite.exclude],
+      },
+      favQuery: focusEnabled ? focus.queryString : '',
       tagIds: [...tagFilter],
       viewKey: currentViewKey,
       savedAt: Date.now(),
     })
   }, [cacheKey, loading, reloading, albums, offset, hasMore, sort, sortDir,
-      sortSeed, filterFavorites, tagFilter, focusEnabled, focus.queryString,
+      sortSeed, tagFilter, focusEnabled, focus.queryString, focus.picks, focus.sectionsWithPicks,
       currentViewKey])
 
   // Infinite scroll
@@ -571,7 +591,18 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
     if (!rendererId) { alert('Tap ☰ → Output to select a renderer first'); return }
     setRandomBusy(true)
     try {
-      const favParam = showOnlyFavorites ? '?favorites=1' : ''
+      // v1.1.31.0 — Random still respects a favourites filter. It used to
+      // read the heart chip through showOnlyFavorites; now it reads the focus
+      // pick, so "Random" from a favourites-filtered wall still gives a
+      // favourite. Only the plain include: with 'no' ticked, or both, the
+      // right answer is not "a random favourite", and Random has never
+      // followed the other focus sections either.
+      const favouriteOnly = showOnlyFavorites || (
+        focusEnabled
+        && focus.picks.favourite.include.has('yes')
+        && focus.picks.favourite.include.size === 1
+        && focus.picks.favourite.exclude.size === 0)
+      const favParam = favouriteOnly ? '?favorites=1' : ''
       const { id } = await api.get(`/library/albums/random${favParam}`)
       if (!id) return
       const album = await api.get(`/library/albums/${id}`)
@@ -714,20 +745,6 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
             >
               <Shuffle size={15} />
               <span>Random</span>
-            </button>
-            <button
-              style={{ ...s.iconChip, ...(filterFavorites ? s.iconChipActive : {}) }}
-              onClick={() => setFilterFavorites(v => !v)}
-              title={filterFavorites ? 'Showing favourites' : 'Show favourites only'}
-              aria-pressed={filterFavorites}
-              aria-label="Favourites"
-            >
-              <Heart
-                size={15}
-                fill={filterFavorites ? '#ff3b5c' : 'none'}
-                color={filterFavorites ? '#ff3b5c' : 'currentColor'}
-                strokeWidth={filterFavorites ? 0 : 2}
-              />
             </button>
             {/* v1.1.0.80 — Focus funnel. Tapping toggles the Focus bar
                 visibility. The pill highlights when the bar is open

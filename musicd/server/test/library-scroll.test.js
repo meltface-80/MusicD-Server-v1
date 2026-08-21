@@ -276,7 +276,24 @@ test('the album grid comes back with the pages it had', async (t) => {
       'active focus filter must both drop the entry');
     assert.match(grid, /ALBUM_PAGES_CACHE_TTL_MS/, 'the entry never expires');
     assert.match(grid, /savedAt:\s*Date\.now\(\)/, 'nothing stamps the entry');
-    assert.match(grid, /if \(focusEnabled && focus\.queryString\) \{[\s\S]{0,600}?_albumPagesCache\.delete/,
+    // The exception is only safe BECAUSE the pick is seeded back. If the seed
+    // goes, the exemption above must go with it or the grid comes back
+    // filtered with an empty focus bar — the exact thing the rule prevents.
+    assert.match(grid, /useFocusState\(restoredView && restoredView\.favourite/,
+      'the favourites pick is exempted from the cache rule but never restored');
+    assert.match(grid, /favQuery: focusEnabled \? focus\.queryString : ''/,
+      'the entry does not record the focus query its seeded pick will rebuild');
+    assert.match(grid, /focusQuery: hit\.favQuery \|\| ''/,
+      'the mount view key ignores the pick it is about to restore, so the ' +
+      'entry is discarded as stale the moment its own filter comes back');
+    // v1.1.31.0 — the rule gained one exception and no more. Favourites
+    // became a Focus section (it was a heart chip, which the page cache DID
+    // carry), and it is seeded back from the entry on mount — so it is the one
+    // pick that can come back with the list it filtered. Anything ticked
+    // alongside it still drops the entry, which is what this asserts: the
+    // guard must test the sections that carry picks, not merely whether any
+    // query string exists, and it must exempt exactly one key.
+    assert.match(grid, /if \(focusEnabled && focus\.sectionsWithPicks\.some\(k => k !== 'favourite'\)\) \{[\s\S]{0,700}?_albumPagesCache\.delete/,
       'a focus-filtered list is being cached — focus picks do not survive ' +
       'the remount, so it would come back filtered with nothing on screen ' +
       'explaining why');
