@@ -875,6 +875,31 @@ function init() {
   safeAddColumn('tracks', 'work_attempted_at', 'INTEGER');
   try { db.exec('CREATE INDEX IF NOT EXISTS idx_tracks_recording ON tracks(mb_recording_id) WHERE mb_recording_id IS NOT NULL'); } catch (e) {}
 
+  // v1.1.42.0 — delete the ListenBrainz settings rows.
+  //
+  // The feature is gone (see CHANGELOG), but removing the code does not
+  // remove what people typed into it — and the field's whole failure mode
+  // was that ListenBrainz has three different credentials and it is very
+  // easy to paste the wrong one. At least one install ended up with a
+  // MetaBrainz OAuth CLIENT SECRET sitting in listenbrainz_token, which
+  // is a real credential in a row nothing will ever read again.
+  //
+  // Leaving an orphaned secret in the database because the reader was
+  // deleted is not "harmless"; it is a credential with no owner. So the
+  // rows go. This is deliberately NOT the pattern used for the older
+  // baked-in-key rows, which were kept precisely because they might be
+  // read again — these will not be.
+  try {
+    const gone = db.prepare(
+      "DELETE FROM settings WHERE key IN ('listenbrainz_token', 'matcher_use_listenbrainz')"
+    ).run();
+    if (gone.changes > 0) {
+      console.log(`🧹 Removed ${gone.changes} ListenBrainz setting row(s) — feature withdrawn in v1.1.42.0`);
+    }
+  } catch (e) {
+    // No settings table yet on a brand-new database. Nothing to clean.
+  }
+
   // Works — the composition, as distinct from any recording of it.
   //
   // A MusicBrainz work attaches to RECORDINGS, never to release groups:
@@ -958,13 +983,10 @@ function init() {
       'lastfm_api_key', 'lastfm_api_secret',
       'fanart_api_key', 'audiodb_api_key',
       'mb_contact',
-      // v1.1.39.0 — the credentials added since this list was written.
-      // listenbrainz_token gained a reader in v1.1.38.0 and should have
-      // joined here then; fanart_client_key is new. All three are pasted
-      // from a web page, often on a phone, which is exactly the source
-      // of the stray smart quotes and trailing newlines this loop exists
-      // to strip.
-      'listenbrainz_token', 'fanart_client_key',
+      // v1.1.39.0 — the optional per-install service key. Pasted from a
+      // web page, often on a phone, which is exactly the source of the
+      // stray smart quotes and trailing newlines this loop strips.
+      'fanart_client_key',
     ];
     const trimRegex = /^[\s"'\u201C\u201D\u2018\u2019]+|[\s"'\u201C\u201D\u2018\u2019]+$/g;
     const stmt = db.prepare('SELECT key, value FROM settings WHERE key = ?');

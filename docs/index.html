@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MusicD Server v1 — self-hosted music server</title>
-<meta name="description" content="MusicD Server v1.1.41.0 — a self-hosted music server with a fast, dense web UI, MusicBrainz album matching, album version grouping, Qobuz and Tidal merged into one library, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
+<meta name="description" content="MusicD Server v1.1.42.0 — a self-hosted music server with a fast, dense web UI, MusicBrainz album matching, album version grouping, Qobuz and Tidal merged into one library, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
 <style>
   :root {
     --bg:        #1b1d1f;   /* charcoal */
@@ -263,7 +263,7 @@
   Squeezelite and local USB DACs &mdash; with parametric EQ, AutoEQ presets,
   FIR convolution and a per-stream signal path you can actually read.</p>
   <div class="badges">
-    <span class="badge">v1.1.41.0</span>
+    <span class="badge">v1.1.42.0</span>
     <span class="badge">Node 20 &middot; Express &middot; SQLite</span>
     <span class="badge">React SPA &middot; PWA</span>
     <span class="badge plain">Docker &middot; port 32700</span>
@@ -275,46 +275,29 @@
 
 <section id="whats-new" aria-labelledby="whats-new-h">
   <div class="wrap">
-    <h2 id="whats-new-h">What&rsquo;s new in 1.1.41.0</h2>
-    <p class="lead">A test button for the ListenBrainz token, your own keys
-    for the two shared ones, matching that finishes in seconds instead of an
-    hour, a matcher that no longer gets stuck when MusicBrainz has a bad
-    minute, bigger text throughout, and composers for your classical albums.</p>
+    <h2 id="whats-new-h">What&rsquo;s new in 1.1.42.0</h2>
+    <p class="lead">Your own keys for the two shared ones, a matcher that no
+    longer gets stuck when MusicBrainz has a bad minute, bigger text
+    throughout, and composers for your classical albums.</p>
     <div class="grid">
 
       <div class="card new">
-        <span class="tagline">Fixed</span>
-        <h3><span class="em" aria-hidden="true">&#128269;</span>&hellip;and it now says what is wrong</h3>
-        <p>The Test button shipped a day too eager. When ListenBrainz rejected a
-        token it reported only <i>Token invalid</i> &mdash; the explanation of
-        the usual cause had been written as a fallback behind whatever
-        ListenBrainz itself said, and ListenBrainz always says something, so
-        the explanation could never appear.</p>
-        <p>It is added to the message now rather than replaced by it. Better
-        still, the check describes what you actually saved: a ListenBrainz user
-        token is a 36-character UUID, so if the value is a 40-character string
-        with no hyphens it says so and names the credential you have probably
-        pasted. That identifies the mistake in one glance, without anyone
-        needing to know that three different MetaBrainz pages each issue
-        something called a token.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">New</span>
-        <h3><span class="em" aria-hidden="true">&#9989;</span>Test token</h3>
-        <p>The ListenBrainz field arrived last release with no way to tell
-        whether what you pasted actually worked &mdash; and the failure is
-        silent on purpose, because a bad token just means matching quietly
-        falls back to the slower path. There is a <b>Test token</b> button
-        beside it now. It tells you it is working and which account it belongs
-        to, or exactly what is wrong.</p>
-        <p>Worth knowing, because it catches people out: ListenBrainz has
-        <i>two</i> kinds of credential and only one works here. You want the
-        <b>User token</b> from <b>listenbrainz.org/settings</b>. The client ID
-        and client secret on the applications page are for apps signing in on
-        your behalf &mdash; a different mechanism, and they will not
-        authenticate here. The error says so now instead of just
-        &ldquo;invalid&rdquo;.</p>
+        <span class="tagline">Changed</span>
+        <h3><span class="em" aria-hidden="true">&#9866;</span>ListenBrainz removed</h3>
+        <p>Added a few releases ago to speed up the first album match, and
+        withdrawn because it was not worth what it cost to set up. Getting a
+        token meant finding your way around a family of sites that issue three
+        different credentials all called a token &mdash; two of which look
+        plausible and neither of which works.</p>
+        <p>What it saved was about forty minutes of background work the
+        overnight scheduler does while you are asleep, once. Match quality was
+        identical either way. Nothing else changes: matching still works from
+        artist and title, still borrows a barcode from Qobuz or Tidal, and
+        still fingerprints the audio for whatever text cannot place.</p>
+        <p>It never touched scrobbling &mdash; MusicD only ever asked
+        ListenBrainz &ldquo;what record is this?&rdquo; and never sent them a
+        listen. Last.fm is unaffected. Anything you typed into the token field
+        is deleted on the next start.</p>
       </div>
 
       <div class="card new">
@@ -361,22 +344,16 @@
 
       <div class="card new">
         <span class="tagline">New</span>
-        <h3><span class="em" aria-hidden="true">&#9889;</span>Matching a whole library in seconds</h3>
-        <p>MusicBrainz allows one request a second, which is why identifying a
-        few thousand albums has always been something you started and left
-        running. ListenBrainz publishes the same matching engine MusicBrainz
-        uses internally, and it takes <b>fifty albums per request</b>.</p>
-        <p>Paste a free ListenBrainz token into <b>Settings &rarr; Metadata</b>
-        and the work drops from tens of minutes to seconds. It matches on
-        <i>track</i> names as well, so an album whose own title is unreadable
-        can still be identified from the songs on it. No token, no change &mdash;
-        everything works exactly as before.</p>
+        <h3><span class="em" aria-hidden="true">&#9889;</span>Two more ways to identify an album</h3>
         <p>If you are signed in to Qobuz or Tidal, those catalogues now help
-        too: MusicD looks up the barcode of an album it could not place, and a
-        barcode turns a guess into a certainty. And anything that <i>still</i>
-        cannot be identified from text is now fingerprinted from the audio
-        itself &mdash; something MusicD could always do, but only if you asked
-        it to, one album at a time.</p>
+        identify your own files: MusicD looks up the <b>barcode</b> of an album
+        the text search could not place, and a barcode turns a guess into a
+        certainty. It refuses to answer unless the artist, the album title and
+        the track count all agree.</p>
+        <p>Anything that <i>still</i> cannot be named from text is now
+        <b>fingerprinted from the audio itself</b> &mdash; something MusicD
+        could always do, but only if you asked it to, one album at a time. It
+        runs last, on the handful of albums nothing else could place.</p>
       </div>
 
       <div class="card new">
@@ -1031,7 +1008,7 @@
       <code>-e MUSICD_MANIFEST_URL=https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json</code>
       to your <code>docker run</code>, restart, then <b>Check for updates</b>.
       The older parser understands this manifest, so it installs normally. Drop
-      the variable afterwards &mdash; v1.1.41.0 has the same URL as its own
+      the variable afterwards &mdash; v1.1.42.0 has the same URL as its own
       default.
     </div>
   </div>
@@ -1104,7 +1081,7 @@
 </main>
 
 <footer>
-  MusicD Server v1.1.41.0 &mdash; self-hosted music, one user, one library, one home network.
+  MusicD Server v1.1.42.0 &mdash; self-hosted music, one user, one library, one home network.
   <br>MIT licence &middot; <a href="https://github.com/meltface-80/MusicD-Server-v1">Source on GitHub</a>
 </footer>
 
