@@ -470,10 +470,83 @@ export default function AlbumDetail({ albumId, onArtistClick, onGenreClick, onBa
             }
           </div>
           <div style={s.heroInfo}>
-            <h1 style={s.heroTitle}>{cleanTitle(album.title)}</h1>
-            <button style={s.artistBtn} onClick={() => onArtistClick && onArtistClick(album.album_artist || album.artist)}>
-              {album.album_artist || album.artist}
-            </button>
+            <div>
+              <h1 style={s.heroTitle}>{cleanTitle(album.title)}</h1>
+              <button style={s.artistBtn} onClick={() => onArtistClick && onArtistClick(album.album_artist || album.artist)}>
+                {album.album_artist || album.artist}
+              </button>
+            </div>
+              <div style={s.heroActions}>
+                <div style={s.playSplitWrap}>
+                  <button
+                    style={s.playBtnSplit}
+                    onClick={() => handlePlayFrom(0)}
+                    aria-label="Play album"
+                  >
+                    <Play size={14} fill="currentColor" strokeWidth={0} />Play
+                  </button>
+                  <button
+                    style={s.playSplitChevron}
+                    onClick={() => setShowPlayMenu(v => !v)}
+                    aria-label="Play options"
+                    aria-expanded={showPlayMenu}
+                    aria-haspopup="menu"
+                  >
+                    <ChevronDown size={13} />
+                  </button>
+                  {showPlayMenu && (
+                    <PlayOptionsMenu
+                      onClose={() => setShowPlayMenu(false)}
+                      onPlayNow={() => { setShowPlayMenu(false); handlePlayFrom(0) }}
+                      onPlayNext={() => { setShowPlayMenu(false); handlePlayNext() }}
+                      onAddToQueue={() => { setShowPlayMenu(false); handleAppend() }}
+                      onShuffle={() => { setShowPlayMenu(false); handleShuffle() }}
+                    />
+                  )}
+                </div>
+                {/* v1.1.36.0 — the server favourite, out of the ⋯ sheet and
+                    into the action row. Hollow when off, filled red when on;
+                    the same #ff3b5c the sheet used, so the two readings of
+                    "favourited" cannot drift apart in colour.
+
+                    This is THIS app's favourite and it applies to every album,
+                    local or streaming. The ⊕ beside it is a different
+                    statement — that one writes the favourite at Qobuz or
+                    Tidal — which is why they are two controls and not one. */}
+                <button
+                  style={{ ...s.heroIconBtn, ...(isFavorite ? s.heroIconBtnFav : {}) }}
+                  onClick={handleToggleFavorite}
+                  disabled={favBusy}
+                  aria-pressed={isFavorite}
+                  aria-label={isFavorite ? 'Remove from favourites' : 'Add to favourites'}
+                  title={isFavorite ? 'Remove from favourites' : 'Add to favourites'}
+                >
+                  <Heart
+                    size={17}
+                    fill={isFavorite ? '#ff3b5c' : 'none'}
+                    color={isFavorite ? '#ff3b5c' : 'currentColor'}
+                    strokeWidth={isFavorite ? 0 : 1.8}
+                  />
+                </button>
+                {/* v1.1.33.0 — the circled plus. Only on Qobuz / Tidal albums;
+                    a local album has no service favourite to write. Filled once
+                    the album is in that service's favourites, which is also what
+                    puts it in this library. */}
+                {service && (
+                  <button
+                    style={{ ...s.heroIconBtn, ...(inService ? s.heroIconBtnOn : {}) }}
+                    onClick={handleToggleService}
+                    disabled={serviceBusy}
+                    aria-pressed={inService}
+                    title={inService
+                      ? `In your ${serviceLabel(service)} favourites — tap to remove`
+                      : `Add to your ${serviceLabel(service)} favourites`}>
+                    {inService
+                      ? <CheckCircle2 size={18} strokeWidth={1.8} />
+                      : <PlusCircle size={18} strokeWidth={1.8} />}
+                  </button>
+                )}
+              </div>
           </div>
         </div>
 
@@ -541,56 +614,6 @@ export default function AlbumDetail({ albumId, onArtistClick, onGenreClick, onBa
                 the row. Heart and Share are unchanged. The standalone
                 Plus and Bookmark icons that lived between Add Queue
                 and Heart in the v55 mock-up are dropped. */}
-            <div style={s.heroActions}>
-              <div style={s.playSplitWrap}>
-                <button
-                  style={s.playBtnSplit}
-                  onClick={() => handlePlayFrom(0)}
-                  aria-label="Play album"
-                >
-                  <Play size={14} fill="currentColor" strokeWidth={0} />Play
-                </button>
-                <button
-                  style={s.playSplitChevron}
-                  onClick={() => setShowPlayMenu(v => !v)}
-                  aria-label="Play options"
-                  aria-expanded={showPlayMenu}
-                  aria-haspopup="menu"
-                >
-                  <ChevronDown size={13} />
-                </button>
-                {showPlayMenu && (
-                  <PlayOptionsMenu
-                    onClose={() => setShowPlayMenu(false)}
-                    onPlayNow={() => { setShowPlayMenu(false); handlePlayFrom(0) }}
-                    onPlayNext={() => { setShowPlayMenu(false); handlePlayNext() }}
-                    onAddToQueue={() => { setShowPlayMenu(false); handleAppend() }}
-                    onShuffle={() => { setShowPlayMenu(false); handleShuffle() }}
-                  />
-                )}
-              </div>
-              {/* v1.1.35.0 — the Add Queue pill is gone. It duplicated
-                  "Add to Queue" in the Play chevron's menu, and two ways to
-                  do one thing was costing the row the width it needed. */}
-              {/* v1.1.33.0 — the circled plus. Only on Qobuz / Tidal albums;
-                  a local album has no service favourite to write. Filled once
-                  the album is in that service's favourites, which is also what
-                  puts it in this library. */}
-              {service && (
-                <button
-                  style={{ ...s.serviceAddBtn, ...(inService ? s.serviceAddBtnOn : {}) }}
-                  onClick={handleToggleService}
-                  disabled={serviceBusy}
-                  aria-pressed={inService}
-                  title={inService
-                    ? `In your ${serviceLabel(service)} favourites — tap to remove`
-                    : `Add to your ${serviceLabel(service)} favourites`}>
-                  {inService
-                    ? <CheckCircle2 size={18} strokeWidth={1.8} />
-                    : <PlusCircle size={18} strokeWidth={1.8} />}
-                </button>
-              )}
-            </div>
             {/* v1.1.34.0 — the other copies of this album you own. Shown
                 whenever there is more than one, INDEPENDENT of the grouping
                 toggle: knowing you have three copies of a record is useful
@@ -1136,20 +1159,9 @@ function AlbumOverflowSheet({
       <div style={s.sheetPanel} onClick={e => e.stopPropagation()}>
         <div style={s.sheetGrabber} />
 
-        <button
-          style={s.sheetItem}
-          onClick={onFavoriteToggle}
-          disabled={favBusy}
-        >
-          <Heart
-            size={18}
-            style={s.sheetItemIcon}
-            fill={isFavorite ? '#ff3b5c' : 'none'}
-            color={isFavorite ? '#ff3b5c' : 'currentColor'}
-            strokeWidth={isFavorite ? 0 : 1.8}
-          />
-          <span>{isFavorite ? 'Remove album favourite' : 'Favourite this album'}</span>
-        </button>
+        {/* v1.1.36.0 — the favourite moved to the hero action row, next to
+            Play. Not left here as well: a second way to do the same thing is
+            what the Add Queue pill was, and it went for the same reason. */}
 
         <button style={s.sheetItem} onClick={onShare} disabled={shareLoading}>
           <Share2 size={18} style={s.sheetItemIcon} />
@@ -1652,7 +1664,9 @@ const s = {
   page: { position: 'relative', minHeight: '100%', background: 'var(--jp-bg)' },
   bgArt: { display: 'none' },
   bgDim: { display: 'none' },
-  content: { position: 'relative', zIndex: 2, padding: '20px 16px 120px' },
+  // v1.1.36.0 — 8px of top padding, down from 20. With the ⋯ row above it
+  // the artwork was sitting a long way down the screen for no reason.
+  content: { position: 'relative', zIndex: 2, padding: '8px 16px 120px' },
   loadWrap: { display: 'flex', justifyContent: 'center', paddingTop: 80, background: 'var(--jp-bg)', minHeight: '100%' },
   spinner: { width: 24, height: 24, border: '2px solid rgba(var(--tint-rgb), 0.1)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
   back: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(var(--tint-rgb), 0.4)', background: 'none', border: 'none', cursor: 'pointer' },
@@ -1675,7 +1689,7 @@ const s = {
   // screen edges.
   topNav: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 6,
   },
   topMore: {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end',
@@ -1838,11 +1852,22 @@ const s = {
   // v1.1.35.0 — the hero row is now just the cover and the title block, so
   // centring them against each other reads better than top-aligning a two-line
   // block against a 144px square. Everything else moved to heroBelow.
-  hero: { display: 'flex', gap: 16, marginTop: 4, marginBottom: 16, alignItems: 'center' },
-  artWrap: { width: 144, height: 144, flexShrink: 0, borderRadius: 4, overflow: 'hidden', background: 'var(--jp-bg-surface)' },
+  // v1.1.36.0 — the column beside the cover STRETCHES to the cover's height
+  // and space-betweens its two children. That is what puts the title's top
+  // level with the top of the artwork and the Play row's bottom level with
+  // its bottom, at any cover size and however long the title runs.
+  hero: { display: 'flex', gap: 14, marginTop: 0, marginBottom: 16, alignItems: 'stretch' },
+  // 132, down from 144. The action row now shares this line, and three
+  // controls plus a split button do not fit beside a 144px cover on a phone.
+  artWrap: { width: 132, height: 132, flexShrink: 0, borderRadius: 4, overflow: 'hidden', background: 'var(--jp-bg-surface)' },
   art: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
   artFallback: { width: '100%', height: '100%', background: 'rgba(var(--tint-rgb), 0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, color: 'rgba(var(--tint-rgb), 0.15)' },
-  heroInfo: { flex: 1, minWidth: 0 },
+  heroInfo: {
+    flex: 1, minWidth: 0,
+    display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+    // A long title pushes the actions down rather than out of the column.
+    gap: 10,
+  },
   // The full-width block under the cover: format line, ReplayGain, actions,
   // versions. Given the whole page width, these stop wrapping on a phone.
   heroBelow: { marginBottom: 14 },
@@ -1970,13 +1995,21 @@ const s = {
   // Sized and cornered to sit level with Add Queue rather than to match
   // the round pills either side of it, because it is an icon action and
   // not a labelled one.
-  serviceAddBtn: {
+  // v1.1.36.0 — one shell for both round actions in the hero row, the heart
+  // and the service ⊕, so the pair cannot end up different sizes. 34px rather
+  // than 38: two of them plus the split Play button have to fit beside the
+  // cover on a phone.
+  heroIconBtn: {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    width: 38, height: 38, borderRadius: 20, flexShrink: 0,
+    width: 34, height: 34, borderRadius: 18, flexShrink: 0,
     background: 'transparent', color: 'var(--jp-text-2)',
-    border: '1px solid rgba(var(--tint-rgb), 0.15)', cursor: 'pointer',
+    border: '1px solid rgba(var(--tint-rgb), 0.15)', cursor: 'pointer', padding: 0,
   },
-  serviceAddBtnOn: {
+  heroIconBtnFav: {
+    background: 'rgba(255, 59, 92, 0.10)',
+    borderColor: 'rgba(255, 59, 92, 0.35)',
+  },
+  heroIconBtnOn: {
     background: 'rgba(var(--tint-rgb), 0.12)',
     color: 'var(--green)',
     borderColor: 'rgba(var(--tint-rgb), 0.25)',

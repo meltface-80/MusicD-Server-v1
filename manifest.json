@@ -16,7 +16,7 @@
     "committed after this manifest is written. null means 'no hash published' and the",
     "updater skips hash verification for that download (it still enforces the size cap,",
     "the too-small/HTML check and the ustar magic check). To turn verification on, run",
-    "  sha256sum musicd-v1-1-35-0.tar",
+    "  sha256sum musicd-v1-1-36-0.tar",
     "and paste the hex into tarSha256 and tarball_sha256 below. Do NOT put a dummy",
     "64-hex placeholder here: the updater cannot tell a placeholder from a real hash",
     "and would refuse every download.",
@@ -29,50 +29,50 @@
   ],
   "manifestVersion": 1,
   "schema_version": 1,
-  "version": "1.1.35.0",
-  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-35-0.tar",
-  "tarSha256": "0dfe55bb7805c4fc9c4359622cb0b9c3e0d648dae4fd903c804fdea99e2c9a6b",
-  "releasedAt": "2026-08-22T07:45:00Z",
-  "releaseNotes": "A layout pass on the album page, from a phone screenshot. The release date, track count, duration and ReplayGain figures used to share a narrow column with the cover art, which is why they wrapped and why the page felt cramped - they now run the full page width, and text is a little larger throughout. Removed three things that repeated what was next to them: the Add Queue button (the Play menu already has it), the line under the versions button, and the 'Not matched yet' chip. Fixed an empty row that left a gap above every track list, and evened up the track list so numbers and times sit the same distance from their own edges. ReplayGain is now labelled RG.",
-  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-35-0.tar",
-  "tarball_sha256": "0dfe55bb7805c4fc9c4359622cb0b9c3e0d648dae4fd903c804fdea99e2c9a6b",
-  "released_at": "2026-08-22T07:45:00Z",
+  "version": "1.1.36.0",
+  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-36-0.tar",
+  "tarSha256": "07661acc262cffee502f324413f773628f59612c3b0b54daa125d2f29a0d9b1c",
+  "releasedAt": "2026-08-22T09:10:00Z",
+  "releaseNotes": "A second layout pass on the album header. The artwork sits higher, the album title now starts level with the top of the cover instead of floating in the middle beside it, and Play sits at the bottom of that column level with the bottom of the cover. New: a favourite heart next to Play on every album - hollow when off, filled red when on - with the circled plus beside it on Qobuz and Tidal albums. The heart is MusicD's own favourite and never touches your streaming account; the plus adds the album at the service. The favourite row has left the ... sheet, since it is now one tap away in the action row.",
+  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-36-0.tar",
+  "tarball_sha256": "07661acc262cffee502f324413f773628f59612c3b0b54daa125d2f29a0d9b1c",
+  "released_at": "2026-08-22T09:10:00Z",
   "release_notes_url": "https://github.com/meltface-80/MusicD-Server-v1/blob/main/musicd/CHANGELOG.md",
   "channels": {
     "stable": {
-      "version": "1.1.35.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-35-0.tar",
-      "tarSha256": "0dfe55bb7805c4fc9c4359622cb0b9c3e0d648dae4fd903c804fdea99e2c9a6b",
-      "releasedAt": "2026-08-22T07:45:00Z",
-      "releaseNotes": "A layout pass on the album page, from a phone screenshot. The release date, track count, duration and ReplayGain figures used to share a narrow column with the cover art, which is why they wrapped and why the page felt cramped - they now run the full page width, and text is a little larger throughout. Removed three things that repeated what was next to them: the Add Queue button (the Play menu already has it), the line under the versions button, and the 'Not matched yet' chip. Fixed an empty row that left a gap above every track list, and evened up the track list so numbers and times sit the same distance from their own edges. ReplayGain is now labelled RG."
+      "version": "1.1.36.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-36-0.tar",
+      "tarSha256": "07661acc262cffee502f324413f773628f59612c3b0b54daa125d2f29a0d9b1c",
+      "releasedAt": "2026-08-22T09:10:00Z",
+      "releaseNotes": "A second layout pass on the album header. The artwork sits higher, the album title now starts level with the top of the cover instead of floating in the middle beside it, and Play sits at the bottom of that column level with the bottom of the cover. New: a favourite heart next to Play on every album - hollow when off, filled red when on - with the circled plus beside it on Qobuz and Tidal albums. The heart is MusicD's own favourite and never touches your streaming account; the plus adds the album at the service. The favourite row has left the ... sheet, since it is now one tap away in the action row."
     },
     "earlyAccess": {
-      "version": "1.1.35.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-35-0.tar",
-      "tarSha256": "0dfe55bb7805c4fc9c4359622cb0b9c3e0d648dae4fd903c804fdea99e2c9a6b",
-      "releasedAt": "2026-08-22T07:45:00Z",
-      "releaseNotes": "A layout pass on the album page, from a phone screenshot. The release date, track count, duration and ReplayGain figures used to share a narrow column with the cover art, which is why they wrapped and why the page felt cramped - they now run the full page width, and text is a little larger throughout. Removed three things that repeated what was next to them: the Add Queue button (the Play menu already has it), the line under the versions button, and the 'Not matched yet' chip. Fixed an empty row that left a gap above every track list, and evened up the track list so numbers and times sit the same distance from their own edges. ReplayGain is now labelled RG."
+      "version": "1.1.36.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-36-0.tar",
+      "tarSha256": "07661acc262cffee502f324413f773628f59612c3b0b54daa125d2f29a0d9b1c",
+      "releasedAt": "2026-08-22T09:10:00Z",
+      "releaseNotes": "A second layout pass on the album header. The artwork sits higher, the album title now starts level with the top of the cover instead of floating in the middle beside it, and Play sits at the bottom of that column level with the bottom of the cover. New: a favourite heart next to Play on every album - hollow when off, filled red when on - with the circled plus beside it on Qobuz and Tidal albums. The heart is MusicD's own favourite and never touches your streaming account; the plus adds the album at the service. The favourite row has left the ... sheet, since it is now one tap away in the action row."
     },
     "beta": {
-      "version": "1.1.35.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-35-0.tar",
-      "tarSha256": "0dfe55bb7805c4fc9c4359622cb0b9c3e0d648dae4fd903c804fdea99e2c9a6b",
-      "releasedAt": "2026-08-22T07:45:00Z",
-      "releaseNotes": "A layout pass on the album page, from a phone screenshot. The release date, track count, duration and ReplayGain figures used to share a narrow column with the cover art, which is why they wrapped and why the page felt cramped - they now run the full page width, and text is a little larger throughout. Removed three things that repeated what was next to them: the Add Queue button (the Play menu already has it), the line under the versions button, and the 'Not matched yet' chip. Fixed an empty row that left a gap above every track list, and evened up the track list so numbers and times sit the same distance from their own edges. ReplayGain is now labelled RG."
+      "version": "1.1.36.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-36-0.tar",
+      "tarSha256": "07661acc262cffee502f324413f773628f59612c3b0b54daa125d2f29a0d9b1c",
+      "releasedAt": "2026-08-22T09:10:00Z",
+      "releaseNotes": "A second layout pass on the album header. The artwork sits higher, the album title now starts level with the top of the cover instead of floating in the middle beside it, and Play sits at the bottom of that column level with the bottom of the cover. New: a favourite heart next to Play on every album - hollow when off, filled red when on - with the circled plus beside it on Qobuz and Tidal albums. The heart is MusicD's own favourite and never touches your streaming account; the plus adds the album at the service. The favourite row has left the ... sheet, since it is now one tap away in the action row."
     },
     "alpha": {
-      "version": "1.1.35.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-35-0.tar",
-      "tarSha256": "0dfe55bb7805c4fc9c4359622cb0b9c3e0d648dae4fd903c804fdea99e2c9a6b",
-      "releasedAt": "2026-08-22T07:45:00Z",
-      "releaseNotes": "A layout pass on the album page, from a phone screenshot. The release date, track count, duration and ReplayGain figures used to share a narrow column with the cover art, which is why they wrapped and why the page felt cramped - they now run the full page width, and text is a little larger throughout. Removed three things that repeated what was next to them: the Add Queue button (the Play menu already has it), the line under the versions button, and the 'Not matched yet' chip. Fixed an empty row that left a gap above every track list, and evened up the track list so numbers and times sit the same distance from their own edges. ReplayGain is now labelled RG."
+      "version": "1.1.36.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-36-0.tar",
+      "tarSha256": "07661acc262cffee502f324413f773628f59612c3b0b54daa125d2f29a0d9b1c",
+      "releasedAt": "2026-08-22T09:10:00Z",
+      "releaseNotes": "A second layout pass on the album header. The artwork sits higher, the album title now starts level with the top of the cover instead of floating in the middle beside it, and Play sits at the bottom of that column level with the bottom of the cover. New: a favourite heart next to Play on every album - hollow when off, filled red when on - with the circled plus beside it on Qobuz and Tidal albums. The heart is MusicD's own favourite and never touches your streaming account; the plus adds the album at the service. The favourite row has left the ... sheet, since it is now one tap away in the action row."
     },
     "legacy": {
-      "version": "1.1.35.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-35-0.tar",
-      "tarSha256": "0dfe55bb7805c4fc9c4359622cb0b9c3e0d648dae4fd903c804fdea99e2c9a6b",
-      "releasedAt": "2026-08-22T07:45:00Z",
-      "releaseNotes": "A layout pass on the album page, from a phone screenshot. The release date, track count, duration and ReplayGain figures used to share a narrow column with the cover art, which is why they wrapped and why the page felt cramped - they now run the full page width, and text is a little larger throughout. Removed three things that repeated what was next to them: the Add Queue button (the Play menu already has it), the line under the versions button, and the 'Not matched yet' chip. Fixed an empty row that left a gap above every track list, and evened up the track list so numbers and times sit the same distance from their own edges. ReplayGain is now labelled RG."
+      "version": "1.1.36.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-36-0.tar",
+      "tarSha256": "07661acc262cffee502f324413f773628f59612c3b0b54daa125d2f29a0d9b1c",
+      "releasedAt": "2026-08-22T09:10:00Z",
+      "releaseNotes": "A second layout pass on the album header. The artwork sits higher, the album title now starts level with the top of the cover instead of floating in the middle beside it, and Play sits at the bottom of that column level with the bottom of the cover. New: a favourite heart next to Play on every album - hollow when off, filled red when on - with the circled plus beside it on Qobuz and Tidal albums. The heart is MusicD's own favourite and never touches your streaming account; the plus adds the album at the service. The favourite row has left the ... sheet, since it is now one tap away in the action row."
     }
   },
   "channelMetadata": {

@@ -513,6 +513,82 @@ test('the track list is inset by the same amount on both sides', () => {
     'mid-word — "RG -8.(" with the rest cut off.');
 });
 
+// ---------------------------------------------------------------------------
+// 8. The album hero (v1.1.36.0).
+// ---------------------------------------------------------------------------
+
+test('the hero column aligns to the artwork at both ends', () => {
+  const raw = readRaw('..', '..', 'client', 'src', 'components', 'AlbumDetail.jsx');
+
+  const hero = /  hero: \{([^}]*)\}/.exec(raw);
+  assert.ok(hero, 'the hero style is gone');
+  assert.ok(/alignItems: 'stretch'/.test(hero[1]),
+    "the column beside the cover must stretch to the cover's height — " +
+    "centring it puts the title's top below the top of the artwork");
+
+  const info = /  heroInfo: \{([\s\S]*?)\n  \},/.exec(raw);
+  assert.ok(info, 'the heroInfo style is gone');
+  assert.ok(/justifyContent: 'space-between'/.test(info[1]),
+    'the title block and the action row are the two children of that column; ' +
+    'space-between is what puts the title level with the top of the artwork ' +
+    'and the Play row level with its bottom, at any title length');
+  assert.ok(/flexDirection: 'column'/.test(info[1]),
+    'the column has to actually be a column for space-between to work vertically');
+});
+
+test('the action row sits beside the artwork, not below the details', () => {
+  const d = code(readClient('components', 'AlbumDetail.jsx'));
+  const heroAt = d.indexOf('style={s.hero}');
+  const belowAt = d.indexOf('style={s.heroBelow}');
+  const actionsAt = d.indexOf('style={s.heroActions}');
+  assert.ok(heroAt !== -1 && belowAt !== -1 && actionsAt !== -1, 'hero markup is gone');
+  assert.ok(actionsAt > heroAt && actionsAt < belowAt,
+    'the Play row must be inside the hero row, between the cover and the ' +
+    'full-width details block. Below the details it cannot line up with the ' +
+    'bottom of the artwork, which is the whole point of where it sits.');
+});
+
+test('the album favourite is a heart in the action row, filled red when on', () => {
+  const d = code(readClient('components', 'AlbumDetail.jsx'));
+  const at = d.indexOf('style={s.heroActions}');
+  const row = d.slice(at, at + 3000);
+  assert.ok(/<Heart/.test(row),
+    'the server favourite must be a button in the action row');
+  assert.ok(/fill=\{isFavorite \? '#ff3b5c' : 'none'\}/.test(row),
+    'hollow when not favourited, filled #ff3b5c when it is — the same red the ' +
+    'overflow sheet used, so two readings of "favourited" cannot drift apart');
+  assert.ok(/onClick=\{handleToggleFavorite\}/.test(row),
+    'the heart must drive the existing favourite toggle rather than a second one');
+
+  // And it must not ALSO still be in the overflow sheet. A duplicate control
+  // is what the Add Queue pill was.
+  const sheetAt = d.indexOf('function AlbumOverflowSheet');
+  assert.ok(sheetAt !== -1, 'the overflow sheet is gone');
+  // Bounded to THIS function. The per-track overflow sheet further down the
+  // file has its own heart for the track favourite, which is a different
+  // control and must not be caught by this check.
+  const nextFn = d.indexOf('\nfunction ', sheetAt + 1);
+  const albumSheet = d.slice(sheetAt, nextFn === -1 ? undefined : nextFn);
+  assert.ok(!/<Heart/.test(albumSheet),
+    'the album heart moved to the action row; leaving a copy in the ⋯ sheet ' +
+    'is the duplication the Add Queue pill was removed for');
+});
+
+test('the heart is on every album and the service plus only on streaming ones', () => {
+  const d = code(readClient('components', 'AlbumDetail.jsx'));
+  const at = d.indexOf('style={s.heroActions}');
+  const row = d.slice(at, at + 3000);
+  // The ⊕ is gated on `service`; the heart is not gated on anything.
+  assert.ok(/\{service && \(/.test(row),
+    'the service ⊕ must be gated on the album belonging to Qobuz or Tidal — ' +
+    'a local album has no service favourite to write');
+  const heartAt = row.indexOf('<Heart');
+  const gateAt = row.indexOf('{service && (');
+  assert.ok(heartAt < gateAt,
+    'the heart must come BEFORE the service gate, or it only renders on ' +
+    'streaming albums — it is this app\'s own favourite and applies to all of them');
+});
+
 test('the detectors actually detect', () => {
   // A check that cannot fail is worse than no check.
 
@@ -555,6 +631,17 @@ test('the detectors actually detect', () => {
   const oldGrid = /const TRACK_GRID = '(\d+)px 1fr (\d+)px'/.exec("const TRACK_GRID = '32px 1fr 52px'");
   assert.ok(oldGrid && Number(oldGrid[1]) > 22,
     'the gutter check must go red on the 32px number column it replaced');
+
+  // (i) The hero centred again, which is what hid the title's top.
+  const centred = "  hero: { display: 'flex', alignItems: 'center' }";
+  const h = /  hero: \{([^}]*)\}/.exec(centred);
+  assert.ok(h && !/alignItems: 'stretch'/.test(h[1]),
+    'the hero-alignment check must go red on a centred hero');
+
+  // (j) The heart left in the overflow sheet as well.
+  const bothPlaces = 'function AlbumOverflowSheet() { return <Heart /> }';
+  assert.ok(/<Heart/.test(bothPlaces.slice(bothPlaces.indexOf('function AlbumOverflowSheet'))),
+    'the duplicate-heart check must go red when the sheet keeps a copy');
 
   // (f) The action row back on space-between.
   const spread = "heroActions: { display: 'flex', justifyContent: 'space-between', gap: 6 }";

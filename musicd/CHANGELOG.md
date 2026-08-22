@@ -12,6 +12,46 @@ Categories used per release:
 
 ---
 
+## v1.1.36.0 — 2026-08-22 — THE ALBUM HEADER, AND A HEART WHERE YOU CAN REACH IT
+
+A second layout pass on the album page, from two more phone screenshots.
+
+### Changed
+
+- **The artwork sits higher on the page.** There was a large empty band
+  above it between the ⋯ row and the cover; that is now a fraction of
+  what it was.
+- **The album title starts level with the top of the artwork.** It used
+  to be vertically centred beside the cover, which left the title
+  floating in the middle with space above it.
+- **Play sits at the bottom of that column, level with the bottom of the
+  artwork.** The title block and the action row are the two ends of the
+  column beside the cover, so the header reads as one block whatever the
+  length of the album title.
+- The cover is slightly smaller — 132 points rather than 144 — because
+  the action row now shares that line with it and three controls plus a
+  split Play button need the room on a phone.
+
+### New
+
+- **A favourite heart next to Play**, on every album — local, Qobuz and
+  Tidal alike. Hollow when the album is not a favourite, filled red when
+  it is. This is MusicD's own favourite: the one that drives the
+  Favourites screen and the Focus filter.
+- **The ⊕ sits beside it** on Qobuz and Tidal albums, unchanged in
+  meaning: that one adds the album to your favourites **at the service**,
+  which is also what brings it into the library here. Two controls
+  because they are two different statements — the heart never touches
+  your Qobuz or Tidal account.
+
+### Removed
+
+- **The favourite row in the ⋯ sheet.** It is the heart in the action row
+  now, and a second way to do the same thing is what the Add Queue pill
+  was. Share and the rest of that sheet are unchanged.
+
+---
+
 ## v1.1.35.0 — 2026-08-22 — THE ALBUM PAGE, DECLUTTERED
 
 A layout pass on the album page, from a phone screenshot. Same
