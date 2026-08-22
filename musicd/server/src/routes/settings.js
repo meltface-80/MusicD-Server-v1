@@ -48,6 +48,16 @@ router.get('/', (req, res) => {
     matcher_use_listenbrainz: require('../settings').getBool('matcher_use_listenbrainz', true),
     matcher_use_fingerprint:  require('../settings').getBool('matcher_use_fingerprint', true),
     works_enabled:            require('../settings').getBool('works_enabled', true),
+    // v1.1.39.0 — per-install overrides for the two shared-quota keys.
+    //
+    // Reported as booleans for the same reason the ListenBrainz token is:
+    // a settings page that echoes a credential puts it in every browser
+    // cache and every screenshot. The UI needs to know whether one is
+    // set, not what it is.
+    ...(() => {
+      const o = require('../apiCredentials').overrideStatus();
+      return { audiodb_api_key_set: o.audiodb, fanart_client_key_set: o.fanart };
+    })(),
   });
 });
 
@@ -62,7 +72,11 @@ router.patch('/', tierMiddleware.requireFeature('settings_write'), (req, res) =>
     'library_group_versions',
     // v1.1.38.0 — metadata pipeline switches. See the GET above.
     'listenbrainz_token', 'matcher_use_listenbrainz',
-    'matcher_use_fingerprint', 'works_enabled'];
+    'matcher_use_fingerprint', 'works_enabled',
+    // v1.1.39.0 — optional per-install API keys. Both settings rows
+    // predate v1.1.0.23 (they were per-user before the keys were baked
+    // in) so nothing needs migrating; they simply have a reader again.
+    'audiodb_api_key', 'fanart_client_key'];
   // Settings that hold opaque tokens or credentials we paste from
   // external services. Mobile copy-paste sometimes drags in surrounding
   // quotes (smart quotes from rich rendered pages) or trailing whitespace
@@ -73,7 +87,8 @@ router.patch('/', tierMiddleware.requireFeature('settings_write'), (req, res) =>
   // phone, and mobile copy-paste drags in smart quotes and trailing
   // newlines. A token with a trailing newline fails auth with a message
   // that says nothing about whitespace.
-  const TRIMMED = new Set(['mb_contact', 'listenbrainz_token']);
+  const TRIMMED = new Set(['mb_contact', 'listenbrainz_token',
+    'audiodb_api_key', 'fanart_client_key']);
   // v1.1.3.5: numeric settings with bounds. Out-of-range values are
   // clamped before write rather than rejected — the UI sliders
   // already enforce bounds, so an out-of-range value here means

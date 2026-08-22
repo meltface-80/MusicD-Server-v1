@@ -260,10 +260,13 @@ async function fetchLastfmArtistBio(mbid) {
 // biography fields. We use the existing API key.
 
 async function fetchAudioDbArtistBio(mbid) {
-  const { AUDIODB_API_KEY } = require('./apiCredentials');
+  // v1.1.39.0 — getAudioDbKey(), not the raw constant: the baked-in
+  // value is the service's public TEST key and this lets an install use
+  // its own. See apiCredentials.js.
+  const key = require('./apiCredentials').getAudioDbKey();
   const serviceHealth = require('./serviceHealth');
   try {
-    const res = await axios.get(`https://www.theaudiodb.com/api/v1/json/${AUDIODB_API_KEY}/artist-mb.php`, {
+    const res = await axios.get(`https://www.theaudiodb.com/api/v1/json/${key}/artist-mb.php`, {
       params: { i: mbid },
       timeout: REQUEST_TIMEOUT_MS,
     });
@@ -290,10 +293,10 @@ async function fetchAudioDbArtistBio(mbid) {
 
 async function fetchAudioDbAlbumBio(releaseGroupMbid) {
   if (!releaseGroupMbid) return null;
-  const { AUDIODB_API_KEY } = require('./apiCredentials');
+  const key = require('./apiCredentials').getAudioDbKey();
   const serviceHealth = require('./serviceHealth');
   try {
-    const res = await axios.get(`https://www.theaudiodb.com/api/v1/json/${AUDIODB_API_KEY}/album-mb.php`, {
+    const res = await axios.get(`https://www.theaudiodb.com/api/v1/json/${key}/album-mb.php`, {
       params: { i: releaseGroupMbid },
       timeout: REQUEST_TIMEOUT_MS,
     });

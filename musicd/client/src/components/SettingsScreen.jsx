@@ -252,7 +252,8 @@ export default function SettingsScreen({ onBack }) {
   // v1.1.0.23: lastfm/fanart/audiodb keys are now baked in (see
   // server/src/apiCredentials.js) so the only paste-credential left
   // is the MusicBrainz contact (per-deployer).
-  const CREDENTIAL_KEYS = new Set(['mb_contact', 'listenbrainz_token'])
+  const CREDENTIAL_KEYS = new Set(['mb_contact', 'listenbrainz_token',
+    'audiodb_api_key', 'fanart_client_key'])
   const TRIM_QUOTES_REGEX = /^[\s"'\u201C\u201D\u2018\u2019]+|[\s"'\u201C\u201D\u2018\u2019]+$/g
 
   const update = (key, value) => {
@@ -726,6 +727,50 @@ export default function SettingsScreen({ onBack }) {
           <HelpTooltip>
           Optional, and free. With a token the matcher uses the ListenBrainz mapper first — the same fuzzy index MusicBrainz uses itself, but in batches of fifty rather than one request per second. Matching a large library drops from tens of minutes to seconds, and albums with mangled titles can still be identified from their track names. Without a token everything still works, just at MusicBrainz's rate limit. Get one from your profile at{' '}
           <a href="https://listenbrainz.org/settings/" target="_blank" rel="noopener noreferrer" style={s.link}>listenbrainz.org</a>.
+          </HelpTooltip>
+        </div>
+
+        {/* ── 0c. Optional service keys (v1.1.39.0) ────────────────────
+            Both are optional and both exist for the same reason: MusicD
+            ships with working keys for these two services, and unlike
+            Last.fm and AcoustID — which meter per address, so every
+            install has its own allowance — these two meter per KEY. One
+            allowance, shared by everyone running MusicD.
+
+            TheAudioDB's built-in value is the service's public test key,
+            which is the most throttled of the lot and carries three
+            different lookups here. fanart.tv's is a real project key but
+            still a shared one.
+
+            Setting either moves that install onto its own allowance.
+            Leaving them blank keeps today's behaviour exactly. */}
+        <div style={{ ...s.divider, margin: '14px 0 10px' }} />
+        <div style={s.subSectionTitle}>Optional service keys</div>
+        <Row label={settings.audiodb_api_key_set ? 'TheAudioDB (stored)' : 'TheAudioDB'}>
+          <input type="password" autoComplete="off"
+            placeholder={settings.audiodb_api_key_set ? '•••••••• — type to replace' : 'Your TheAudioDB key'}
+            value={settings.audiodb_api_key || ''}
+            onChange={e => update('audiodb_api_key', e.target.value)}
+            style={s.textInput} />
+        </Row>
+        <div style={s.helpRow}>
+          <HelpTooltip>
+          MusicD ships with TheAudioDB's public test key, which is heavily throttled and shared by every MusicD install. It is used for artist images, artist bios and album bios. A supporter key from{' '}
+          <a href="https://www.theaudiodb.com/" target="_blank" rel="noopener noreferrer" style={s.link}>theaudiodb.com</a>{' '}
+          gives you your own allowance. Optional — leave blank to keep using the shared key.
+          </HelpTooltip>
+        </div>
+        <Row label={settings.fanart_client_key_set ? 'fanart.tv personal (stored)' : 'fanart.tv personal'}>
+          <input type="password" autoComplete="off"
+            placeholder={settings.fanart_client_key_set ? '•••••••• — type to replace' : 'Your fanart.tv personal key'}
+            value={settings.fanart_client_key || ''}
+            onChange={e => update('fanart_client_key', e.target.value)}
+            style={s.textInput} />
+        </Row>
+        <div style={s.helpRow}>
+          <HelpTooltip>
+          Used for artist logos. MusicD's own project key is always sent; a personal key sits alongside it and moves your lookups onto your own allowance, as well as making newly-uploaded images visible before they are approved. Free with a registered account at{' '}
+          <a href="https://fanart.tv/get-an-api-key/" target="_blank" rel="noopener noreferrer" style={s.link}>fanart.tv</a>. Optional.
           </HelpTooltip>
         </div>
 

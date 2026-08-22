@@ -958,6 +958,13 @@ function init() {
       'lastfm_api_key', 'lastfm_api_secret',
       'fanart_api_key', 'audiodb_api_key',
       'mb_contact',
+      // v1.1.39.0 — the credentials added since this list was written.
+      // listenbrainz_token gained a reader in v1.1.38.0 and should have
+      // joined here then; fanart_client_key is new. All three are pasted
+      // from a web page, often on a phone, which is exactly the source
+      // of the stray smart quotes and trailing newlines this loop exists
+      // to strip.
+      'listenbrainz_token', 'fanart_client_key',
     ];
     const trimRegex = /^[\s"'\u201C\u201D\u2018\u2019]+|[\s"'\u201C\u201D\u2018\u2019]+$/g;
     const stmt = db.prepare('SELECT key, value FROM settings WHERE key = ?');
