@@ -875,6 +875,52 @@ function init() {
   safeAddColumn('tracks', 'work_attempted_at', 'INTEGER');
   try { db.exec('CREATE INDEX IF NOT EXISTS idx_tracks_recording ON tracks(mb_recording_id) WHERE mb_recording_id IS NOT NULL'); } catch (e) {}
 
+  // v1.1.43.0 — album merges.
+  //
+  // A merge is a persistent REDIRECTION, not a one-off edit, and that is
+  // the whole design. An album's id is a hash of (artist, title, folder),
+  // so moving its tracks elsewhere lasts exactly until the next scan
+  // recomputes that hash, finds the album missing and rebuilds it. Keeping
+  // the mapping means the scanner redirects instead of re-detecting, and a
+  // rescan is a no-op.
+  //
+  // The snapshot is what makes unmerge possible: an albums row is not
+  // reconstructible from its tracks (title, folder, artwork, match state
+  // and the rest are all album-level), so the original is kept as JSON
+  // against the id that produced it.
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS album_merges (
+        source_album_id TEXT PRIMARY KEY,
+        target_album_id TEXT NOT NULL,
+        disc_number     INTEGER NOT NULL,
+        source_snapshot TEXT NOT NULL,
+        merged_at       INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_album_merges_target ON album_merges(target_album_id);
+
+      -- The target's own "before" state. Separate from album_merges so the
+      -- redirection lookup never has to exclude a self-referencing row.
+      CREATE TABLE IF NOT EXISTS album_merge_targets (
+        target_album_id TEXT PRIMARY KEY,
+        snapshot        TEXT NOT NULL,
+        merged_at       INTEGER NOT NULL
+      );
+
+      -- Per-track originals. A source that was itself multi-disc has to come
+      -- back multi-disc, not flattened to the single disc it was given
+      -- inside the merge, so the disc number is remembered per track rather
+      -- than per album.
+      CREATE TABLE IF NOT EXISTS album_merge_tracks (
+        track_id        TEXT PRIMARY KEY,
+        source_album_id TEXT NOT NULL,
+        prev_disc       INTEGER
+      );
+      CREATE INDEX IF NOT EXISTS idx_album_merge_tracks_source
+        ON album_merge_tracks(source_album_id);
+    `);
+  } catch (e) { console.error('[db] album merge tables create:', e.message); }
+
   // v1.1.42.0 — delete the ListenBrainz settings rows.
   //
   // The feature is gone (see CHANGELOG), but removing the code does not

@@ -365,11 +365,24 @@ test('Recent activity is two rows now, not one with tabs', async (t) => {
       'the counters no longer come before the carousels');
   });
 
-  await t.test('only the Random row\'s heading opens something', () => {
-    // The chevron is the affordance for "there is a screen behind this". If
-    // the other two grew one it would stop meaning anything.
-    assert.equal((bare.match(/onTitleClick=/g) || []).length, 1);
-    assert.match(bare, /onTitleClick=\{\(\) => onSidebarSection && onSidebarSection\('random'\)\}/);
+  await t.test('every album row\'s heading opens a full wall', () => {
+    // v1.1.43.0 — this used to assert the OPPOSITE: that only the Random
+    // row had a chevron, on the reasoning that an affordance every row has
+    // stops meaning anything. That reasoning was backwards. A chevron on
+    // one row of three does not read as "this row is special", it reads as
+    // "the other two are dead ends" — and they were, which is what got
+    // them opened up. The affordance means "there is more behind this",
+    // and now it is true everywhere it appears.
+    //
+    // Still pinned to exactly three, so a fourth row cannot quietly grow
+    // one without a destination behind it.
+    assert.equal((bare.match(/onTitleClick=/g) || []).length, 3,
+      'a carousel heading gained or lost its link');
+    for (const section of ['recently-added', 'recently-played', 'random']) {
+      assert.ok(
+        bare.includes(`onSidebarSection('${section}')`),
+        `the ${section} heading does not open its wall`);
+    }
   });
 });
 

@@ -253,7 +253,10 @@ export default function HomeScreen({ onAlbumSelect, onSidebarSection }) {
           as separate regions, and each is rendered only when its switch in
           Settings -> Home Screen is on. */}
       {prefs && prefs.recentlyAdded && (
-        <Carousel title="Recently added">
+        <Carousel
+          title="Recently added"
+          onTitleClick={() => onSidebarSection && onSidebarSection('recently-added')}
+        >
           <AlbumRow
             albums={added.albums}
             loading={added.loading}
@@ -265,7 +268,10 @@ export default function HomeScreen({ onAlbumSelect, onSidebarSection }) {
       )}
 
       {prefs && prefs.recentlyPlayed && (
-        <Carousel title="Recently played">
+        <Carousel
+          title="Recently played"
+          onTitleClick={() => onSidebarSection && onSidebarSection('recently-played')}
+        >
           <AlbumRow
             albums={played.albums}
             loading={played.loading}
@@ -276,8 +282,10 @@ export default function HomeScreen({ onAlbumSelect, onSidebarSection }) {
         </Carousel>
       )}
 
-      {/* Random albums. The heading is a button: it opens the full 3-across
-          wall, which has its own Refresh for a new roll. */}
+      {/* v1.1.43.0 — all three headings are now buttons through to a full
+          wall. Random albums was the only one that was, which made the
+          chevron read as "this row is special" rather than as "there is
+          more behind this". */}
       {prefs && prefs.randomAlbums && (
         <Carousel
           title="Random albums"

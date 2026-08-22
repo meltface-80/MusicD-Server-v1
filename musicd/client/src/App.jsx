@@ -21,6 +21,7 @@ import UnmatchedScreen from './components/UnmatchedScreen'
 import PlaylistsScreen from './components/PlaylistsScreen'
 import TagsScreen from './components/TagsScreen'
 import RandomAlbumsScreen from './components/RandomAlbumsScreen'
+import RecentAlbumsScreen from './components/RecentAlbumsScreen'
 import ServiceScreen from './components/ServiceScreen'
 
 // Screen identity for the scroll memory below. Declared at module scope so
@@ -289,6 +290,10 @@ export default function App() {
     // Home screen carousel's heading. Routed as a section rather than as local
     // state so the top bar's back chevron already knows how to leave it.
     if (sidebarSection === 'random') return <RandomAlbumsScreen onAlbumSelect={handleSetSelectedAlbum} />
+    // v1.1.43.0 — the full walls behind the Home screen's other two
+    // carousels. One component, two types; see RecentAlbumsScreen.
+    if (sidebarSection === 'recently-added') return <RecentAlbumsScreen type="added" onAlbumSelect={handleSetSelectedAlbum} />
+    if (sidebarSection === 'recently-played') return <RecentAlbumsScreen type="played" onAlbumSelect={handleSetSelectedAlbum} />
     // v1.1.33.0 — the Qobuz and Tidal screens, opened from the side menu.
     // One component for both; the side menu only offers a row for a service
     // that is signed in, and the screen itself 401s gracefully if the
@@ -349,11 +354,23 @@ function TopBar({ onMenuClick, canGoBack, onBack }) {
   const [searchExpanded, setSearchExpanded] = useState(false)
   const inputRef = useRef(null)
 
+  // v1.1.43.0 — focus SYNCHRONOUSLY, inside the tap handler.
+  //
+  // This used to set the state and then focus from a requestAnimationFrame,
+  // on the reasoning that the input does not exist until React has
+  // re-rendered. That is true, and it is why the keyboard never came up on
+  // iOS: Safari only raises the keyboard for a focus() that happens inside
+  // the user-gesture handler itself. A rAF callback is a fresh task, the
+  // user activation is gone by then, and all you get is a caret.
+  //
+  // So the input is now ALWAYS mounted (see the render below) and merely
+  // hidden when collapsed. It is a real, focusable element at the moment
+  // the magnifier is tapped, so focus() lands during the gesture and the
+  // keyboard opens. The state change that expands the bar happens after,
+  // and React batches it without disturbing the focus.
   const expandSearch = () => {
+    inputRef.current?.focus()
     setSearchExpanded(true)
-    // rAF instead of immediate focus — iOS Safari sometimes drops the focus
-    // when the input mounts in the same tick as the state change.
-    requestAnimationFrame(() => inputRef.current?.focus())
   }
 
   const collapseSearch = () => {
@@ -364,41 +381,53 @@ function TopBar({ onMenuClick, canGoBack, onBack }) {
 
   return (
     <div style={s.topbar}>
-      {searchExpanded ? (
-        <>
-          <button style={s.iconBtn} onClick={collapseSearch} aria-label="Close search">
-            <ChevronLeft size={22} />
-          </button>
-          <div style={s.searchWrap}>
-            <Search size={14} style={s.searchIcon} />
-            <input
-              ref={inputRef}
-              style={s.search}
-              placeholder="Search library…"
-              value={searchQuery}
-              onChange={e => {
-                setSearchQuery(e.target.value)
-                if (!e.target.value) setSelectedAlbum(null)
-              }}
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                style={s.clearBtn}
-                aria-label="Clear search"
-                onMouseDown={e => e.preventDefault()}
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  setSearchQuery('')
-                  setSelectedAlbum(null)
-                  inputRef.current?.focus()
-                }}
-              >X</button>
-            )}
-          </div>
-        </>
-      ) : (
+      {searchExpanded && (
+        <button style={s.iconBtn} onClick={collapseSearch} aria-label="Close search">
+          <ChevronLeft size={22} />
+        </button>
+      )}
+
+      {/* Always mounted, hidden when collapsed — see expandSearch above.
+          Hidden by clipping the wrapper to zero width rather than with
+          display:none or visibility:hidden, because focus() is a no-op on
+          an element hidden either of those ways and the whole point is to
+          be focusable before the bar has expanded. */}
+      <div style={{ ...s.searchWrap, ...(searchExpanded ? null : s.searchWrapHidden) }}>
+        <Search size={14} style={s.searchIcon} />
+        <input
+          ref={inputRef}
+          style={s.search}
+          placeholder="Search library…"
+          value={searchQuery}
+          // Collapsed it is not a tab stop and not announced: it is an
+          // implementation detail of the magnifier at that point, and a
+          // screen reader meeting an invisible search box would be wrong.
+          tabIndex={searchExpanded ? 0 : -1}
+          aria-hidden={searchExpanded ? undefined : true}
+          onChange={e => {
+            setSearchQuery(e.target.value)
+            if (!e.target.value) setSelectedAlbum(null)
+          }}
+          onFocus={() => setSearchExpanded(true)}
+        />
+        {searchExpanded && searchQuery && (
+          <button
+            type="button"
+            style={s.clearBtn}
+            aria-label="Clear search"
+            onMouseDown={e => e.preventDefault()}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setSearchQuery('')
+              setSelectedAlbum(null)
+              inputRef.current?.focus()
+            }}
+          >X</button>
+        )}
+      </div>
+
+      {!searchExpanded && (
         <>
           <button style={s.iconBtn} onClick={onMenuClick} aria-label="Menu">
             <Menu size={22} />
@@ -466,6 +495,11 @@ const s = {
     cursor: 'default',
   },
   searchWrap: { position: 'relative', flex: 1, display: 'flex', alignItems: 'center' },
+  // Zero-width and clipped, NOT display:none or visibility:hidden — an
+  // element hidden either of those ways cannot take focus, and this one has
+  // to be focusable while still invisible so the iOS keyboard can be raised
+  // from inside the magnifier's tap handler.
+  searchWrapHidden: { flex: '0 0 0px', width: 0, overflow: 'hidden', pointerEvents: 'none' },
   searchIcon: { position: 'absolute', left: 9, color: 'var(--text-tertiary)', pointerEvents: 'none' },
   search: { width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '8px 38px 8px 30px', color: 'var(--text-primary)', fontSize: 15, outline: 'none' },
   clearBtn: {

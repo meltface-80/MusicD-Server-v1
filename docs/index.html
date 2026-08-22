@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MusicD Server v1 — self-hosted music server</title>
-<meta name="description" content="MusicD Server v1.1.42.0 — a self-hosted music server with a fast, dense web UI, MusicBrainz album matching, album version grouping, Qobuz and Tidal merged into one library, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
+<meta name="description" content="MusicD Server v1.1.43.0 — a self-hosted music server with a fast, dense web UI, MusicBrainz album matching, album version grouping, Qobuz and Tidal merged into one library, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
 <style>
   :root {
     --bg:        #1b1d1f;   /* charcoal */
@@ -263,7 +263,7 @@
   Squeezelite and local USB DACs &mdash; with parametric EQ, AutoEQ presets,
   FIR convolution and a per-stream signal path you can actually read.</p>
   <div class="badges">
-    <span class="badge">v1.1.42.0</span>
+    <span class="badge">v1.1.43.0</span>
     <span class="badge">Node 20 &middot; Express &middot; SQLite</span>
     <span class="badge">React SPA &middot; PWA</span>
     <span class="badge plain">Docker &middot; port 32700</span>
@@ -275,11 +275,48 @@
 
 <section id="whats-new" aria-labelledby="whats-new-h">
   <div class="wrap">
-    <h2 id="whats-new-h">What&rsquo;s new in 1.1.42.0</h2>
+    <h2 id="whats-new-h">What&rsquo;s new in 1.1.43.0</h2>
     <p class="lead">Your own keys for the two shared ones, a matcher that no
     longer gets stuck when MusicBrainz has a bad minute, bigger text
     throughout, and composers for your classical albums.</p>
     <div class="grid">
+
+      <div class="card new">
+        <span class="tagline">New</span>
+        <h3><span class="em" aria-hidden="true">&#128230;</span>Merge albums</h3>
+        <p>A two-disc set ripped as two folders is two tiles with half a record
+        behind each, and until now nothing could join them. Start a selection
+        on any album wall, tap the albums <b>in disc order</b> &mdash; the
+        first becomes disc&nbsp;1 &mdash; and choose <b>Merge albums</b>. The
+        ticks are numbered as you go, so the disc layout is visible before you
+        commit, and a confirmation lists it by name before anything happens.</p>
+        <p><b>It survives a rescan.</b> That is the part that took the work. An
+        album's identity comes from its folder, so simply moving the tracks
+        would last only until the next scan noticed the folder and rebuilt it
+        &mdash; quietly, overnight, looking like a bug in something else. A
+        merge is stored as a permanent redirection the scanner follows, so
+        rescanning changes nothing.</p>
+        <p>Made a mistake? <b>Unmerge</b> lives in the merged album's
+        <b>&#8943;</b> menu. It says how many discs will come back, asks once,
+        and puts everything exactly where it was &mdash; including the original
+        disc numbers, so a disc that was itself multi-disc comes back that way
+        rather than flattened. Nothing is deleted at any point.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">Fixed</span>
+        <h3><span class="em" aria-hidden="true">&#9000;</span>The search keyboard opens</h3>
+        <p>Tapping the magnifying glass put a caret in the box and left you
+        looking at it. iOS only raises the keyboard for a focus that happens
+        inside the tap itself, and the search field was being focused a moment
+        afterwards &mdash; by which point, as far as Safari is concerned, the
+        tap is over. The field is now always there and simply hidden, so it can
+        be focused the instant you tap.</p>
+        <p>Also: <b>Recently added</b> and <b>Recently played</b> now open full
+        walls when you tap their headings, the way Random albums always has.
+        They were the only two rows that stopped at whatever fitted in the
+        scroller.</p>
+      </div>
 
       <div class="card new">
         <span class="tagline">Changed</span>
@@ -1008,7 +1045,7 @@
       <code>-e MUSICD_MANIFEST_URL=https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json</code>
       to your <code>docker run</code>, restart, then <b>Check for updates</b>.
       The older parser understands this manifest, so it installs normally. Drop
-      the variable afterwards &mdash; v1.1.42.0 has the same URL as its own
+      the variable afterwards &mdash; v1.1.43.0 has the same URL as its own
       default.
     </div>
   </div>
@@ -1081,7 +1118,7 @@
 </main>
 
 <footer>
-  MusicD Server v1.1.42.0 &mdash; self-hosted music, one user, one library, one home network.
+  MusicD Server v1.1.43.0 &mdash; self-hosted music, one user, one library, one home network.
   <br>MIT licence &middot; <a href="https://github.com/meltface-80/MusicD-Server-v1">Source on GitHub</a>
 </footer>
 

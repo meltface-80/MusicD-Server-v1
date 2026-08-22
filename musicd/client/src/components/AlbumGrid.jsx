@@ -306,7 +306,9 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
   const runSelection = async (action) => {
     setSelectionBusy(true)
     setSelectionError(null)
-    const r = await runSelectionAction(action, selection.selected)
+    // v1.1.43.0 — the ORDER matters to merge: the first album ticked
+    // becomes disc 1. Every other action ignores it.
+    const r = await runSelectionAction(action, selection.selected, selection.order)
     setSelectionBusy(false)
     if (!r.ok) {
       setSelectionError(
@@ -319,6 +321,9 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
     // lets the user read why and pick something else.
     setSelectionSheet(false)
     selection.exit()
+    // A merge turns several tiles into one, so this grid is now
+    // showing albums that no longer exist. Re-read it.
+    if (r.reload) fetchPage(sortView, 0, false).catch(() => {})
   }
 
   // The sort sheet. Open/closed only — the choice itself lives in sortView.
@@ -883,6 +888,8 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
           error={selectionError}
           onClose={() => { setSelectionSheet(false); setSelectionError(null) }}
           onPick={runSelection}
+          orderedIds={selection.order}
+          albumsById={Object.fromEntries(albums.map(a => [a.id, a]))}
         />
       )}
 
@@ -1004,6 +1011,7 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
                 album={album}
                 selecting={selection.selecting}
                 selected={selection.selected.has(album.id)}
+                selectionIndex={selection.indexOf(album.id)}
                 onClick={() => {
                   // While selecting, a tap picks rather than opens. Same tap
                   // target, so there is nothing new to learn and nothing to
@@ -1152,13 +1160,18 @@ function FirstScanProgress({ status }) {
 // added in v1.1.33.0 never reached the artist page, and the service
 // screens grew an optional quality line that made their tiles taller
 // than everyone else's. One component, one height, everywhere.
-function AlbumCard({ album, onClick, selecting = false, selected = false }) {
+function AlbumCard({ album, onClick, selecting = false, selected = false, selectionIndex }) {
   return (
     <AlbumTile
       album={album}
       onClick={onClick}
       selecting={selecting}
       selected={selected}
+      // Forwarded, not swallowed: this wrapper drops anything it does not
+      // name, and a numbered tick that silently became a plain one on the
+      // main Albums wall — the one grid people actually merge from — would
+      // have been a quiet nothing rather than an error.
+      selectionIndex={selectionIndex}
     />
   )
 }

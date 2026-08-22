@@ -7,6 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 const db = require('./db');
 const { findCoverArt } = require('./coverArt');
+const albumMerge = require('./albumMerge');
 const libraryScope = require('./libraryScope');
 const streamingLibrary = require('./streamingLibrary');   // v1.1.33.0 — scope-pass exemptions
 
@@ -627,8 +628,27 @@ async function processFile(filePath, existingMap) {
     // The album id is now folder-aware so two copies of the same
     // album in different folders become two album rows.
     const albumFolder = albumFolderFor(filePath);
-    const discNo = discNumberFor(filePath, common.disk?.no);
-    const trackAlbumId = albumIdFor(albumArtist, album, albumFolder);
+
+    // v1.1.43.0 — a merged-away album redirects to the album it was merged
+    // into, and its tracks take the disc number the merge gave them.
+    //
+    // This is the block that makes a merge survive a rescan. Without it the
+    // hash is recomputed from the files, the source album is found missing,
+    // ensureAlbum recreates it, and the tracks walk straight back out of the
+    // merged album — silently, on whatever night the scan next runs. See
+    // src/albumMerge.js for why a merge is stored as a mapping rather than
+    // applied once.
+    //
+    // The order here matters and is not the order these three lines were
+    // originally in: discNo used to be computed before the album id, and the
+    // merge's disc has to override the file's own tag, so the redirect has
+    // to be resolved first. `const` is not hoisted — see CLAUDE.md.
+    const rawAlbumId = albumIdFor(albumArtist, album, albumFolder);
+    const mergeInfo = albumMerge.redirect(rawAlbumId);
+    const trackAlbumId = mergeInfo.albumId;
+    const discNo = mergeInfo.merged
+      ? mergeInfo.disc
+      : discNumberFor(filePath, common.disk?.no);
 
     database.prepare(`
       INSERT INTO tracks (
@@ -679,6 +699,16 @@ async function processFile(filePath, existingMap) {
       firstMbid(common.musicbrainz_workid),
       firstTagString(common.isrc),
     );
+
+    // A merged-away album must NOT be recreated here — that is the other
+    // half of surviving a rescan. The target row already exists and owns the
+    // artwork, the match state and the rest; recreating the source would put
+    // an empty duplicate tile back on the wall next to the merged one.
+    // Returns the same value the normal path does: the caller tallies
+    // 'added' / 'updated' to decide whether the scan changed anything, and
+    // a bare return would hand it undefined and quietly under-count every
+    // track in a merged album.
+    if (mergeInfo.merged) return existing ? 'updated' : 'added';
 
     ensureAlbum(albumArtist, album, common.year, coverArt, coverArtMime, ext.replace('.', ''), genre, {
       // Tag-sourced metadata IDs (#v1.1.0.20). music-metadata exposes

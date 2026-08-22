@@ -198,7 +198,10 @@ test('both album grids use one selection implementation', async (t) => {
     for (const [name, src] of [['AlbumGrid.jsx', grid], ['RandomAlbumsScreen.jsx', random]]) {
       assert.match(src, /from '\.\/AlbumSelection'/, `${name} does not use the shared module`);
       assert.match(src, /useAlbumSelection\(\)/, `${name} has no selection state`);
-      assert.match(src, /runSelectionAction\(action, selection\.selected\)/,
+      // v1.1.43.0 — the argument list gained the pick ORDER (merge numbers
+      // discs by it), so this pins the shared CALL rather than its exact
+      // arity. What it exists to catch is a grid growing its own runner.
+      assert.match(src, /runSelectionAction\(action, selection\.selected/,
         `${name} does not run the shared actions`);
       // The tell-tale of a fork: its own copy of the action list.
       assert.doesNotMatch(src, /'Play now'/, `${name} has its own copy of the actions`);
@@ -275,7 +278,10 @@ test('selecting changes what a tap does, and says so', async (t) => {
     // The BEHAVIOUR assertions below stay per grid, because deciding what
     // a tap does is still each screen's own job.
     const tile = client('components', 'AlbumTile.jsx');
-    assert.match(tile, /\{selecting && <SelectionTick on=\{selected\} \/>\}/,
+    // v1.1.43.0 — the tick gained an `index` prop (it shows the pick
+    // position, because merge numbers discs by it), so the needle stops at
+    // the `on` prop. The point is that the SHARED tile draws the tick.
+    assert.match(tile, /\{selecting && <SelectionTick on=\{selected\}/,
       'the shared tile draws no selection tick');
     assert.match(tile, /selecting && !selected \?/,
       'the shared tile does not dim unpicked albums');

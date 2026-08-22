@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useStore } from '../store'
 import { api } from '../api'
-import { ArrowLeft, Play, Plus, Clock, Share2, X, Heart, Copy, ExternalLink, Check, BookOpen, ChevronDown, Shuffle, ListMusic, Star, MoreHorizontal, Tag, Bookmark, Layers, PlusCircle, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Play, Plus, Clock, Share2, X, Heart, Copy, ExternalLink, Check, BookOpen, ChevronDown, Shuffle, ListMusic, Star, MoreHorizontal, Tag, Bookmark, Layers, PlusCircle, CheckCircle2, Split } from 'lucide-react'
 import BioModal from './BioModal'
 import TagPicker from './TagPicker'
 import ServiceBadge, { serviceLabel } from './ServiceBadge'
@@ -149,6 +149,27 @@ export default function AlbumDetail({ albumId, onArtistClick, onGenreClick, onBa
   // Play Next, Shuffle Play, plus disabled placeholders for v62 tag
   // and save-for-later actions.
   const [showAlbumMenu, setShowAlbumMenu] = useState(false)
+  // v1.1.43.0 — unmerge. Lives here rather than in the sheet because the
+  // sheet unmounts on success and a busy flag owned by an unmounting
+  // component is a state update on a dead node.
+  const [unmergeBusy, setUnmergeBusy] = useState(false)
+
+  const handleUnmerge = async () => {
+    if (!album?.id) return
+    setUnmergeBusy(true)
+    try {
+      await api.post(`/library/albums/${album.id}/unmerge`)
+      setShowAlbumMenu(false)
+      // Back to the wall: this album still exists, but it is now one disc
+      // of what it was, and the page behind the sheet is describing an
+      // album that no longer has those tracks.
+      setSelectedAlbum(null)
+    } catch (e) {
+      console.warn('unmerge failed', e?.message || e)
+    } finally {
+      setUnmergeBusy(false)
+    }
+  }
   // v1.1.0.98 — Change-type sub-sheet. Opens from the album overflow
   // menu's "Change type" item. Picks one of the six taxonomy values
   // (or "Auto-detect" to clear the lock) and POSTs to
@@ -899,6 +920,9 @@ export default function AlbumDetail({ albumId, onArtistClick, onGenreClick, onBa
           albumType={album?.album_type}
           albumTypeLocked={!!album?.album_type_locked}
           onChangeTypeClick={() => { setShowAlbumMenu(false); setShowTypeSheet(true) }}
+          mergedSources={album?.merged_sources}
+          unmergeBusy={unmergeBusy}
+          onUnmerge={handleUnmerge}
         />
       )}
 
@@ -1186,7 +1210,13 @@ function AlbumOverflowSheet({
   onPlayNext, onShuffle,
   onShare, shareLoading,
   albumType, albumTypeLocked, onChangeTypeClick,
+  mergedSources, unmergeBusy, onUnmerge,
 }) {
+  // v1.1.43.0 — a second tap to confirm, in place, rather than a separate
+  // dialog. Unmerging is reversible (merge it again) but it rearranges the
+  // wall, and the row that does it should not be a single tap away from
+  // the row above it.
+  const [confirmUnmerge, setConfirmUnmerge] = React.useState(false)
   return (
     <div style={s.sheetBackdrop} onClick={onClose}>
       <div style={s.sheetPanel} onClick={e => e.stopPropagation()}>
@@ -1200,6 +1230,37 @@ function AlbumOverflowSheet({
           <Share2 size={18} style={s.sheetItemIcon} />
           <span>Share album link</span>
         </button>
+
+        {/* v1.1.43.0 — only on an album that is the result of a merge, and
+            it names what will come back. "Unmerge" alone gives no way to
+            tell a two-disc merge from a five-disc one before undoing it. */}
+        {Array.isArray(mergedSources) && mergedSources.length > 0 && (
+          confirmUnmerge ? (
+            <div style={s.unmergeConfirm}>
+              <div style={s.unmergeConfirmText}>
+                Split back into {mergedSources.length + 1} separate albums?
+                Nothing is deleted — the tracks go back where they were.
+              </div>
+              <div style={s.unmergeConfirmRow}>
+                <button
+                  style={s.unmergeGo}
+                  onClick={onUnmerge}
+                  disabled={unmergeBusy}
+                >{unmergeBusy ? 'Unmerging…' : 'Unmerge'}</button>
+                <button
+                  style={s.unmergeCancel}
+                  onClick={() => setConfirmUnmerge(false)}
+                  disabled={unmergeBusy}
+                >Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <button style={s.sheetItem} onClick={() => setConfirmUnmerge(true)}>
+              <Split size={18} style={s.sheetItemIcon} />
+              <span>Unmerge ({mergedSources.length + 1} discs)</span>
+            </button>
+          )
+        )}
 
         <div style={s.sheetDivider} />
 
@@ -1765,6 +1826,36 @@ const s = {
     background: 'rgba(var(--tint-rgb), 0.18)',
     borderRadius: 2,
     margin: '4px auto 14px',
+  },
+  unmergeConfirm: {
+    padding: '10px 12px', margin: '2px 0 6px',
+    borderRadius: 'var(--radius-sm)',
+    background: 'rgba(var(--tint-rgb), 0.05)',
+    border: '1px solid var(--border)',
+  },
+  unmergeConfirmText: {
+    fontSize: 13, lineHeight: 1.5, color: 'var(--text-secondary)',
+    marginBottom: 10,
+  },
+  unmergeConfirmRow: { display: 'flex', gap: 8 },
+  // Outlined rather than a red fill. A fill would need a "what is printed
+  // on red" token that no palette declares — and hard-coding #fff for it is
+  // exactly what themes.test.js exists to catch, since a fixed white is a
+  // guess about a colour four palettes each answer differently. Red text on
+  // the elevated surface reads as destructive without inventing anything.
+  unmergeGo: {
+    flex: 1, minHeight: 'var(--tap-min)', padding: '9px 12px',
+    borderRadius: 'var(--radius-sm)',
+    border: '1px solid var(--red)', background: 'transparent',
+    color: 'var(--red)',
+    fontSize: 14, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+  },
+  unmergeCancel: {
+    flex: 1, minHeight: 'var(--tap-min)', padding: '9px 12px',
+    borderRadius: 'var(--radius-sm)',
+    border: '1px solid var(--border)', background: 'var(--bg-elevated)',
+    color: 'var(--text-secondary)',
+    fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
   },
   sheetItem: {
     display: 'flex', alignItems: 'center', gap: 14,

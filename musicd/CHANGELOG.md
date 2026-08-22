@@ -12,6 +12,54 @@ Categories used per release:
 
 ---
 
+## v1.1.43.0 — 2026-08-22 — MERGE ALBUMS, AND THREE WAYS IN
+
+### New
+
+- **Merge albums.** A two-disc set ripped as two folders is two tiles with
+  half a record behind each, and nothing could join them. Start a
+  selection on any album wall, tick the albums **in disc order** — the
+  first one becomes disc 1 — and choose **Merge albums**. The ticks show
+  their position, so the disc layout is visible before you commit, and a
+  confirmation lists it out by name before anything happens.
+
+  The merged album keeps the first album's artwork and details. The rest
+  become its later discs.
+
+  **It survives a rescan.** That is the part that took the work: an
+  album's identity is derived from its folder, so simply moving the tracks
+  would last until the next scan noticed the source folder and rebuilt it —
+  quietly, overnight. A merge is stored as a permanent redirection that the
+  scanner follows, so rescanning changes nothing.
+
+- **Unmerge**, from the merged album's **⋯** menu. It names how many discs
+  will come back, asks once, and puts everything exactly where it was —
+  including the original disc numbers, so a source that was itself
+  multi-disc comes back multi-disc rather than flattened. Nothing is
+  deleted at any point.
+
+  Qobuz and Tidal albums cannot be merged: they mirror your favourites at
+  the service and are rebuilt from it on every sync.
+
+### Changed
+
+- **Recently added and Recently played now open full walls**, the way
+  Random albums always has. Tap either heading on the Home screen. They
+  were the only two rows that stopped at whatever fitted in a horizontal
+  scroller, which made the chevron on the third one read as "this row is
+  special" rather than "there is more behind this".
+
+### Fixed
+
+- **Tapping the magnifying glass now opens the keyboard.** The caret
+  appeared and nothing else did. iOS only raises the keyboard for a focus
+  that happens inside the tap itself, and the search box was being focused
+  a moment later — by which point the tap was over as far as Safari was
+  concerned. The field is now always present and simply hidden, so it can
+  be focused the instant you tap.
+
+---
+
 ## v1.1.42.0 — 2026-08-22 — LISTENBRAINZ REMOVED
 
 ### Changed

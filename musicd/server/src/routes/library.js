@@ -824,6 +824,16 @@ router.get('/albums/:id', (req, res) => {
     // this exists so that "Beethoven: Symphonies 5 & 7" over eight tracks
     // called "I. Allegro con brio" can show a composer and a real work
     // title, and a pop record has nothing to gain from it.
+    // v1.1.43.0 — merge state, so the album page can offer Unmerge on an
+    // album that is the result of one. Read-only and cheap.
+    merged_sources: (() => {
+      try {
+        return require('../albumMerge').sourcesOf(album.id);
+      } catch (e) {
+        // Pre-migration database. An album page must render either way.
+        return [];
+      }
+    })(),
     works: (() => {
       try {
         return require('../mbWorks').worksForAlbum(album.id);
@@ -835,6 +845,57 @@ router.get('/albums/:id', (req, res) => {
       }
     })(),
   });
+});
+
+// ── Album merging (v1.1.43.0) ────────────────────────────────────────
+//
+// Two albums that are one release split across folders — "… CD1" and
+// "… CD2" — joined into one, in the order the user ticked them. The first
+// becomes disc 1. See src/albumMerge.js for why this is stored as a
+// persistent redirection rather than applied once: without that, the next
+// scan quietly takes it all apart again.
+
+// POST /api/library/albums/merge   { ids: [targetFirst, ...] }
+router.post('/albums/merge', (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids : null;
+  if (!ids || ids.length < 2) {
+    return res.status(400).json({ error: 'Pick at least two albums to merge.' });
+  }
+  const r = require('../albumMerge').merge(ids);
+  if (!r.ok) {
+    const msg =
+      r.reason === 'need-two'       ? 'Pick at least two albums to merge.'
+      : r.reason === 'duplicate'    ? 'The same album was picked twice.'
+      : r.reason === 'missing'      ? 'One of those albums no longer exists.'
+      : r.reason === 'streaming'    ? 'Qobuz and Tidal albums cannot be merged — they mirror your favourites at the service.'
+      : r.reason === 'already-merged' ? 'One of those albums is already part of a merge. Unmerge it first.'
+      : r.reason === 'is-target'    ? 'One of those albums is already a merged album. Unmerge it first.'
+      : r.error || 'The merge failed.';
+    return res.status(400).json({ error: msg, reason: r.reason });
+  }
+  invalidateCache();
+  if (global.broadcastState) global.broadcastState('library_updated', { reason: 'album_merge' });
+  res.json(r);
+});
+
+// POST /api/library/albums/:id/unmerge — put every source back
+router.post('/albums/:id/unmerge', (req, res) => {
+  const r = require('../albumMerge').unmerge(req.params.id);
+  if (!r.ok) {
+    return res.status(400).json({
+      error: r.reason === 'not-merged' ? 'That album is not a merged album.'
+        : r.error || 'The unmerge failed.',
+      reason: r.reason,
+    });
+  }
+  invalidateCache();
+  if (global.broadcastState) global.broadcastState('library_updated', { reason: 'album_unmerge' });
+  res.json(r);
+});
+
+// GET /api/library/merges — every merge in the library
+router.get('/merges', (req, res) => {
+  res.json(require('../albumMerge').listMerges());
 });
 
 // POST /api/library/albums/:id/favorite — toggle or set favourite state

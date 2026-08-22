@@ -39,6 +39,9 @@ export default function AlbumTile({
   subtitle,            // overrides the artist line when given
   selecting = false,
   selected = false,
+  // 1-based position in the selection, or 0/undefined. Merge numbers discs
+  // by pick order, so the tile shows which one this is.
+  selectionIndex,
   busy = false,        // a spinner over the art: fetching before navigating
   inLibrary = false,   // a tick: you already have this streaming album
   dim = false,         // unavailable in this region
@@ -85,7 +88,7 @@ export default function AlbumTile({
         }
 
         {/* Overlays. None of these affect the tile's height. */}
-        {selecting && <SelectionTick on={selected} />}
+        {selecting && <SelectionTick on={selected} index={selectionIndex} />}
         {album.service && (
           <span style={s.serviceBadge}>
             <ServiceBadge service={album.service} size={16} />
