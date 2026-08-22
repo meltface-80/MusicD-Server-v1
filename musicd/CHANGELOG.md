@@ -12,6 +12,51 @@ Categories used per release:
 
 ---
 
+## v1.1.39.0 — 2026-08-22 — YOUR OWN KEYS FOR THE TWO SHARED ONES
+
+MusicD ships with working API keys for the services it draws artwork and
+biographies from, so nothing needs setting up. Two of those keys are
+metered **per key** rather than per install, which means every MusicD in
+the world shares one allowance — and one of them was never a developer
+key at all.
+
+### New
+
+- **Optional TheAudioDB key** (Settings → Metadata → Optional service
+  keys). The built-in value is TheAudioDB's *public test key* — the one
+  the service hands out for trying the API, throttled to match. It is
+  used for artist images, artist biographies and, since v1.1.38.0, album
+  biographies, which makes it the busiest and weakest of the shared keys.
+  A supporter key from theaudiodb.com gives your install its own
+  allowance.
+
+- **Optional fanart.tv personal key**, alongside it. Used for artist
+  logos. MusicD's project key is always sent — fanart rejects a request
+  that has only one of the two — and a personal key sits beside it,
+  moving your lookups onto your own allowance and making newly-uploaded
+  images visible before they are approved. Free with a registered
+  fanart.tv account.
+
+Both are optional and both default to today's behaviour. Neither is ever
+sent back to the browser once saved: the settings page is told only
+whether a key is set, not what it is.
+
+Two keys are deliberately **not** overridable, because they do not have
+this problem. Last.fm meters per network address and AcoustID's
+application key is designed to be embedded in distributed software — so
+each install already has its own allowance no matter how many people run
+MusicD.
+
+### Fixed
+
+- **The ListenBrainz token was not being cleaned up on save.** Every
+  other pasted credential has its stray whitespace and smart quotes
+  stripped at boot; the token added in v1.1.38.0 was missed. A token with
+  a trailing newline fails with a message that says nothing about
+  whitespace.
+
+---
+
 ## v1.1.38.0 — 2026-08-22 — THE MATCHER STOPS SPINNING, AND THE TYPE GETS BIGGER
 
 A full audit of the metadata pipeline turned up fourteen defects, one of

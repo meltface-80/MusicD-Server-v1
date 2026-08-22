@@ -599,6 +599,121 @@ test('the barcode oracle refuses to guess', async (t) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────
+// Per-install API key overrides (v1.1.39.0)
+// ─────────────────────────────────────────────────────────────────────
+
+test('the two shared-quota keys can be overridden per install', async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'musicd-keys-'));
+  const prev = process.env.DB_PATH;
+  process.env.DB_PATH = path.join(dir, 'k.db');
+
+  // db.js caches its handle at module scope and settings.js resolves
+  // ./db once at ITS load time, so all three have to be dropped from the
+  // require cache TOGETHER and reloaded in dependency order. Dropping
+  // only db leaves settings holding the previous db module — which is
+  // closed — and every write silently no-ops, which looks exactly like
+  // the override not working.
+  const MODS = ['../src/db', '../src/settings', '../src/apiCredentials'];
+  for (const m of MODS) delete require.cache[require.resolve(m)];
+  const db = require('../src/db');
+
+  let settings;
+  let creds;
+  try {
+    db.init();
+    settings = require('../src/settings');
+    creds = require('../src/apiCredentials');
+
+    await t.test('with nothing set, the baked-in values are used', () => {
+      assert.equal(creds.getAudioDbKey(), creds.AUDIODB_API_KEY);
+      const p2 = creds.getFanartParams();
+      assert.equal(p2.api_key, creds.FANART_API_KEY);
+      assert.ok(!('client_key' in p2),
+        'an unset personal key must be ABSENT, not sent empty — fanart reads an '
+        + 'empty client_key as a malformed key rather than as no key');
+      assert.deepEqual(creds.overrideStatus(), { audiodb: false, fanart: false });
+    });
+
+    await t.test('a set override wins', () => {
+      settings.set('audiodb_api_key', 'patreon-key');
+      settings.set('fanart_client_key', 'personal-key');
+      assert.equal(creds.getAudioDbKey(), 'patreon-key');
+      const p2 = creds.getFanartParams();
+      assert.equal(p2.client_key, 'personal-key');
+      assert.equal(p2.api_key, creds.FANART_API_KEY,
+        'the PROJECT key must still be sent alongside a personal key — fanart '
+        + 'rejects a request that has only one of the two');
+      assert.deepEqual(creds.overrideStatus(), { audiodb: true, fanart: true });
+    });
+
+    await t.test('a blank or whitespace-only override falls back', () => {
+      settings.set('audiodb_api_key', '   ');
+      settings.set('fanart_client_key', '');
+      assert.equal(creds.getAudioDbKey(), creds.AUDIODB_API_KEY);
+      assert.ok(!('client_key' in creds.getFanartParams()));
+    });
+  } finally {
+    try { db.close(); } catch (e) { /* already closed */ }
+    for (const m of MODS) delete require.cache[require.resolve(m)];
+    if (prev === undefined) delete process.env.DB_PATH; else process.env.DB_PATH = prev;
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+
+  await t.test('every call site resolves the key rather than reading the constant', () => {
+    // The whole override is worthless if one of the four call sites still
+    // imports the baked-in constant directly — and that is a silent
+    // failure: the app works, the user has pasted a key, and one lookup
+    // in three quietly keeps using the shared one.
+    for (const f of ['bioFetch.js', 'artistLogos.js']) {
+      const src = stripComments(read(f));
+      assert.ok(!/\{\s*AUDIODB_API_KEY\s*\}\s*=\s*require/.test(src),
+        `${f} still destructures AUDIODB_API_KEY instead of calling getAudioDbKey()`);
+      assert.ok(!/\{\s*FANART_API_KEY\s*\}\s*=\s*require/.test(src),
+        `${f} still destructures FANART_API_KEY instead of calling getFanartParams()`);
+    }
+    const logos = stripComments(read('artistLogos.js'));
+    assert.match(logos, /getFanartParams\(\)/, 'the fanart request does not use the resolver');
+    assert.match(logos, /getAudioDbKey\(\)/, 'the AudioDB request does not use the resolver');
+    const bio = stripComments(read('bioFetch.js'));
+    assert.equal((bio.match(/getAudioDbKey\(\)/g) || []).length, 2,
+      'both AudioDB call sites in bioFetch (artist and album) must resolve the key');
+  });
+
+  await t.test('the keys are accepted, trimmed, and never echoed back', () => {
+    const route = stripComments(read('routes', 'settings.js'));
+    // Scoped to the `allowed` array. A bare route.includes() finds these
+    // names in the TRIMMED set further down as well, so removing them
+    // from the allowlist — which silently drops every write — left the
+    // first version of this check green. The mutation test is what said so.
+    const allowed = route.slice(route.indexOf('const allowed = ['), route.indexOf('const TRIMMED'));
+    for (const k of ['audiodb_api_key', 'fanart_client_key']) {
+      assert.ok(allowed.includes(`'${k}'`), `${k} is not in the settings allowlist`);
+    }
+    // Pasted from a web page, usually on a phone — smart quotes and
+    // trailing newlines come with them.
+    const trimmed = route.slice(route.indexOf('const TRIMMED'), route.indexOf('const NUMERIC_BOUNDS'));
+    for (const k of ['audiodb_api_key', 'fanart_client_key', 'listenbrainz_token']) {
+      assert.ok(trimmed.includes(k), `${k} is not trimmed on save`);
+    }
+    // The GET must report only WHETHER a key is set. A settings page that
+    // echoes a credential puts it in every browser cache and screenshot.
+    const get = route.slice(0, route.indexOf("router.patch('/'"));
+    assert.match(get, /audiodb_api_key_set/, 'the UI cannot tell whether an AudioDB key is set');
+    assert.match(get, /fanart_client_key_set/, 'the UI cannot tell whether a fanart key is set');
+    assert.ok(!/audiodb_api_key:/.test(get) && !/fanart_client_key:/.test(get)
+      && !/listenbrainz_token:/.test(get),
+      'a credential VALUE is being returned to the client');
+  });
+
+  await t.test('DETECTOR: the echo check catches a leaked value', () => {
+    const leaky = "res.json({ mb_contact: x, audiodb_api_key: y });\nrouter.patch('/'";
+    const get = leaky.slice(0, leaky.indexOf("router.patch('/'"));
+    assert.ok(/audiodb_api_key:/.test(get),
+      'the echo needle does not catch a route that returns the key');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
 // Client: the theming work
 // ─────────────────────────────────────────────────────────────────────
 

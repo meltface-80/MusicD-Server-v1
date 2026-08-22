@@ -106,14 +106,19 @@ async function resolveArtistMbid(name, contact, database) {
 }
 
 async function fetchFanartLogo(mbid) {
-  const { FANART_API_KEY } = require('./apiCredentials');
   const serviceHealth = require('./serviceHealth');
   if (!mbid) return null;
   await pace(fanartGuard, FANART_RATE_MS);
   const ua = userAgent();
   try {
     const r = await axios.get(`https://webservice.fanart.tv/v3/music/${mbid}`, {
-      params: { api_key: FANART_API_KEY },
+      // v1.1.39.0 — the project key ALWAYS, plus the install's personal
+      // key when it has one. fanart rejects a request with no project
+      // key even when a personal key is present, so this is not an
+      // either/or; getFanartParams() owns that rule and the "omit when
+      // empty" part, because an empty client_key parameter reads to
+      // fanart as a malformed key rather than as absent.
+      params: require('./apiCredentials').getFanartParams(),
       headers: { 'User-Agent': ua },
       timeout: 10000,
     });
@@ -140,7 +145,9 @@ async function fetchFanartLogo(mbid) {
 }
 
 async function fetchAudioDbLogo(mbid, name) {
-  const { AUDIODB_API_KEY } = require('./apiCredentials');
+  // v1.1.39.0 — see apiCredentials.getAudioDbKey(). Both branches below
+  // put the key in the PATH, so it has to be resolved before either.
+  const AUDIODB_API_KEY = require('./apiCredentials').getAudioDbKey();
   const serviceHealth = require('./serviceHealth');
   await pace(audiodbGuard, AUDIODB_RATE_MS);
   const ua = userAgent();

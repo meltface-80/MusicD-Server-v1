@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MusicD Server v1 — self-hosted music server</title>
-<meta name="description" content="MusicD Server v1.1.38.0 — a self-hosted music server with a fast, dense web UI, MusicBrainz album matching, album version grouping, Qobuz and Tidal merged into one library, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
+<meta name="description" content="MusicD Server v1.1.39.0 — a self-hosted music server with a fast, dense web UI, MusicBrainz album matching, album version grouping, Qobuz and Tidal merged into one library, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
 <style>
   :root {
     --bg:        #1b1d1f;   /* charcoal */
@@ -263,7 +263,7 @@
   Squeezelite and local USB DACs &mdash; with parametric EQ, AutoEQ presets,
   FIR convolution and a per-stream signal path you can actually read.</p>
   <div class="badges">
-    <span class="badge">v1.1.38.0</span>
+    <span class="badge">v1.1.39.0</span>
     <span class="badge">Node 20 &middot; Express &middot; SQLite</span>
     <span class="badge">React SPA &middot; PWA</span>
     <span class="badge plain">Docker &middot; port 32700</span>
@@ -275,11 +275,34 @@
 
 <section id="whats-new" aria-labelledby="whats-new-h">
   <div class="wrap">
-    <h2 id="whats-new-h">What&rsquo;s new in 1.1.38.0</h2>
-    <p class="lead">Matching that finishes in seconds instead of an hour, a
-    matcher that no longer gets stuck when MusicBrainz has a bad minute, bigger
-    text throughout &mdash; and composers for your classical albums.</p>
+    <h2 id="whats-new-h">What&rsquo;s new in 1.1.39.0</h2>
+    <p class="lead">Your own keys for the two shared ones &mdash; on top of
+    matching that finishes in seconds instead of an hour, a matcher that no
+    longer gets stuck when MusicBrainz has a bad minute, bigger text
+    throughout, and composers for your classical albums.</p>
     <div class="grid">
+
+      <div class="card new">
+        <span class="tagline">New</span>
+        <h3><span class="em" aria-hidden="true">&#128273;</span>Your own keys, if you want them</h3>
+        <p>MusicD ships with working keys for the services it pulls artwork and
+        biographies from, so there is nothing to set up. Two of those keys are
+        counted <b>per key</b> rather than per install &mdash; so every MusicD
+        in the world draws on one allowance.</p>
+        <p><b>TheAudioDB</b> is the one worth knowing about: the built-in value
+        is the service's <i>public test key</i>, the one they hand out for
+        trying the API, and it is throttled to match. It fetches artist images,
+        artist biographies and album biographies. <b>fanart.tv</b>, used for
+        artist logos, is a real project key but still a shared one &mdash; and
+        a personal key also makes newly-uploaded logos visible before they are
+        approved.</p>
+        <p>Both are now optional fields under <b>Settings &rarr; Metadata</b>,
+        both free to obtain, and both leave today's behaviour exactly as it is
+        if you skip them. Neither is ever sent back to the browser once saved.</p>
+        <p>Last.fm and AcoustID are deliberately left alone: they count per
+        network address rather than per key, so your install already has its
+        own allowance however many other people are running MusicD.</p>
+      </div>
 
       <div class="card new">
         <span class="tagline">Fixed</span>
@@ -973,7 +996,7 @@
       <code>-e MUSICD_MANIFEST_URL=https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json</code>
       to your <code>docker run</code>, restart, then <b>Check for updates</b>.
       The older parser understands this manifest, so it installs normally. Drop
-      the variable afterwards &mdash; v1.1.38.0 has the same URL as its own
+      the variable afterwards &mdash; v1.1.39.0 has the same URL as its own
       default.
     </div>
   </div>
@@ -1046,7 +1069,7 @@
 </main>
 
 <footer>
-  MusicD Server v1.1.38.0 &mdash; self-hosted music, one user, one library, one home network.
+  MusicD Server v1.1.39.0 &mdash; self-hosted music, one user, one library, one home network.
   <br>MIT licence &middot; <a href="https://github.com/meltface-80/MusicD-Server-v1">Source on GitHub</a>
 </footer>
 
