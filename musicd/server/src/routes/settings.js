@@ -175,6 +175,26 @@ router.patch('/', tierMiddleware.requireFeature('settings_write'), (req, res) =>
 
 // Loudness scan routes (renamed from analyse)
 router.get('/loudness/progress', (req, res) => res.json(loudness.getScanProgress()));
+// v1.1.40.0 — check the saved ListenBrainz token and say whose it is.
+//
+// The token field shipped in v1.1.38.0 with no feedback of any kind, which
+// made it impossible to tell a working token from a typo — and the failure
+// is silent by design, since a bad token just means matching falls back to
+// the MusicBrainz path. Gated on settings_write because it reads a stored
+// credential and talks to a third party on the user's behalf; a demo user
+// can see the field but must not be able to probe with it.
+router.post('/listenbrainz/test', tierMiddleware.requireFeature('settings_write'), async (req, res) => {
+  try {
+    const result = await require('../listenBrainz').validateToken();
+    res.json(result);
+  } catch (e) {
+    // validateToken is documented never to throw. This is here so that a
+    // broken promise surfaces as a readable message in the settings panel
+    // rather than as an unhandled rejection and a spinner that never stops.
+    res.json({ valid: false, userName: null, error: e.message || 'Check failed.' });
+  }
+});
+
 router.post('/loudness/scan', (req, res) => {
   const { force } = req.body || {};
   res.json({ ok: true, started: true });

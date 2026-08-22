@@ -599,6 +599,70 @@ test('the barcode oracle refuses to guess', async (t) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────
+// The ListenBrainz token can be checked (v1.1.40.0)
+// ─────────────────────────────────────────────────────────────────────
+
+test('a saved ListenBrainz token can be verified', async (t) => {
+  const lb = require('../src/listenBrainz');
+
+  await t.test('an empty token answers without going near the network', async () => {
+    const r = await lb.validateToken('');
+    assert.equal(r.valid, false);
+    assert.match(r.error, /No token saved/);
+  });
+
+  await t.test('it uses the endpoint built for this, with the header form', () => {
+    const src = stripComments(read('listenBrainz.js'));
+    // /1/validate-token is purpose-built and does not count as a failed
+    // auth attempt. Sending the Authorization header rather than the
+    // ?token= query form matters: it is the same auth path the mapper
+    // uses, so a pass here proves the mapper will authenticate too.
+    assert.match(src, /validate-token/, 'no validation endpoint is called');
+    const fn = src.slice(src.indexOf('async function validateToken'));
+    assert.match(fn, /Authorization: `Token \$\{token\}`/,
+      'the check does not use the same auth form as the mapper');
+    assert.ok(!/validate-token\?token=/.test(fn),
+      'the query-parameter form is the backwards-compatibility path, not the one to use');
+  });
+
+  await t.test('it never throws — a settings button must always get an answer', async () => {
+    for (const bad of [undefined, null, '', '   ']) {
+      const r = await lb.validateToken(bad);
+      assert.equal(typeof r.valid, 'boolean');
+      assert.ok('error' in r && 'userName' in r);
+    }
+  });
+
+  await t.test('the wrong-credential case is named, because it is the common one', () => {
+    const src = read('listenBrainz.js');
+    // People paste the OAuth client id or secret from the applications
+    // page instead of the user token from the settings page. An error
+    // that just says "invalid" sends them back to the same wrong page.
+    assert.match(src, /client ID or secret/i,
+      'the invalid-token message does not mention the credential people actually paste');
+  });
+
+  await t.test('the route exists and is gated', () => {
+    const route = stripComments(read('routes', 'settings.js'));
+    assert.match(route, /listenbrainz\/test/, 'no test endpoint is exposed');
+    const line = route.slice(route.indexOf("router.post('/listenbrainz/test'"));
+    assert.match(line.slice(0, 200), /requireFeature\('settings_write'\)/,
+      'the check reads a stored credential and calls a third party — a demo user must not reach it');
+  });
+
+  await t.test('the UI can report both outcomes distinctly', () => {
+    const ui = readClient('components', 'SettingsScreen.jsx');
+    assert.match(ui, /\/settings\/listenbrainz\/test/, 'nothing calls the endpoint');
+    assert.match(ui, /lbTestOk/, 'no success style');
+    assert.match(ui, /lbTestBad/, 'no failure style');
+    // Colour alone is not a distinction everyone can see, so each outcome
+    // carries a glyph too.
+    assert.match(ui, /\\u2713/, 'the success state has no glyph, only colour');
+    assert.match(ui, /\\u2717/, 'the failure state has no glyph, only colour');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
 // Per-install API key overrides (v1.1.39.0)
 // ─────────────────────────────────────────────────────────────────────
 
