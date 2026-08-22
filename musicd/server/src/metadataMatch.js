@@ -37,9 +37,6 @@ const mbArtist = require('./mbArtist');
 // them sent a User-Agent with no contact in it.
 const mbHttp = require('./mbHttp');
 const settings = require('./settings');
-// v1.1.38.0 — the ListenBrainz mapper. See the block in matchOneAlbum for
-// why it sits ahead of every MusicBrainz path.
-const listenBrainz = require('./listenBrainz');
 // v1.1.38.0 — AcoustID, as the last stage of the automatic matcher.
 // Before this release it was reachable only from a manual button.
 const fingerprintMatch = require('./fingerprintMatch');
@@ -60,12 +57,6 @@ const MATCH_SCORE = 85;
 // Below this an album is unmatched rather than uncertain: not worth a
 // human's time on the triage page.
 const UNCERTAIN_SCORE = 60;
-// How much the ListenBrainz mapper has to agree with itself before we
-// take its answer without asking MusicBrainz anything else. Two sampled
-// tracks landing on the same release is the bar; one track alone is not,
-// because a single-track vote on a song that appears on twelve
-// compilations tells you nothing about which record this is.
-const LB_MIN_CONFIDENCE = 65;
 
 // State
 let _running = false;
@@ -480,86 +471,6 @@ async function matchOneAlbum(album, userAgent) {
     titleStripped: id.titleStripped, artistStripped: id.artistStripped,
   };
 
-  // ---- 1b. the ListenBrainz mapper ----------------------------------
-  //
-  // v1.1.38.0, and the reason a full matcher run stopped taking an hour.
-  //
-  // ListenBrainz runs MusicBrainz's own fuzzy matcher — a Typesense index
-  // over artist credit, recording and release names — as a public
-  // endpoint. Two things make it worth putting ahead of everything else
-  // here. It answers on TRACK titles, so an album whose own title is
-  // mangled past the point where any release-group query would hit can
-  // still be identified from the names of the songs on it. And it takes
-  // fifty lookups per POST at fifty requests per ten seconds, against
-  // MusicBrainz's one request per second — so the sampled tracks of an
-  // album cost a fraction of a request where the search fallback costs
-  // up to four whole ones.
-  //
-  // It hands back a RELEASE mbid, and this matcher deals in release
-  // GROUPS, so a confident answer still costs one MusicBrainz lookup to
-  // convert. That is one request against the four-plus below it, and it
-  // is authoritative rather than fuzzy.
-  //
-  // Opt-in twice over: the endpoint needs a free account token (it was
-  // closed to anonymous callers over AI scraping), and the setting can
-  // be turned off independently. With no token this whole block is
-  // skipped and the matcher behaves exactly as it did before.
-  if (dbh && listenBrainz.isConfigured() && settings.getBool('matcher_use_listenbrainz', true)) {
-    let trackTitles = [];
-    try {
-      trackTitles = dbh.prepare(`
-        SELECT title FROM tracks
-        WHERE album_id = ? AND title IS NOT NULL AND TRIM(title) != ''
-        ORDER BY disc_number, track_number
-      `).all(album.id).map(r => r.title);
-    } catch (e) {
-      // No tracks table, or an album row with no tracks (a streaming
-      // placeholder). Not fatal — the mapper simply has nothing to send
-      // and the paths below still run.
-    }
-    if (trackTitles.length > 0) {
-      let lb = null;
-      try {
-        lb = await listenBrainz.lookupAlbum({ title: id.title, artist: id.artist, trackTitles });
-      } catch (e) {
-        // ListenBrainz being down or rate-limiting is not a failed match.
-        // Fall through to the MusicBrainz paths, which is what this
-        // matcher did for every album before this release.
-        diagnostic.listenBrainzError = e.message;
-      }
-      if (lb && lb.releaseMbid) {
-        diagnostic.listenBrainz = {
-          releaseMbid: lb.releaseMbid, agree: lb.agree,
-          sampled: lb.sampled, confidence: lb.confidence,
-        };
-        if (lb.confidence >= LB_MIN_CONFIDENCE) {
-          let rgId = null;
-          try {
-            rgId = await listenBrainz.releaseGroupFor(lb.releaseMbid, { userAgent });
-          } catch (e) {
-            diagnostic.listenBrainzRgError = e.message;
-          }
-          if (rgId) {
-            return {
-              status: 'matched',
-              confidence: lb.confidence,
-              mbid: rgId,
-              artistMbids: lb.artistMbids || [],
-              candidates: [{
-                mbid: rgId,
-                title: lb.releaseName || id.title,
-                artist: lb.artistCreditName || id.artist,
-                score: lb.confidence,
-                source: 'listenbrainz',
-              }],
-              diagnostic: { ...diagnostic, path: 'listenbrainz' },
-            };
-          }
-        }
-      }
-    }
-  }
-
   // ---- 2. artist -> MBID -> their actual discography ----------------
   let discographyScored = null;
   if (dbh) {
@@ -785,10 +696,10 @@ async function matchOneAlbum(album, userAgent) {
   // different currency from everything above: fpcalc decodes real audio,
   // so this costs CPU and disk on a machine whose scheduler already
   // backs off at 59 °C, rather than costing MusicBrainz quota. By the
-  // time an album reaches here it has survived identity recovery, the
-  // ListenBrainz mapper, an artist-MBID discography browse and up to
-  // four search queries — so the set is small, and every album in it is
-  // one nothing else could name.
+  // time an album reaches here it has survived identity recovery, a
+  // borrowed barcode, an artist-MBID discography browse and up to four
+  // search queries — so the set is small, and every album in it is one
+  // nothing else could name.
   //
   // Its recording MBIDs are kept whatever the outcome: they are what the
   // works layer needs, and an album we could not place still has tracks

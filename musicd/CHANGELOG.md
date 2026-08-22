@@ -12,6 +12,71 @@ Categories used per release:
 
 ---
 
+## v1.1.42.0 — 2026-08-22 — LISTENBRAINZ REMOVED
+
+### Changed
+
+- **The ListenBrainz integration is gone**, along with its settings field
+  and its Test button. It was added in v1.1.38.0 to speed up the initial
+  album match, and it was not worth what it cost to set up.
+
+  What it did: matching a large library in seconds rather than at
+  MusicBrainz's one request per second. What it cost: finding a token
+  across a family of sites that issue three different credentials all
+  called a token, two of which look plausible and neither of which works.
+
+  The thing it saved was roughly forty minutes of background work the
+  overnight scheduler does while you are asleep, once, and which you
+  would never have watched. Match quality was identical either way. That
+  is a bad trade for a credential hunt, and presenting it as a headline
+  feature rather than an optional tweak was a misjudgement on this end.
+
+  Nothing else changes. Matching still works from artist and title, still
+  recovers them from the tracks or the folder name, still borrows a
+  barcode from Qobuz or Tidal, and still fingerprints the audio for
+  anything text cannot place — and it is considerably more reliable than
+  before v1.1.38.0, which is the part that actually mattered.
+
+  **It never had anything to do with scrobbling.** MusicD only ever used
+  ListenBrainz to ask "what record is this?" and never sent a listen to
+  them. Last.fm scrobbling is untouched.
+
+### Migrations
+
+- The `listenbrainz_token` and `matcher_use_listenbrainz` settings rows
+  are deleted on first boot. The field was easy to paste the wrong
+  credential into — one install ended up storing a MetaBrainz OAuth
+  client secret in it — and an orphaned secret in a row nothing will ever
+  read again is worth removing rather than leaving behind.
+
+---
+
+## v1.1.41.0 — 2026-08-22 — THE TOKEN TEST NOW TELLS YOU WHAT IS WRONG
+
+### Fixed
+
+- **A rejected ListenBrainz token said only "Token invalid".** The Test
+  button added yesterday was written to explain the usual cause — people
+  paste an OAuth client ID or client secret from the MetaBrainz
+  applications page instead of the user token from ListenBrainz — but
+  that explanation was written as a *fallback* behind whatever
+  ListenBrainz itself said. ListenBrainz always says something
+  (`Token invalid.`), so the explanation could never appear. It is
+  appended now rather than substituted.
+
+- **The check also describes the shape of what you saved.** A
+  ListenBrainz user token is a 36-character UUID. If the saved value is
+  not one, the message now says how long it actually is and what a token
+  looks like — which identifies a pasted client secret immediately,
+  without anyone having to know the difference between three MetaBrainz
+  pages that all issue something called a token.
+
+- A bodyless `POST` from the web app sent `Content-Type: application/json`
+  with no body at all. Harmless today and the kind of thing that starts
+  returning 400 after a dependency bump.
+
+---
+
 ## v1.1.40.0 — 2026-08-22 — A TEST BUTTON FOR THE LISTENBRAINZ TOKEN
 
 ### New

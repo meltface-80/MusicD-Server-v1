@@ -30,30 +30,14 @@ router.get('/', (req, res) => {
     // artist pages. Off by default: an upgrade should not silently
     // change what the library looks like.
     library_group_versions: require('../settings').getBool('library_group_versions', false),
-    // v1.1.38.0 — the metadata pipeline's new switches.
-    //
-    // listenbrainz_token is what makes the fast matching path available
-    // at all. ListenBrainz runs MusicBrainz's own fuzzy matcher as a
-    // public endpoint, at fifty lookups per request and fifty requests
-    // per ten seconds against MusicBrainz's one per second — but it was
-    // closed to anonymous callers over AI scraping, so it needs a free
-    // account token. With no token the matcher behaves exactly as it did
-    // before this release.
-    //
-    // The token itself is never sent back to the client. A settings page
-    // that echoes a credential is a credential in every browser cache and
-    // every screenshot; the UI needs to know whether one is SET, not what
-    // it is.
-    listenbrainz_token_set: require('../settings').get('listenbrainz_token', '') !== '',
-    matcher_use_listenbrainz: require('../settings').getBool('matcher_use_listenbrainz', true),
+    // v1.1.38.0 — the metadata pipeline's switches.
     matcher_use_fingerprint:  require('../settings').getBool('matcher_use_fingerprint', true),
     works_enabled:            require('../settings').getBool('works_enabled', true),
     // v1.1.39.0 — per-install overrides for the two shared-quota keys.
     //
-    // Reported as booleans for the same reason the ListenBrainz token is:
-    // a settings page that echoes a credential puts it in every browser
-    // cache and every screenshot. The UI needs to know whether one is
-    // set, not what it is.
+    // Reported as booleans, not values: a settings page that echoes a
+    // credential puts it in every browser cache and every screenshot.
+    // The UI needs to know whether one is set, not what it is.
     ...(() => {
       const o = require('../apiCredentials').overrideStatus();
       return { audiodb_api_key_set: o.audiodb, fanart_client_key_set: o.fanart };
@@ -71,7 +55,6 @@ router.patch('/', tierMiddleware.requireFeature('settings_write'), (req, res) =>
     // v1.1.34.0 — album version grouping toggle.
     'library_group_versions',
     // v1.1.38.0 — metadata pipeline switches. See the GET above.
-    'listenbrainz_token', 'matcher_use_listenbrainz',
     'matcher_use_fingerprint', 'works_enabled',
     // v1.1.39.0 — optional per-install API keys. Both settings rows
     // predate v1.1.0.23 (they were per-user before the keys were baked
@@ -82,13 +65,12 @@ router.patch('/', tierMiddleware.requireFeature('settings_write'), (req, res) =>
   // quotes (smart quotes from rich rendered pages) or trailing whitespace
   // newlines. Strip these on save (#v1.1.0.1). With the lastfm/fanart/
   // audiodb keys baked in, only mb_contact remains in this set.
-  // v1.1.38.0 — the ListenBrainz token joins this set for exactly the
-  // reason the comment above gives: it is pasted from a web page on a
+  // v1.1.39.0 — the optional service keys join this set for exactly the
+  // reason the comment above gives: they are pasted from a web page on a
   // phone, and mobile copy-paste drags in smart quotes and trailing
-  // newlines. A token with a trailing newline fails auth with a message
-  // that says nothing about whitespace.
-  const TRIMMED = new Set(['mb_contact', 'listenbrainz_token',
-    'audiodb_api_key', 'fanart_client_key']);
+  // newlines. A key with a trailing newline fails with a message that
+  // says nothing about whitespace.
+  const TRIMMED = new Set(['mb_contact', 'audiodb_api_key', 'fanart_client_key']);
   // v1.1.3.5: numeric settings with bounds. Out-of-range values are
   // clamped before write rather than rejected — the UI sliders
   // already enforce bounds, so an out-of-range value here means
@@ -175,26 +157,6 @@ router.patch('/', tierMiddleware.requireFeature('settings_write'), (req, res) =>
 
 // Loudness scan routes (renamed from analyse)
 router.get('/loudness/progress', (req, res) => res.json(loudness.getScanProgress()));
-// v1.1.40.0 — check the saved ListenBrainz token and say whose it is.
-//
-// The token field shipped in v1.1.38.0 with no feedback of any kind, which
-// made it impossible to tell a working token from a typo — and the failure
-// is silent by design, since a bad token just means matching falls back to
-// the MusicBrainz path. Gated on settings_write because it reads a stored
-// credential and talks to a third party on the user's behalf; a demo user
-// can see the field but must not be able to probe with it.
-router.post('/listenbrainz/test', tierMiddleware.requireFeature('settings_write'), async (req, res) => {
-  try {
-    const result = await require('../listenBrainz').validateToken();
-    res.json(result);
-  } catch (e) {
-    // validateToken is documented never to throw. This is here so that a
-    // broken promise surfaces as a readable message in the settings panel
-    // rather than as an unhandled rejection and a spinner that never stops.
-    res.json({ valid: false, userName: null, error: e.message || 'Check failed.' });
-  }
-});
-
 router.post('/loudness/scan', (req, res) => {
   const { force } = req.body || {};
   res.json({ ok: true, started: true });
