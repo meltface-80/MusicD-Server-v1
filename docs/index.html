@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MusicD Server v1 — self-hosted music server</title>
-<meta name="description" content="MusicD Server v1.1.36.0 — a self-hosted music server with a Roon-inspired web UI, MusicBrainz album matching, album version grouping, Qobuz and Tidal merged into one library, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
+<meta name="description" content="MusicD Server v1.1.37.0 — a self-hosted music server with a Roon-inspired web UI, MusicBrainz album matching, album version grouping, Qobuz and Tidal merged into one library, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
 <style>
   :root {
     --bg:        #1b1d1f;   /* charcoal */
@@ -263,7 +263,7 @@
   Squeezelite and local USB DACs &mdash; with parametric EQ, AutoEQ presets,
   FIR convolution and a per-stream signal path you can actually read.</p>
   <div class="badges">
-    <span class="badge">v1.1.36.0</span>
+    <span class="badge">v1.1.37.0</span>
     <span class="badge">Node 20 &middot; Express &middot; SQLite</span>
     <span class="badge">React SPA &middot; PWA</span>
     <span class="badge plain">Docker &middot; port 32700</span>
@@ -275,11 +275,28 @@
 
 <section id="whats-new" aria-labelledby="whats-new-h">
   <div class="wrap">
-    <h2 id="whats-new-h">What&rsquo;s new in 1.1.36.0</h2>
-    <p class="lead">An album header that lines up, a favourite you can reach
-    in one tap, matching that works from artist and title alone, and one tile
-    per album instead of one per copy.</p>
+    <h2 id="whats-new-h">What&rsquo;s new in 1.1.37.0</h2>
+    <p class="lead">Reopening the app keeps the screen you left, the album
+    header lines up, and a favourite is one tap away &mdash; with matching that
+    works from artist and title alone underneath.</p>
     <div class="grid">
+
+      <div class="card new">
+        <span class="tagline">Fixed</span>
+        <h3><span class="em" aria-hidden="true">&#9889;</span>Reopening the app keeps the screen you left</h3>
+        <p>iOS throws away a backgrounded app's web view, so reopening MusicD
+        is a real cold start &mdash; and the Home screen showed it. The counters
+        read zero, the carousels were missing altogether, then they appeared
+        empty, then they filled in. Four paints, three of them wrong, and the
+        page jumping twice as it grew.</p>
+        <p>It now remembers the Home screen it last drew and puts that up
+        <b>on the first frame</b>, before anything touches the network. Fresh
+        data still arrives a moment later and still brings in whatever you have
+        added &mdash; but only the parts that actually changed are redrawn, so
+        reopening with nothing new looks like the app was never closed. Nothing
+        is served stale from the server; this is one screen remembering what it
+        showed, not a caching policy.</p>
+      </div>
 
       <div class="card new">
         <span class="tagline">New</span>
@@ -478,18 +495,6 @@
         a line separating them from the music-news sources. They read your own
         library, so they are on by default and cost nothing outside your
         network. The library counters stay at the top either way.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">New</span>
-        <h3><span class="em" aria-hidden="true">&#9776;</span>The queue takes instructions</h3>
-        <p>Tick rows in the queue and the &ctdot; menu offers <b>Play now</b>,
-        <b>Play next</b> and <b>Clear selected from queue</b>. Play next moves
-        the whole selection to just after the track playing, keeping the order
-        it already had; Play now does the same and then starts it.</p>
-        <p>That menu is no longer the Now Playing one wearing a different hat.
-        The album and artist links it used to lead with described whatever
-        happened to be playing, which is not what the queue screen is about.</p>
       </div>
 
     </div>
@@ -895,7 +900,7 @@
       <code>-e MUSICD_MANIFEST_URL=https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json</code>
       to your <code>docker run</code>, restart, then <b>Check for updates</b>.
       The older parser understands this manifest, so it installs normally. Drop
-      the variable afterwards &mdash; v1.1.36.0 has the same URL as its own
+      the variable afterwards &mdash; v1.1.37.0 has the same URL as its own
       default.
     </div>
   </div>
@@ -968,7 +973,7 @@
 </main>
 
 <footer>
-  MusicD Server v1.1.36.0 &mdash; self-hosted music, one user, one library, one home network.
+  MusicD Server v1.1.37.0 &mdash; self-hosted music, one user, one library, one home network.
   <br>MIT licence &middot; <a href="https://github.com/meltface-80/MusicD-Server-v1">Source on GitHub</a>
 </footer>
 
