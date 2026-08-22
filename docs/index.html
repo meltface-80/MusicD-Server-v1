@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MusicD Server v1 — self-hosted music server</title>
-<meta name="description" content="MusicD Server v1.1.35.0 — a self-hosted music server with a Roon-inspired web UI, MusicBrainz album matching, album version grouping, Qobuz and Tidal merged into one library, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
+<meta name="description" content="MusicD Server v1.1.36.0 — a self-hosted music server with a Roon-inspired web UI, MusicBrainz album matching, album version grouping, Qobuz and Tidal merged into one library, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
 <style>
   :root {
     --bg:        #1b1d1f;   /* charcoal */
@@ -263,7 +263,7 @@
   Squeezelite and local USB DACs &mdash; with parametric EQ, AutoEQ presets,
   FIR convolution and a per-stream signal path you can actually read.</p>
   <div class="badges">
-    <span class="badge">v1.1.35.0</span>
+    <span class="badge">v1.1.36.0</span>
     <span class="badge">Node 20 &middot; Express &middot; SQLite</span>
     <span class="badge">React SPA &middot; PWA</span>
     <span class="badge plain">Docker &middot; port 32700</span>
@@ -275,11 +275,36 @@
 
 <section id="whats-new" aria-labelledby="whats-new-h">
   <div class="wrap">
-    <h2 id="whats-new-h">What&rsquo;s new in 1.1.35.0</h2>
-    <p class="lead">A roomier album page, album matching that works from
-    artist and title alone, and one tile per album instead of one per copy
-    &mdash; with Qobuz and Tidal in the same library below them.</p>
+    <h2 id="whats-new-h">What&rsquo;s new in 1.1.36.0</h2>
+    <p class="lead">An album header that lines up, a favourite you can reach
+    in one tap, matching that works from artist and title alone, and one tile
+    per album instead of one per copy.</p>
     <div class="grid">
+
+      <div class="card new">
+        <span class="tagline">New</span>
+        <h3><span class="em" aria-hidden="true">&#10084;&#65039;</span>A heart next to Play</h3>
+        <p>The album favourite is a button in the action row now, on every
+        album &mdash; local, Qobuz and Tidal alike. Hollow when it is not a
+        favourite, filled red when it is. It used to be a row inside the
+        <b>&ctdot;</b> sheet, two taps away.</p>
+        <p>On a Qobuz or Tidal album the <b>&#8853;</b> sits beside it, and the
+        two mean different things: the heart is MusicD's own favourite, the
+        &#8853; adds the album to your favourites <i>at the service</i>. The
+        heart never touches your Qobuz or Tidal account.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">Changed</span>
+        <h3><span class="em" aria-hidden="true">&#128207;</span>An album header that lines up</h3>
+        <p>The artwork sits higher &mdash; there was a wide empty band above it
+        for no reason. The album title now starts <b>level with the top of the
+        cover</b> instead of floating in the middle beside it, and <b>Play sits
+        at the bottom of that column, level with the bottom of the cover</b>.</p>
+        <p>The title and the action row are the two ends of the same column, so
+        the header holds together whether the album is called <i>BE</i> or
+        something four times as long.</p>
+      </div>
 
       <div class="card new">
         <span class="tagline">Changed</span>
@@ -465,27 +490,6 @@
         <p>That menu is no longer the Now Playing one wearing a different hat.
         The album and artist links it used to lead with described whatever
         happened to be playing, which is not what the queue screen is about.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">New</span>
-        <h3><span class="em" aria-hidden="true">&#128100;</span>Artists, three across or as a list</h3>
-        <p>The artists wall is three columns now, matching the album grid, with
-        a <b>grid / list</b> switch at the top of the screen. List rows show a
-        small circular logo, the artist&rsquo;s name and how many albums you
-        have. The choice is remembered.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">New</span>
-        <h3><span class="em" aria-hidden="true">&#127925;</span>Playlists, and the menu rows that were greyed out</h3>
-        <p>Build playlists and play them: a <b>Playlists</b> entry in the menu,
-        and <b>Add to Playlist</b> on any track&rsquo;s &ctdot; menu. The sheet
-        ticks the playlists a track is already in, and making a new one adds
-        the track at the same time.</p>
-        <p><b>Add to Tag</b> and <b>Save for later</b> work from that menu too,
-        and <b>Tags</b> has moved out of Settings into the side menu, alongside
-        the other ways through your library.</p>
       </div>
 
     </div>
@@ -891,7 +895,7 @@
       <code>-e MUSICD_MANIFEST_URL=https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json</code>
       to your <code>docker run</code>, restart, then <b>Check for updates</b>.
       The older parser understands this manifest, so it installs normally. Drop
-      the variable afterwards &mdash; v1.1.35.0 has the same URL as its own
+      the variable afterwards &mdash; v1.1.36.0 has the same URL as its own
       default.
     </div>
   </div>
@@ -964,7 +968,7 @@
 </main>
 
 <footer>
-  MusicD Server v1.1.35.0 &mdash; self-hosted music, one user, one library, one home network.
+  MusicD Server v1.1.36.0 &mdash; self-hosted music, one user, one library, one home network.
   <br>MIT licence &middot; <a href="https://github.com/meltface-80/MusicD-Server-v1">Source on GitHub</a>
 </footer>
 
