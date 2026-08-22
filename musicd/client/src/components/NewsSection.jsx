@@ -344,11 +344,11 @@ const s = {
     color: 'var(--text-secondary)',
     border: '1px solid var(--border)',
     borderRadius: 6,
-    fontSize: 11, cursor: 'pointer',
+    fontSize: 12, cursor: 'pointer',
   },
   refreshBtnDis: { opacity: 0.5, cursor: 'not-allowed' },
   cooldownText: {
-    fontSize: 10, fontVariantNumeric: 'tabular-nums',
+    fontSize: 12, fontVariantNumeric: 'tabular-nums',
     color: 'var(--text-tertiary)',
   },
 
@@ -358,11 +358,11 @@ const s = {
     padding: '0 18px 10px',
   },
   subheadLabel: {
-    fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
+    fontSize: 12, fontWeight: 700, letterSpacing: '0.1em',
     color: 'var(--text-tertiary)',
   },
   subheadSource: {
-    fontSize: 9, fontWeight: 600, letterSpacing: '0.1em',
+    fontSize: 11, fontWeight: 600, letterSpacing: '0.1em',
     color: 'var(--accent)',
     marginLeft: 'auto',
   },
@@ -400,12 +400,12 @@ const s = {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   releaseTitle: {
-    fontSize: 13, fontWeight: 700, color: 'var(--text-primary)',
+    fontSize: 14, fontWeight: 700, color: 'var(--text-primary)',
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
     marginBottom: 1,
   },
   releaseArtist: {
-    fontSize: 12, color: 'var(--text-secondary)',
+    fontSize: 13, color: 'var(--text-secondary)',
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
   },
 
@@ -445,14 +445,14 @@ const s = {
   },
   cardBadge: {
     display: 'flex', alignItems: 'center', gap: 6,
-    fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
+    fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
     color: 'var(--text-tertiary)',
   },
   cardSource: { color: 'var(--accent)' },
   cardBadgeDot: { color: 'var(--text-muted)' },
   cardSection: { },
   cardTitle: {
-    fontSize: 13, fontWeight: 600,
+    fontSize: 14, fontWeight: 600,
     color: 'var(--text-primary)',
     lineHeight: 1.3,
     display: '-webkit-box',
@@ -461,7 +461,7 @@ const s = {
     overflow: 'hidden',
   },
   cardExcerpt: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'var(--text-secondary)',
     lineHeight: 1.4,
     display: '-webkit-box',
@@ -470,7 +470,7 @@ const s = {
     overflow: 'hidden',
   },
   cardMeta: {
-    fontSize: 10,
+    fontSize: 12,
     color: 'var(--text-tertiary)',
     marginTop: 'auto',
   },
@@ -478,7 +478,7 @@ const s = {
   empty: {
     padding: '24px 18px',
     color: 'var(--text-tertiary)',
-    fontSize: 12,
+    fontSize: 13,
     fontStyle: 'italic',
     lineHeight: 1.5,
   },
@@ -489,7 +489,7 @@ const s = {
     background: 'rgba(255,90,90,0.08)',
     border: '1px solid rgba(255,90,90,0.3)',
     borderRadius: 8,
-    fontSize: 12, color: '#ff8888',
+    fontSize: 13, color: '#ff8888',
   },
   errorRetry: {
     marginLeft: 'auto',
@@ -498,7 +498,7 @@ const s = {
     color: '#ff8888',
     border: '1px solid rgba(255,90,90,0.3)',
     borderRadius: 4,
-    fontSize: 11, cursor: 'pointer',
+    fontSize: 12, cursor: 'pointer',
   },
   skel: {
     display: 'flex', gap: 12,

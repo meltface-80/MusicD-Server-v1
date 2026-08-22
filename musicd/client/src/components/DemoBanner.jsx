@@ -86,7 +86,7 @@ const s = {
     padding: '10px 14px',
     background: 'var(--bg-elevated)',
     borderBottom: '1px solid var(--border)',
-    fontSize: 13,
+    fontSize: 14,
     lineHeight: 1.5,
     color: 'var(--text-primary)',
   },

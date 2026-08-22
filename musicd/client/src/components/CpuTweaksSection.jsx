@@ -259,7 +259,7 @@ export default function CpuTweaksSection() {
 
 const s = {
   wrap: { display: 'flex', flexDirection: 'column', gap: 14 },
-  loading: { padding: 14, color: 'var(--text-secondary)', fontSize: 13 },
+  loading: { padding: 14, color: 'var(--text-secondary)', fontSize: 14 },
 
   panel: {
     background: 'var(--bg-elevated)',
@@ -268,7 +268,7 @@ const s = {
     padding: 14,
   },
   panelTitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 700,
     letterSpacing: '0.06em',
     textTransform: 'uppercase',
@@ -283,12 +283,12 @@ const s = {
     padding: '6px 0',
     borderBottom: '1px solid var(--border)',
   },
-  rowLabel: { fontSize: 13, color: 'var(--text-secondary)' },
-  rowValue: { fontSize: 13, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' },
+  rowLabel: { fontSize: 14, color: 'var(--text-secondary)' },
+  rowValue: { fontSize: 14, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' },
 
   editRow: { display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 0' },
   editLabel: {
-    fontSize: 13, color: 'var(--text-primary)',
+    fontSize: 14, color: 'var(--text-primary)',
     display: 'flex', alignItems: 'center',
   },
   input: {
@@ -297,7 +297,7 @@ const s = {
     border: '1px solid var(--border-bright)',
     borderRadius: 6,
     padding: '8px 10px',
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: 'var(--font-mono)',
     width: 100,
   },
@@ -309,7 +309,7 @@ const s = {
     color: 'var(--text-primary)',
     border: '1px solid var(--border-bright)',
     borderRadius: 8,
-    fontSize: 13, fontWeight: 600,
+    fontSize: 14, fontWeight: 600,
     cursor: 'pointer',
   },
 
@@ -321,7 +321,7 @@ const s = {
     color: 'var(--on-accent)',
     border: 'none',
     borderRadius: 8,
-    fontSize: 13, fontWeight: 600,
+    fontSize: 14, fontWeight: 600,
     cursor: 'pointer',
     display: 'flex', alignItems: 'center',
   },
@@ -331,14 +331,14 @@ const s = {
     color: 'var(--text-tertiary)',
     border: 'none',
     borderRadius: 8,
-    fontSize: 13, fontWeight: 600,
+    fontSize: 14, fontWeight: 600,
     cursor: 'default',
     display: 'flex', alignItems: 'center',
   },
 
   note: {
     marginTop: 10,
-    fontSize: 11,
+    fontSize: 12,
     color: 'var(--text-tertiary)',
     lineHeight: 1.5,
   },
@@ -350,7 +350,7 @@ const s = {
     border: 'none',
     color: 'var(--text-tertiary)',
     cursor: 'pointer',
-    fontSize: 11,
+    fontSize: 12,
     textDecoration: 'underline',
     padding: '2px 0',
     fontFamily: 'inherit',
@@ -361,7 +361,7 @@ const s = {
     padding: '8px 10px',
     background: 'var(--bg-overlay)',
     borderRadius: 6,
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: 'var(--font-mono)',
   },
   diagRow: {
@@ -372,6 +372,6 @@ const s = {
     color: 'var(--text-secondary)',
   },
   diagType: { flex: 1, color: 'var(--text-primary)' },
-  diagSrc: { color: 'var(--text-tertiary)', fontSize: 10 },
+  diagSrc: { color: 'var(--text-tertiary)', fontSize: 12 },
   diagValue: { fontFamily: 'var(--font-mono)', fontWeight: 600 },
 }

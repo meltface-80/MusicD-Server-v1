@@ -46,35 +46,51 @@ input[type="range"] {
 
    The same class drives both the main Albums grid and the per-artist
    album list, so they stay visually consistent. */
-/* v1.1.0.62 — JPLAY-style album grid.
+/* v1.1.38.0 — the grid now matches MusicD-Remote's, which is the density
+ * the owner asked for. Its progression is 3 / 5 / 7 / 9 against this
+ * app's 3 / 4 / 5 / 6, and the gap between the two widened at every step
+ * above the phone: on a landscape tablet the remote showed seven covers
+ * where this showed five, and on a desktop nine against six.
  *
- * Was a tight 3-col grid on phone with 8px gap; that read as
- * "thumbnail browser" rather than "library shelf". JPLAY uses a
- * generous 2-col on phone with 12px gutters so each cover gets
- * proper presence — the cover IS the content, and packing them too
- * tightly fights against that.
+ * The breakpoints now key off ORIENTATION as well as width, which is the
+ * other half of why the remote reads better on a tablet. A 10-inch tablet
+ * is 768px wide in portrait and 1024px in landscape; keying on width
+ * alone gives both the same column count, and the landscape one then
+ * wastes most of its width. Portrait gets 5, landscape gets 7.
  *
- * Counts adjusted at every breakpoint to match: 2 phone, 3 large
- * phone / portrait tablet, 4 landscape tablet, 5 desktop. The
- * earlier 6-col desktop was too thumbnail-y at typical desk
- * viewing distance.
+ * minmax(0, 1fr) rather than a bare 1fr, deliberately. A grid track's
+ * default minimum is min-content, so one long album title stretches its
+ * column wider than the others and the whole wall goes ragged. This app
+ * has that bug today; the remote fixed it and its comment says why.
+ *
+ * Earlier history, kept because it is the record of how the density was
+ * arrived at: v1.1.0.62 moved off a tight 3-col-with-8px-gutter phone
+ * layout that read as a thumbnail browser rather than a library shelf,
+ * going to 2 columns with 12px gutters so each cover had presence.
+ * v1.1.0.91 went back to 3 on phone portrait — smaller tiles, more albums
+ * on screen, matching what streaming apps had trained people to expect.
+ * Phone stays at 3 here; everything above it grew.
+ *
+ * One rule reaches the whole app: the Albums screen, artist pages, the
+ * Qobuz and Tidal screens and the random-albums screen all render through
+ * this class and through the shared AlbumTile component.
  */
 .album-grid {
   display: grid;
-  /* v1.1.0.91 — phone portrait now shows 3 equal-width columns
-     (was 2). Smaller tiles, more albums visible at once, matches
-     the density users have come to expect from streaming apps. */
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 10px;
 }
-@media (min-width: 600px) {
-  .album-grid { grid-template-columns: repeat(4, 1fr); gap: 12px; }
+/* Tablet portrait */
+@media (min-width: 768px) and (orientation: portrait) {
+  .album-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 20px 14px; }
 }
-@media (min-width: 900px) {
-  .album-grid { grid-template-columns: repeat(5, 1fr); gap: 12px; }
+/* Tablet landscape */
+@media (min-width: 768px) and (max-width: 1199px) and (orientation: landscape) {
+  .album-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 16px 12px; }
 }
-@media (min-width: 1400px) {
-  .album-grid { grid-template-columns: repeat(6, 1fr); gap: 12px; }
+/* Desktop */
+@media (min-width: 1200px) {
+  .album-grid { grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 18px 12px; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -142,15 +158,53 @@ input[type="range"] {
   --amber:         #e8a44a;
   --red:           #e05555;
 
-  /* JPLAY-style tokens (v1.1.0.62). Deliberately deeper than the app
-     surfaces above — the Now Playing screen is a darker room than the rest
-     of the app — and the accent here is MONOCHROME by design: JPLAY almost
-     never puts a chromatic accent on its surfaces. Every palette below keeps
-     that intent, which is why --jp-accent tracks the text colour rather than
-     --accent. */
-  --jp-bg:           #0a0a0c;
-  --jp-bg-elevated:  #14141a;
-  --jp-bg-surface:   #1a1a22;
+  /* The Now Playing tier (v1.1.0.62; folded into the palette v1.1.38.0).
+     These five tokens used to describe a SECOND, deeper set of surfaces:
+     --jp-bg was #0a0a0c against this palette's #16161a, so the playback
+     screen was a darker room than the rest of the app. That is a JPLAY
+     habit, and it is exactly the audiophile-software convention the owner
+     asked to move away from. A second ground makes one app read as two, the
+     seam shows every time the Now Playing screen slides up over the library,
+     and on the light palettes the deeper room never meant anything at all —
+     look at the light values below before this change and they were already
+     the app's own surfaces under different names.
+
+     So the three surfaces now resolve to the palette's own ladder and the
+     playback screen is the SAME room as the rest of the app:
+
+       --jp-bg           = --bg-base
+       --jp-bg-elevated  = --bg-surface
+       --jp-bg-surface   = --bg-elevated
+
+     The last two are NOT matched by name, and that is deliberate. Read them
+     where they are used, not where they are declared: --jp-bg-elevated is
+     the SHEET — the tag sheet and the reached-end sheet in
+     NowPlayingFullScreen, the card in AddToPlaylistSheet, the panel in Focus
+     — and --jp-bg-surface is a row, input or button drawn INSIDE that sheet.
+     On a dark palette the inner thing has to be the lighter of the two or it
+     reads as a hole punched in the card, and the old values already ordered
+     them that way: #1a1a22 sat above #14141a. Mapping across by name would
+     have inverted every one of those pairs. It also fixes the two light
+     palettes, which had been shipping that inversion since v1.1.24.0.
+
+     The token NAMES stay. Around 240 sites across NowPlaying,
+     NowPlayingFullScreen and the DSP panels read them, and renaming those is
+     a separate job from changing what they mean. Values are written as
+     literals rather than var(--bg-base) because the palette blocks are parsed
+     by themes.test.js, whose resolver understands hex and rgba and nothing
+     else — an indirection here would fail the contrast suite rather than pass
+     it.
+
+     --jp-accent and --jp-hot are deliberately NOT folded. --jp-accent tracks
+     the text colour rather than --accent because JPLAY almost never puts a
+     chromatic accent on its surfaces, and every palette below keeps that.
+     It is the same look being moved away from, but pointing it at --accent
+     recolours the transport controls on every screen, which is a bigger and
+     more arguable change than flattening the surfaces behind them. It wants
+     asking for on its own. */
+  --jp-bg:           #16161a;
+  --jp-bg-elevated:  #1d1d24;
+  --jp-bg-surface:   #25252e;
   --jp-accent:       #e6e6ea;
   --jp-hot:          #ff3b5c;
 }
@@ -186,9 +240,14 @@ input[type="range"] {
   --amber:         #9a6510;
   --red:           #c0392b;
 
+  /* The Now Playing tier, folded into this palette's own ladder — see the
+     long note in the dark classic block above. The values were already this
+     palette's surfaces; what changed is that elevated and surface swapped, so
+     a control drawn inside a sheet is now lighter than the sheet rather than
+     darker than it. */
   --jp-bg:           #f2f1ec;
-  --jp-bg-elevated:  #ffffff;
-  --jp-bg-surface:   #f9f8f4;
+  --jp-bg-elevated:  #f9f8f4;
+  --jp-bg-surface:   #ffffff;
   --jp-accent:       #1a1c1f;
   --jp-hot:          #d0264a;
 }
@@ -205,7 +264,14 @@ input[type="range"] {
      charcoal. The remote's --panel-hairline, generalised. */
   --tint-rgb: 235, 228, 220;
   --jp-dim:   0.55;
-  --jp-faint: 0.38;
+  /* v1.1.38.0 — was 0.38, raised because the jp surface fold made the
+     playback surfaces LIGHTER (--jp-bg-elevated went from #1e2123 to
+     this palette's #232628), and the faintest text is measured against
+     them. At 0.38 --jp-text-3 came out at 2.99:1 on --jp-bg-elevated and
+     2.91:1 on --jp-bg-surface — under the 3:1 large-text bar that
+     themes.test.js pins. 0.42 gives 3.36 and 3.23, which is margin
+     rather than a value sitting on the line. */
+  --jp-faint: 0.42;
 
   --bg-base:       #1b1d1f;
   --bg-surface:    #232628;
@@ -231,9 +297,12 @@ input[type="range"] {
      surface including the deepest. */
   --red:           #e8776f;
 
-  --jp-bg:           #141618;
-  --jp-bg-elevated:  #1e2123;
-  --jp-bg-surface:   #262a2c;
+  /* The Now Playing tier, folded into this palette's own ladder — see the
+     long note in the dark classic block above. Was a deeper room at #141618;
+     it is the same charcoal as the library now. */
+  --jp-bg:           #1b1d1f;
+  --jp-bg-elevated:  #232628;
+  --jp-bg-surface:   #2a2d30;
   --jp-accent:       #e8e6e3;
   --jp-hot:          #e8776f;
 }
@@ -272,9 +341,12 @@ input[type="range"] {
   --amber:         #8a6510;
   --red:           #b3271d;
 
+  /* The Now Playing tier, folded into this palette's own ladder — see the
+     long note in the dark classic block above. Same swap as the light classic
+     palette: elevated is now the sheet, surface the thing sitting on it. */
   --jp-bg:           #f4f0e7;
-  --jp-bg-elevated:  #fffdf8;
-  --jp-bg-surface:   #faf7f0;
+  --jp-bg-elevated:  #faf7f0;
+  --jp-bg-surface:   #fffdf8;
   --jp-accent:       #1e1b16;
   --jp-hot:          #b3271d;
 }
@@ -320,6 +392,68 @@ input[type="range"] {
   --radius:    8px;
   --radius-md: 8px;
   --radius-lg: 14px;
+
+  /* ── Control sizing (v1.1.38.0) ────────────────────────────────────────
+     Brought across from MusicD-Remote, which introduced these because
+     every height, padding and min-width in its stylesheet had been a
+     hand-written one-off — and that is how one shared button class came
+     to render at four different heights depending on which container it
+     landed in. This client has the same problem an order of magnitude
+     worse: 2,394 hard-coded pixel values across 47 per-component style
+     maps, with no shared vocabulary at all.
+
+     These five are the sizes the app actually uses. Reach for one of
+     them before writing a new number.
+
+       --ctl-h      the standard control height: buttons, selects, rows
+       --ctl-h-sm   compact controls inside dense panes
+       --tap-min    the minimum any TAPPABLE thing may be. 44px is the
+                    figure the remote's Library control row already met
+                    and the rest of its controls did not; it is also
+                    Apple's published minimum. Anything a finger lands on
+                    gets at least this, even when its visible box is
+                    smaller — pad it out rather than shrinking the target.
+       --ctl-pad-x  horizontal padding inside a pill control
+       --ctl-radius the pill radius                                      */
+  --ctl-h:      40px;
+  --ctl-h-sm:   36px;
+  --tap-min:    44px;
+  --ctl-pad-x:  16px;
+  --ctl-radius: 999px;
+
+  /* ── Type scale (v1.1.38.0) ────────────────────────────────────────────
+     The owner said the UI reads as cramped, and the measurement bears it
+     out: 41% of this client's font sizes are 11px or smaller, against
+     MusicD-Remote's 10%, and 12% are 10px or smaller against the remote's
+     2%. The remote's type sits at 12–15px with 13 and 14 dominant, and
+     essentially nothing below 11.
+
+     Six steps, plus a body default. The floor is 11px and it is a floor:
+     nothing in this app should be smaller, and the components were swept
+     up onto this scale in the same release that added it.
+
+       --fs-1  11px  the smallest thing allowed. Badge glyphs, a chip's
+                     label, a superscript count. Never running text.
+       --fs-2  12px  dense secondary metadata: format pills, track counts,
+                     the small print under a control
+       --fs-3  13px  standard secondary text: tile subtitles, list detail,
+                     settings descriptions
+       --fs-4  14px  body. Track rows, labels, buttons, anything read
+                     rather than glanced at
+       --fs-5  16px  emphasis inside a body context, and the minimum for
+                     a text input on iOS — below 16px Safari zooms the
+                     page on focus, which is why inputs must not go lower
+       --fs-6  20px  screen and section headings
+
+     Sizes above 20px are one-offs — a now-playing title, a numeral
+     readout — and stay hand-written at their call site.                */
+  --fs-1: 11px;
+  --fs-2: 12px;
+  --fs-3: 13px;
+  --fs-4: 14px;
+  --fs-5: 16px;
+  --fs-6: 20px;
+  --fs-body: var(--fs-4);
 
   --jp-gap:          12px;
   --jp-pad:          16px;
@@ -470,28 +604,35 @@ img {
   user-select: none;
 }
 
-/* v1.1.0.65 — JPLAY-style artist grid breakpoints. Mirrors the
- * album-grid count progression (2/3/4/5) but the columns are slightly
- * less dense at every breakpoint because circular avatars need more
- * breathing room than rectangular album tiles to read clearly.
+/* Artist grid. This has always been defined as a mirror of .album-grid —
+ * one step less dense at every breakpoint, because a circular avatar needs
+ * more breathing room than a rectangular cover to read clearly — and when
+ * v1.1.38.0 moved the album grid to MusicD-Remote's 3 / 5 / 7 / 9 this had
+ * to move with it or the two library walls stop looking like the same app.
+ * Leaving it behind is exactly the partial migration CLAUDE.md warns about:
+ * the album wall would have gone to nine columns on a desktop while the
+ * artist wall stayed at five.
+ *
+ * So: 3 / 4 / 6 / 7 against the album grid's 3 / 5 / 7 / 9, on the same
+ * orientation-aware breakpoints, and minmax(0, 1fr) for the same reason —
+ * a long artist name must not widen its column.
+ *
+ * Earlier history: v1.1.0.65 established the mirror; v1.1.26.0 took the
+ * phone from two columns to three, which is where it stays.
  */
 .jp-artist-grid {
   display: grid;
-  /* v1.1.26.0 — three on a phone, not two. Two gave each avatar a lot of
-     presence and put very few artists on screen; three matches .album-grid
-     above, so the two library walls read as the same app. The larger
-     breakpoints are unchanged. */
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 10px;
 }
-@media (min-width: 600px) {
-  .jp-artist-grid { grid-template-columns: repeat(3, 1fr); }
+@media (min-width: 768px) and (orientation: portrait) {
+  .jp-artist-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px 14px; }
 }
-@media (min-width: 900px) {
-  .jp-artist-grid { grid-template-columns: repeat(4, 1fr); }
+@media (min-width: 768px) and (max-width: 1199px) and (orientation: landscape) {
+  .jp-artist-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px 12px; }
 }
-@media (min-width: 1400px) {
-  .jp-artist-grid { grid-template-columns: repeat(5, 1fr); }
+@media (min-width: 1200px) {
+  .jp-artist-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 18px 12px; }
 }
 
 /* v1.1.0.62 — JPLAY-style horizontal chip rows hide their scrollbar.

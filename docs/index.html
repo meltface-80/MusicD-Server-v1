@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MusicD Server v1 — self-hosted music server</title>
-<meta name="description" content="MusicD Server v1.1.37.0 — a self-hosted music server with a Roon-inspired web UI, MusicBrainz album matching, album version grouping, Qobuz and Tidal merged into one library, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
+<meta name="description" content="MusicD Server v1.1.38.0 — a self-hosted music server with a fast, dense web UI, MusicBrainz album matching, album version grouping, Qobuz and Tidal merged into one library, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
 <style>
   :root {
     --bg:        #1b1d1f;   /* charcoal */
@@ -258,12 +258,12 @@
   <div class="wordmark">Music<span>D</span></div>
   <h1>A self-hosted music server for one library and one home network</h1>
   <p class="tag">MusicD Server scans your albums into SQLite, folds your
-  Qobuz and Tidal favourites in beside them, serves a Roon-inspired
+  Qobuz and Tidal favourites in beside them, serves a fast, dense
   mobile-first web app, and plays the lot to DLNA&nbsp;/&nbsp;UPnP, Sonos,
   Squeezelite and local USB DACs &mdash; with parametric EQ, AutoEQ presets,
   FIR convolution and a per-stream signal path you can actually read.</p>
   <div class="badges">
-    <span class="badge">v1.1.37.0</span>
+    <span class="badge">v1.1.38.0</span>
     <span class="badge">Node 20 &middot; Express &middot; SQLite</span>
     <span class="badge">React SPA &middot; PWA</span>
     <span class="badge plain">Docker &middot; port 32700</span>
@@ -275,11 +275,99 @@
 
 <section id="whats-new" aria-labelledby="whats-new-h">
   <div class="wrap">
-    <h2 id="whats-new-h">What&rsquo;s new in 1.1.37.0</h2>
-    <p class="lead">Reopening the app keeps the screen you left, the album
-    header lines up, and a favourite is one tap away &mdash; with matching that
-    works from artist and title alone underneath.</p>
+    <h2 id="whats-new-h">What&rsquo;s new in 1.1.38.0</h2>
+    <p class="lead">Matching that finishes in seconds instead of an hour, a
+    matcher that no longer gets stuck when MusicBrainz has a bad minute, bigger
+    text throughout &mdash; and composers for your classical albums.</p>
     <div class="grid">
+
+      <div class="card new">
+        <span class="tagline">Fixed</span>
+        <h3><span class="em" aria-hidden="true">&#128683;</span>The matcher no longer gets stuck on one album</h3>
+        <p>Album matching worked through a queue of everything not yet
+        identified &mdash; and an album that <i>failed</i> stayed in that queue,
+        so the next thing it picked up was the album it had just failed on.</p>
+        <p>Most of the time you would never see it: a one-off timeout, one
+        retry, done. But when MusicBrainz was unreachable or asking us to slow
+        down, <i>every</i> album failed &mdash; and a scheduled run became the
+        same album over and over for a full hour, hammering a service that was
+        already asking for a rest. If you ever saw the matcher report something
+        like &ldquo;4,312 of 2,000&rdquo;, that was this.</p>
+        <p>Related: when MusicBrainz says &ldquo;come back in ten
+        seconds&rdquo;, MusicD now waits ten seconds instead of treating it as
+        a failure. And the three parts of the app that talked to MusicBrainz
+        each kept their own timer, so a library scan running alongside a match
+        could send three requests a second where one is allowed. There is one
+        queue now.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">New</span>
+        <h3><span class="em" aria-hidden="true">&#9889;</span>Matching a whole library in seconds</h3>
+        <p>MusicBrainz allows one request a second, which is why identifying a
+        few thousand albums has always been something you started and left
+        running. ListenBrainz publishes the same matching engine MusicBrainz
+        uses internally, and it takes <b>fifty albums per request</b>.</p>
+        <p>Paste a free ListenBrainz token into <b>Settings &rarr; Metadata</b>
+        and the work drops from tens of minutes to seconds. It matches on
+        <i>track</i> names as well, so an album whose own title is unreadable
+        can still be identified from the songs on it. No token, no change &mdash;
+        everything works exactly as before.</p>
+        <p>If you are signed in to Qobuz or Tidal, those catalogues now help
+        too: MusicD looks up the barcode of an album it could not place, and a
+        barcode turns a guess into a certainty. And anything that <i>still</i>
+        cannot be identified from text is now fingerprinted from the audio
+        itself &mdash; something MusicD could always do, but only if you asked
+        it to, one album at a time.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">UI</span>
+        <h3><span class="em" aria-hidden="true">&#128269;</span>Bigger text, and more albums on screen</h3>
+        <p>Two in every five text sizes in the app were 11 points or smaller.
+        That is the cramped feeling, measured &mdash; and it is why raising one
+        screen at a time never fixed it. Everything has moved up a step and
+        nothing is smaller than 11 points now.</p>
+        <p>The album wall got denser at the same time: still three across on a
+        phone, but <b>five on a tablet held upright, seven on its side, and
+        nine on a desktop</b>. Artists follow. A long album title no longer
+        stretches its column wider than the rest of the row.</p>
+        <p>The Now Playing screen used to be painted on a deliberately darker
+        set of surfaces than the rest of the app &mdash; a hi-fi software habit
+        that made MusicD read as two apps with a visible seam between them. It
+        is the same room as everything else now.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">New</span>
+        <h3><span class="em" aria-hidden="true">&#127932;</span>Composers, for classical albums</h3>
+        <p>A classical album is usually a title like <i>Beethoven: Symphonies 5
+        &amp; 7</i> over eight tracks called <i>I. Allegro con brio</i> &mdash;
+        which tells you almost nothing. MusicBrainz keeps the
+        <i>composition</i> as a thing in its own right, separate from any
+        recording of it, so it can say that track is the first movement of
+        <i>Symphony No. 5 in C minor, Op. 67</i>, and who wrote it.</p>
+        <p>MusicD now collects that in the background, classical albums first.
+        It works from identifiers already sitting in well-tagged files &mdash;
+        five of which MusicD had been reading and throwing away on every scan.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">Fixed</span>
+        <h3><span class="em" aria-hidden="true">&#127912;</span>Artwork stops asking the same question forever</h3>
+        <p>Cover art was the one background job with no memory of having tried.
+        An album with no artwork anywhere &mdash; a bootleg, a private pressing,
+        a folder of loose files &mdash; was looked up again on every single
+        cycle, for as long as the server ran, and that queue never emptied.</p>
+        <p>It remembers now, and tries again after a week, then a month, then
+        leaves it alone. Artwork does get added later, so never asking again
+        would be wrong too. <b>Fetch missing artwork</b> still checks
+        everything on demand.</p>
+        <p>It also stopped throwing away work: having identified an album,
+        MusicD used to forget that and search for the artwork by artist and
+        title all over again. It now asks for the artwork of the record it
+        already knows about.</p>
+      </div>
 
       <div class="card new">
         <span class="tagline">Fixed</span>
@@ -323,21 +411,6 @@
         something four times as long.</p>
       </div>
 
-      <div class="card new">
-        <span class="tagline">Changed</span>
-        <h3><span class="em" aria-hidden="true">&#128241;</span>The album page, given room</h3>
-        <p>The release date, track count, duration and ReplayGain figures used
-        to share a column with the cover art &mdash; about 200 points wide on a
-        phone, which is why they wrapped and why the page felt cramped. The
-        cover now sits beside the title and artist alone; everything else has
-        the full width. Text is a little larger throughout.</p>
-        <p>Three things went, each of them saying what the thing beside it
-        already said: the <b>Add Queue</b> button (the Play menu has it), the
-        line under the versions button, and the <b>Not matched yet</b> chip.
-        An empty row that was leaving a gap above every track list went with
-        them, and the track numbers and times are now inset by the same
-        amount on their own sides.</p>
-      </div>
 
       <div class="card new">
         <span class="tagline">Fixed</span>
@@ -900,7 +973,7 @@
       <code>-e MUSICD_MANIFEST_URL=https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json</code>
       to your <code>docker run</code>, restart, then <b>Check for updates</b>.
       The older parser understands this manifest, so it installs normally. Drop
-      the variable afterwards &mdash; v1.1.37.0 has the same URL as its own
+      the variable afterwards &mdash; v1.1.38.0 has the same URL as its own
       default.
     </div>
   </div>
@@ -973,7 +1046,7 @@
 </main>
 
 <footer>
-  MusicD Server v1.1.37.0 &mdash; self-hosted music, one user, one library, one home network.
+  MusicD Server v1.1.38.0 &mdash; self-hosted music, one user, one library, one home network.
   <br>MIT licence &middot; <a href="https://github.com/meltface-80/MusicD-Server-v1">Source on GitHub</a>
 </footer>
 

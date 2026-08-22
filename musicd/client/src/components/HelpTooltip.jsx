@@ -130,7 +130,7 @@ const s = {
     border: '1px solid var(--border-bright)',
     borderRadius: 6,
     padding: '10px 12px',
-    fontSize: 12,
+    fontSize: 13,
     lineHeight: 1.5,
     color: 'var(--text-secondary)',
     width: 280,

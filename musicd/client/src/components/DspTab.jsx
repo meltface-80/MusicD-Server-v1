@@ -199,9 +199,9 @@ export default function DspTab({ forceRendererId } = {}) {
                 type="range" min="-23" max="-14" step="1"
                 value={p?.vl_target_lufs ?? -18}
                 onChange={e => setFlag({ vl_target_lufs: parseInt(e.target.value, 10) })}
-                style={s.slider}
+                style={s.vlSlider}
               />
-              <span style={s.valLabel}>{p?.vl_target_lufs ?? -18} LUFS</span>
+              <span style={s.vlValLabel}>{p?.vl_target_lufs ?? -18} LUFS</span>
             </div>
           </div>
           <div style={s.helpRow}>
@@ -316,7 +316,7 @@ const s = {
     border: '1px solid var(--border)',
     borderRadius: 'var(--radius-sm)',
     color: 'var(--text-primary)',
-    fontSize: 13,
+    fontSize: 14,
   },
   notice: {
     display: 'flex', alignItems: 'center', gap: 8,
@@ -324,11 +324,11 @@ const s = {
     background: 'rgba(245, 196, 80, 0.10)',
     border: '1px solid rgba(245, 196, 80, 0.35)',
     borderRadius: 'var(--radius-sm)',
-    fontSize: 12, color: '#f5c450',
+    fontSize: 13, color: '#f5c450',
   },
   eligibleNotice: {
     padding: '6px 12px', marginBottom: 12,
-    fontSize: 11,
+    fontSize: 12,
     color: 'var(--text-tertiary)',
   },
 
@@ -363,11 +363,25 @@ const s = {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     gap: 12, padding: '8px 0',
   },
-  vlLabel: { fontSize: 13, color: 'var(--text-secondary)' },
+  vlLabel: { fontSize: 14, color: 'var(--text-secondary)' },
   vlSliderRow: { display: 'flex', alignItems: 'center', gap: 10 },
-  slider: { width: 120, accentColor: 'var(--accent)' },
-  valLabel: {
-    fontSize: 11, fontFamily: 'var(--font-mono)',
+  // v1.1.38.0 — these two were called `slider` and `valLabel`, and this
+  // object declares BOTH names again a hundred lines further down for the
+  // PEQ controls. A duplicate key in an object literal is an esbuild
+  // WARNING, not an error: the build succeeded, the later definition
+  // silently won, and this pair had never once applied. So the volume
+  // levelling slider was taking `flex: 1` and stretching to fill its row
+  // instead of sitting at its intended 120px, and its readout was 64px
+  // wide in --text-secondary rather than 62px in --text-tertiary.
+  //
+  // Renamed to the vl* prefix the three properties around them already
+  // use, rather than renaming the PEQ pair, because these are the local
+  // exception and those are the general case. This is the exact hazard
+  // CLAUDE.md warns about, found by reading a build warning that has been
+  // scrolling past for some time.
+  vlSlider: { width: 120, accentColor: 'var(--accent)' },
+  vlValLabel: {
+    fontSize: 12, fontFamily: 'var(--font-mono)',
     color: 'var(--text-tertiary)', width: 62, textAlign: 'right',
   },
   segControl: {
@@ -375,7 +389,7 @@ const s = {
     border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden',
   },
   segBtn: {
-    padding: '5px 14px', fontSize: 12, fontWeight: 500,
+    padding: '5px 14px', fontSize: 13, fontWeight: 500,
     color: 'var(--text-tertiary)', background: 'transparent',
     border: 'none', cursor: 'pointer', borderRadius: 0, fontFamily: 'inherit',
   },
@@ -391,7 +405,7 @@ const s = {
   },
   subTitle: {
     padding: '9px 12px',
-    fontSize: 11, fontWeight: 700,
+    fontSize: 12, fontWeight: 700,
     letterSpacing: '0.06em', textTransform: 'uppercase',
     color: 'var(--text-secondary)',
     background: 'var(--bg-overlay)',
@@ -400,11 +414,11 @@ const s = {
   subBody: { padding: '10px 12px' },
 
   placeholder: {
-    fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5,
+    fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.5,
     padding: '4px 0',
   },
 
-  peqSummary: { fontSize: 12, color: 'var(--text-secondary)', marginBottom: 6 },
+  peqSummary: { fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 },
   peqList: {
     display: 'flex', flexDirection: 'column', gap: 4,
     margin: '8px 0',
@@ -415,37 +429,37 @@ const s = {
     padding: '4px 8px',
     background: 'var(--bg-overlay)',
     borderRadius: 4,
-    fontSize: 11, fontFamily: 'var(--font-mono)',
+    fontSize: 12, fontFamily: 'var(--font-mono)',
   },
   peqType: { color: 'var(--text-tertiary)' },
   peqFc: { color: 'var(--text-primary)' },
   peqQ: { color: 'var(--text-tertiary)' },
   peqGain: { textAlign: 'right', fontWeight: 700 },
   peqStats: {
-    fontSize: 11, color: 'var(--text-tertiary)',
+    fontSize: 12, color: 'var(--text-tertiary)',
     padding: '4px 0', fontFamily: 'var(--font-mono)',
   },
 
   row: { padding: '6px 0' },
   label: {
     display: 'flex', alignItems: 'center', gap: 8,
-    fontSize: 13, color: 'var(--text-primary)',
+    fontSize: 14, color: 'var(--text-primary)',
     cursor: 'pointer', userSelect: 'none',
   },
   subLabel: {
     display: 'block',
-    fontSize: 12, color: 'var(--text-secondary)',
+    fontSize: 13, color: 'var(--text-secondary)',
     marginBottom: 5,
   },
   checkbox: { width: 14, height: 14, accentColor: 'var(--accent)' },
   sliderRow: { display: 'flex', alignItems: 'center', gap: 8 },
   slider: { flex: 1, accentColor: 'var(--accent)' },
   valLabel: {
-    width: 64, fontSize: 12, fontFamily: 'var(--font-mono)',
+    width: 64, fontSize: 13, fontFamily: 'var(--font-mono)',
     color: 'var(--text-secondary)', textAlign: 'right',
   },
   help: {
-    fontSize: 11, color: 'var(--text-tertiary)',
+    fontSize: 12, color: 'var(--text-tertiary)',
     lineHeight: 1.5, marginTop: 6,
   },
 
@@ -461,7 +475,7 @@ const s = {
     color: 'var(--on-accent)',
     border: 'none',
     borderRadius: 'var(--radius-sm)',
-    fontSize: 12, fontWeight: 600,
+    fontSize: 13, fontWeight: 600,
     cursor: 'pointer',
   },
   saveBtnDis: { opacity: 0.4, cursor: 'not-allowed' },

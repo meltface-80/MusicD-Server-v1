@@ -56,7 +56,7 @@ const s = {
     position: 'relative',
     zIndex: 10,
   },
-  label: { fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  label: { fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   track: { height: 2, background: 'var(--bg-overlay)', borderRadius: 1, overflow: 'hidden', position: 'relative' },
   fill: { height: '100%', background: 'var(--accent)', transition: 'width 0.4s ease' },
   fillIndeterminate: {

@@ -344,7 +344,7 @@ export default function FirSection({ rendererId, profile, onProfileChange, enabl
 }
 
 const s = {
-  help: { fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 8 },
+  help: { fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 8 },
   // v52: helpRow is the host for a HelpTooltip when help text used
   // to live inline. Right-aligned with -2px margin so it tucks into
   // the gutter rather than taking a row of its own.
@@ -355,7 +355,7 @@ const s = {
     background: 'rgba(255, 90, 90, 0.10)',
     border: '1px solid rgba(255, 90, 90, 0.35)',
     borderRadius: 'var(--radius-sm)',
-    fontSize: 12, color: '#ff6b6b',
+    fontSize: 13, color: '#ff6b6b',
   },
   errorDismiss: {
     marginLeft: 'auto',
@@ -378,14 +378,14 @@ const s = {
   },
   rateLabel: {
     display: 'flex', alignItems: 'center', gap: 5,
-    fontSize: 12, fontFamily: 'var(--font-mono)',
+    fontSize: 13, fontFamily: 'var(--font-mono)',
     color: 'var(--text-primary)',
   },
   rateInfo: { minWidth: 0, overflow: 'hidden' },
-  rateMeta: { fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' },
+  rateMeta: { fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' },
   peakBadge: { color: 'var(--text-tertiary)' },
   peakBadgeHot: { color: 'var(--amber)', fontWeight: 600 },
-  rateEmpty: { fontSize: 10, color: 'var(--text-tertiary)', fontStyle: 'italic' },
+  rateEmpty: { fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic' },
   rateActions: { display: 'flex', gap: 4 },
   uploadBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -393,7 +393,7 @@ const s = {
     background: 'var(--bg-elevated)',
     color: 'var(--text-primary)',
     border: '1px solid var(--border)',
-    fontSize: 11, fontWeight: 600,
+    fontSize: 12, fontWeight: 600,
     cursor: 'pointer',
   },
   deleteBtn: {
@@ -405,15 +405,15 @@ const s = {
     border: '1px solid var(--border)',
     cursor: 'pointer',
   },
-  statsRow: { fontSize: 10, color: 'var(--text-tertiary)', padding: '8px 0', fontFamily: 'var(--font-mono)' },
+  statsRow: { fontSize: 12, color: 'var(--text-tertiary)', padding: '8px 0', fontFamily: 'var(--font-mono)' },
 
   row: { padding: '6px 0' },
-  label: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-primary)', cursor: 'pointer', userSelect: 'none' },
-  subLabel: { display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 5, marginTop: 6 },
+  label: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'var(--text-primary)', cursor: 'pointer', userSelect: 'none' },
+  subLabel: { display: 'block', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 5, marginTop: 6 },
   checkbox: { width: 14, height: 14, accentColor: 'var(--accent)' },
   sliderRow: { display: 'flex', alignItems: 'center', gap: 8 },
   slider: { flex: 1, accentColor: 'var(--accent)' },
-  valLabel: { width: 70, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', textAlign: 'right' },
+  valLabel: { width: 70, fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', textAlign: 'right' },
 
   saveRow: {
     display: 'flex', justifyContent: 'flex-end',
@@ -426,7 +426,7 @@ const s = {
     background: 'var(--accent)',
     color: 'var(--on-accent)', border: 'none',
     borderRadius: 'var(--radius-sm)',
-    fontSize: 12, fontWeight: 600,
+    fontSize: 13, fontWeight: 600,
     cursor: 'pointer',
   },
   saveBtnDis: { opacity: 0.4, cursor: 'not-allowed' },

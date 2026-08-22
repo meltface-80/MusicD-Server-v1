@@ -166,7 +166,7 @@ const s = {
     padding: '7px 12px',
     background: 'var(--bg-elevated)', color: 'var(--text-secondary)',
     border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
-    fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+    fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
     cursor: 'pointer', whiteSpace: 'nowrap',
   },
   titleActions: { display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 },
@@ -178,7 +178,7 @@ const s = {
   refreshSpin: { animation: 'spin 0.8s linear infinite' },
 
   error: {
-    margin: '10px 0 0', padding: '8px 10px', borderRadius: 6, fontSize: 12,
+    margin: '10px 0 0', padding: '8px 10px', borderRadius: 6, fontSize: 13,
     background: 'rgba(255,59,92,0.08)', border: '1px solid rgba(255,59,92,0.30)',
     color: 'var(--text-secondary)',
   },
@@ -211,6 +211,6 @@ const s = {
   },
   empty: {
     padding: '18px 0', color: 'var(--text-tertiary)',
-    fontSize: 12, lineHeight: 1.5,
+    fontSize: 13, lineHeight: 1.5,
   },
 }

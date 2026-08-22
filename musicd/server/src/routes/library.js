@@ -811,6 +811,29 @@ router.get('/albums/:id', (req, res) => {
     has_art: undefined,
     tracks,
     versions: versions.length > 1 ? versions : [],
+    // v1.1.38.0 — MusicBrainz works, for the classical case.
+    //
+    // A work is the composition, and it attaches to RECORDINGS rather
+    // than to the album — so this is read per track and folded back onto
+    // the track list by the client, not attached to the album row.
+    // Read-only and cache-only: worksForAlbum never touches the network,
+    // so an album page cannot be made slow by a MusicBrainz outage. The
+    // background scan is what populates it.
+    //
+    // Empty for the overwhelming majority of albums, which is correct:
+    // this exists so that "Beethoven: Symphonies 5 & 7" over eight tracks
+    // called "I. Allegro con brio" can show a composer and a real work
+    // title, and a pop record has nothing to gain from it.
+    works: (() => {
+      try {
+        return require('../mbWorks').worksForAlbum(album.id);
+      } catch (e) {
+        // A pre-migration database, or the works tables not yet created.
+        // An album page must render either way — this is an enrichment,
+        // not part of the album.
+        return [];
+      }
+    })(),
   });
 });
 

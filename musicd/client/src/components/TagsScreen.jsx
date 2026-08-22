@@ -29,5 +29,5 @@ const s = {
   page: { padding: '0 16px', paddingBottom: 'calc(120px + var(--safe-bot))' },
   titleRow: { display: 'flex', alignItems: 'center', paddingTop: 'calc(8px + var(--safe-top))' },
   heading: { fontSize: 26, fontWeight: 700, color: 'var(--jp-text)', margin: '8px 0 4px' },
-  blurb: { fontSize: 12, color: 'var(--jp-text-3)', lineHeight: 1.5, margin: '0 0 14px' },
+  blurb: { fontSize: 13, color: 'var(--jp-text-3)', lineHeight: 1.5, margin: '0 0 14px' },
 }

@@ -187,7 +187,7 @@ const s = {
   iconBtn: { width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border)', cursor: 'pointer' },
   scrollArea: { flex: 1, overflowY: 'auto', padding: '12px 12px 24px' },
   section: { marginBottom: 16 },
-  sectionHeader: { fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', margin: '4px 8px 8px' },
+  sectionHeader: { fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', margin: '4px 8px 8px' },
   // Row is now a flex container holding the body button + edit
   // pencil side-by-side (#30.22). Background/border lives on the
   // wrapper so the active state highlights the whole row, not just
@@ -198,15 +198,15 @@ const s = {
   // editBtn dropped in v1.1.0.8 -- pencil moved to Settings → Audio.
   // The hint below the device list points users there.
   editHint: {
-    fontSize: 11, color: 'var(--text-tertiary)',
+    fontSize: 12, color: 'var(--text-tertiary)',
     padding: '14px 12px 8px',
     textAlign: 'center',
     lineHeight: 1.5,
   },
   iconCircle: { width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-overlay)', color: 'var(--text-secondary)', flexShrink: 0 },
   rowText: { flex: 1, minWidth: 0 },
-  rowName: { fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  rowMeta: { fontSize: 10, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' },
+  rowName: { fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  rowMeta: { fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' },
   // Per-zone status pills (#v1.1.0.9). Replaces the IP line when a
   // zone has live state to show.
   zoneStatusPlaying: {
@@ -230,6 +230,6 @@ const s = {
     maxWidth: '100%',
   },
   activeDot: { width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 },
-  empty: { padding: 30, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 },
-  refreshBtn: { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', marginTop: 12, borderRadius: 16, background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border)', cursor: 'pointer', fontSize: 12 },
+  empty: { padding: 30, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 14 },
+  refreshBtn: { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', marginTop: 12, borderRadius: 16, background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border)', cursor: 'pointer', fontSize: 13 },
 }

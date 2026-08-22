@@ -87,7 +87,7 @@ const s = {
   chip: {
     display: 'inline-flex', alignItems: 'center',
     padding: '2px 7px', borderRadius: 4,
-    fontSize: 10, fontWeight: 600, letterSpacing: '0.06em',
+    fontSize: 12, fontWeight: 600, letterSpacing: '0.06em',
     textTransform: 'uppercase', fontFamily: 'var(--font-mono)',
     border: '1px solid', background: 'transparent',
     flexShrink: 0, whiteSpace: 'nowrap',

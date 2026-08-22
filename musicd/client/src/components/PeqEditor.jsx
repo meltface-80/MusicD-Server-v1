@@ -392,10 +392,10 @@ function FrequencyResponseGraph({ curve, filters }) {
 }
 
 const s = {
-  help: { fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 8 },
+  help: { fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 8 },
   helpRow: { display: 'flex', justifyContent: 'flex-end', marginTop: -2, marginBottom: 4 },
   autoeqBadge: {
-    fontSize: 11, color: 'var(--text-secondary)',
+    fontSize: 12, color: 'var(--text-secondary)',
     padding: '6px 10px',
     background: 'var(--accent-dim)',
     borderRadius: 'var(--radius-sm)',
@@ -415,7 +415,7 @@ const s = {
   empty: {
     padding: '14px',
     textAlign: 'center',
-    fontSize: 11, color: 'var(--text-tertiary)',
+    fontSize: 12, color: 'var(--text-tertiary)',
     background: 'var(--bg-overlay)',
     border: '1px dashed var(--border)',
     borderRadius: 'var(--radius-sm)',
@@ -438,7 +438,7 @@ const s = {
     border: '1px solid var(--border)',
     borderRadius: 4,
     color: 'var(--text-primary)',
-    fontSize: 10,
+    fontSize: 12,
     minWidth: 0,
   },
   sliderLabel: {
@@ -448,14 +448,14 @@ const s = {
     gap: 4,
     minWidth: 0,
   },
-  sliderText: { fontSize: 9, color: 'var(--text-tertiary)', fontFamily: 'monospace', textTransform: 'uppercase' },
+  sliderText: { fontSize: 11, color: 'var(--text-tertiary)', fontFamily: 'monospace', textTransform: 'uppercase' },
   slider: {
     width: '100%', minWidth: 0,
     accentColor: 'var(--accent)',
     gridColumn: '1 / 3',
   },
   sliderVal: {
-    fontSize: 9, fontFamily: 'monospace',
+    fontSize: 11, fontFamily: 'monospace',
     color: 'var(--text-secondary)',
     textAlign: 'center',
     gridColumn: '1 / 3',
@@ -481,7 +481,7 @@ const s = {
     color: 'var(--text-primary)',
     border: '1px solid var(--border)',
     borderRadius: 'var(--radius-sm)',
-    fontSize: 11, fontWeight: 600, cursor: 'pointer',
+    fontSize: 12, fontWeight: 600, cursor: 'pointer',
   },
   toolBtnDis: { opacity: 0.4, cursor: 'not-allowed' },
   toolBtnGhost: {
@@ -491,11 +491,11 @@ const s = {
     color: 'var(--text-tertiary)',
     border: '1px solid transparent',
     borderRadius: 'var(--radius-sm)',
-    fontSize: 11, fontWeight: 500, cursor: 'pointer',
+    fontSize: 12, fontWeight: 500, cursor: 'pointer',
   },
   filterCount: {
     marginLeft: 'auto',
-    fontSize: 10, color: 'var(--text-tertiary)',
+    fontSize: 12, color: 'var(--text-tertiary)',
     fontFamily: 'monospace',
   },
 
@@ -512,11 +512,11 @@ const s = {
     borderRadius: 4,
   },
   statLabel: {
-    fontSize: 9, color: 'var(--text-tertiary)',
+    fontSize: 11, color: 'var(--text-tertiary)',
     textTransform: 'uppercase', letterSpacing: '0.05em',
   },
   statValue: {
-    fontSize: 13, fontWeight: 700,
+    fontSize: 14, fontWeight: 700,
     color: 'var(--text-primary)',
     fontFamily: 'monospace',
     marginTop: 2,
@@ -525,14 +525,14 @@ const s = {
   row: { padding: '6px 0' },
   label: {
     display: 'flex', alignItems: 'center', gap: 8,
-    fontSize: 13, color: 'var(--text-primary)',
+    fontSize: 14, color: 'var(--text-primary)',
     cursor: 'pointer', userSelect: 'none',
   },
   checkbox: { width: 14, height: 14, accentColor: 'var(--accent)' },
 
   error: {
     padding: '6px 10px',
-    fontSize: 12, color: '#ff6b6b',
+    fontSize: 13, color: '#ff6b6b',
     background: 'rgba(255,90,90,0.1)',
     border: '1px solid rgba(255,90,90,0.35)',
     borderRadius: 'var(--radius-sm)',
@@ -550,7 +550,7 @@ const s = {
     background: 'var(--accent)',
     color: 'var(--on-accent)', border: 'none',
     borderRadius: 'var(--radius-sm)',
-    fontSize: 12, fontWeight: 600, cursor: 'pointer',
+    fontSize: 13, fontWeight: 600, cursor: 'pointer',
   },
   saveBtnDis: { opacity: 0.4, cursor: 'not-allowed' },
 }

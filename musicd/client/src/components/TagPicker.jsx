@@ -298,7 +298,7 @@ const s = {
   },
   headerText: {
     flex: 1,
-    fontSize: 11, fontWeight: 600, letterSpacing: '0.06em',
+    fontSize: 12, fontWeight: 600, letterSpacing: '0.06em',
     textTransform: 'uppercase',
     color: 'var(--jp-text-2)',
   },
@@ -309,8 +309,8 @@ const s = {
     color: 'var(--jp-text-3)', cursor: 'pointer',
     borderRadius: 4,
   },
-  loading: { fontSize: 13, color: 'var(--jp-text-3)', textAlign: 'center', padding: '14px 0' },
-  empty: { fontSize: 12, color: 'var(--jp-text-3)', padding: '4px 0 10px', lineHeight: 1.5 },
+  loading: { fontSize: 14, color: 'var(--jp-text-3)', textAlign: 'center', padding: '14px 0' },
+  empty: { fontSize: 13, color: 'var(--jp-text-3)', padding: '4px 0 10px', lineHeight: 1.5 },
   chipsWrap: {
     display: 'flex', flexWrap: 'wrap', gap: 6,
     marginBottom: 10,
@@ -318,7 +318,7 @@ const s = {
   chip: {
     display: 'inline-flex', alignItems: 'center',
     padding: '5px 10px',
-    fontSize: 12, fontWeight: 500,
+    fontSize: 13, fontWeight: 500,
     background: 'transparent',
     color: 'var(--jp-text-2)',
     border: '1px solid var(--jp-border)',
@@ -333,7 +333,7 @@ const s = {
   addNewBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 5,
     padding: '6px 11px',
-    fontSize: 12, fontWeight: 500,
+    fontSize: 13, fontWeight: 500,
     background: 'transparent',
     color: 'var(--jp-text-2)',
     border: '1px dashed var(--jp-border-hot)',
@@ -362,7 +362,7 @@ const s = {
     padding: 0,
   },
   swatchNoneText: {
-    fontSize: 11, color: 'var(--jp-text-3)',
+    fontSize: 12, color: 'var(--jp-text-3)',
     lineHeight: 1, fontWeight: 400,
   },
   createBtnRow: {
@@ -375,12 +375,12 @@ const s = {
     border: '1px solid var(--jp-border)',
     borderRadius: 6,
     padding: '7px 10px',
-    fontSize: 13,
+    fontSize: 14,
     outline: 'none',
   },
   createBtn: {
     padding: '7px 12px',
-    fontSize: 12, fontWeight: 600,
+    fontSize: 13, fontWeight: 600,
     background: 'var(--jp-accent)',
     color: 'var(--jp-bg)',
     border: 'none',
@@ -390,7 +390,7 @@ const s = {
   },
   cancelBtn: {
     padding: '7px 10px',
-    fontSize: 12, fontWeight: 500,
+    fontSize: 13, fontWeight: 500,
     background: 'transparent',
     color: 'var(--jp-text-2)',
     border: 'none',
@@ -405,13 +405,13 @@ const s = {
     border: '1px solid var(--jp-border-hot)',
     borderRadius: 999,
     color: 'var(--jp-text)',
-    fontSize: 13, fontWeight: 600,
+    fontSize: 14, fontWeight: 600,
     cursor: 'pointer',
   },
   error: {
     marginTop: 8,
     padding: '6px 10px',
-    fontSize: 12,
+    fontSize: 13,
     color: '#ff8989',
     background: 'rgba(255,59,92,0.08)',
     border: '1px solid rgba(255,59,92,0.30)',

@@ -315,19 +315,19 @@ const s = {
   },
   searchInput: {
     width: '100%', padding: '9px 12px', marginBottom: 12, borderRadius: 6,
-    fontSize: 13, background: 'var(--jp-bg-surface)', color: 'var(--jp-text)',
+    fontSize: 14, background: 'var(--jp-bg-surface)', color: 'var(--jp-text)',
     border: '1px solid var(--jp-border)', outline: 'none',
   },
   tabs: { display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 2 },
   tab: {
-    padding: '8px 12px', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap',
+    padding: '8px 12px', fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap',
     background: 'transparent', border: 'none', borderBottom: '2px solid transparent',
     color: 'var(--jp-text-3)', cursor: 'pointer',
   },
   tabOn: { color: 'var(--jp-text)', borderBottomColor: 'var(--jp-text)' },
   chipRow: { display: 'flex', gap: 6, overflowX: 'auto', padding: '12px 0 4px' },
   chip: {
-    padding: '6px 11px', borderRadius: 14, fontSize: 11, whiteSpace: 'nowrap',
+    padding: '6px 11px', borderRadius: 14, fontSize: 12, whiteSpace: 'nowrap',
     background: 'transparent', border: '1px solid var(--jp-border)',
     color: 'var(--jp-text-2)', cursor: 'pointer',
   },
@@ -339,6 +339,6 @@ const s = {
     borderTopColor: 'var(--jp-text-2)', borderRadius: '50%',
     animation: 'spin 0.8s linear infinite',
   },
-  empty: { paddingTop: 50, textAlign: 'center', color: 'var(--jp-text-3)', fontSize: 13, lineHeight: 1.6 },
-  error: { paddingTop: 50, textAlign: 'center', color: 'var(--jp-hot)', fontSize: 13 },
+  empty: { paddingTop: 50, textAlign: 'center', color: 'var(--jp-text-3)', fontSize: 14, lineHeight: 1.6 },
+  error: { paddingTop: 50, textAlign: 'center', color: 'var(--jp-hot)', fontSize: 14 },
 }

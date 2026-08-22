@@ -309,13 +309,13 @@ function TagRow({ tag, isEditing, onEdit, onCancelEdit, onSaved, onDeleted }) {
 }
 
 const s = {
-  help: { fontSize: 12, color: 'var(--text-tertiary)', padding: '4px 0 12px', lineHeight: 1.5 },
-  loading: { fontSize: 12, color: 'var(--text-tertiary)', padding: '12px 0' },
-  empty: { fontSize: 13, color: 'var(--text-secondary)', padding: '12px 0', lineHeight: 1.5 },
+  help: { fontSize: 13, color: 'var(--text-tertiary)', padding: '4px 0 12px', lineHeight: 1.5 },
+  loading: { fontSize: 13, color: 'var(--text-tertiary)', padding: '12px 0' },
+  empty: { fontSize: 14, color: 'var(--text-secondary)', padding: '12px 0', lineHeight: 1.5 },
   error: {
     marginTop: 8,
     padding: '6px 10px',
-    fontSize: 12,
+    fontSize: 13,
     color: '#ff8989',
     background: 'rgba(255,59,92,0.08)',
     border: '1px solid rgba(255,59,92,0.30)',
@@ -339,8 +339,8 @@ const s = {
     border: '1px solid rgba(var(--tint-rgb), 0.10)',
   },
   colName: { flex: 1, minWidth: 0 },
-  tagName: { fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  tagSub: { fontSize: 11, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', marginTop: 1 },
+  tagName: { fontSize: 15, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  tagSub: { fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', marginTop: 1 },
   editCol: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 },
   editActions: { display: 'flex', gap: 4, flexShrink: 0 },
   iconBtn: {
@@ -375,7 +375,7 @@ const s = {
     border: '1px solid var(--border)',
     borderRadius: 6,
     padding: '7px 10px',
-    fontSize: 13,
+    fontSize: 14,
     outline: 'none',
   },
   swatchRow: {
@@ -388,13 +388,13 @@ const s = {
     padding: 0,
   },
   swatchNoneText: {
-    fontSize: 11, color: 'var(--text-tertiary)',
+    fontSize: 12, color: 'var(--text-tertiary)',
     lineHeight: 1, fontWeight: 400,
   },
   addBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 5,
     padding: '7px 12px',
-    fontSize: 12, fontWeight: 500,
+    fontSize: 13, fontWeight: 500,
     background: 'transparent',
     color: 'var(--text-secondary)',
     border: '1px dashed var(--border-bright, rgba(var(--tint-rgb), 0.16))',
@@ -414,7 +414,7 @@ const s = {
   },
   createPrimary: {
     padding: '8px 14px',
-    fontSize: 12, fontWeight: 600,
+    fontSize: 13, fontWeight: 600,
     background: 'var(--accent, #7c3aed)',
     color: 'var(--on-accent)',
     border: 'none',
@@ -423,7 +423,7 @@ const s = {
   },
   createCancel: {
     padding: '8px 12px',
-    fontSize: 12, fontWeight: 500,
+    fontSize: 13, fontWeight: 500,
     background: 'transparent',
     color: 'var(--text-secondary)',
     border: '1px solid var(--border)',

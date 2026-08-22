@@ -206,7 +206,7 @@ const s = {
   },
   count: {
     flex: 1, minWidth: 0,
-    fontSize: 13, fontWeight: 600, color: 'var(--jp-accent)',
+    fontSize: 14, fontWeight: 600, color: 'var(--jp-accent)',
     fontFamily: 'var(--font-mono)',
   },
   barBtn: {
@@ -215,7 +215,7 @@ const s = {
     background: 'transparent',
     border: '1px solid var(--jp-border-hot)',
     color: 'var(--jp-text-2)',
-    fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+    fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
     cursor: 'pointer', whiteSpace: 'nowrap',
   },
   barBtnPrimary: {
@@ -246,12 +246,12 @@ const s = {
   },
   sheetTitle: {
     padding: '0 18px 10px',
-    fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
+    fontSize: 12, fontWeight: 700, letterSpacing: '0.08em',
     textTransform: 'uppercase', color: 'var(--jp-text-3)',
   },
   error: {
     margin: '0 18px 8px', padding: '8px 10px', borderRadius: 6,
-    fontSize: 12, lineHeight: 1.45,
+    fontSize: 13, lineHeight: 1.45,
     background: 'rgba(255,59,92,0.10)',
     border: '1px solid rgba(255,59,92,0.32)',
     color: 'var(--jp-text-2)',
@@ -261,12 +261,12 @@ const s = {
     width: '100%', padding: '13px 18px',
     background: 'transparent', border: 'none',
     textAlign: 'left', color: 'var(--jp-text)',
-    fontSize: 14, fontFamily: 'inherit', cursor: 'pointer',
+    fontSize: 15, fontFamily: 'inherit', cursor: 'pointer',
   },
   itemOff: { opacity: 0.4, cursor: 'default' },
   itemIcon: { color: 'var(--jp-text-2)', flexShrink: 0 },
   itemNote: {
-    marginLeft: 'auto', fontSize: 11,
+    marginLeft: 'auto', fontSize: 12,
     color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)',
   },
   close: {
@@ -275,7 +275,7 @@ const s = {
     background: 'transparent',
     border: '1px solid var(--jp-border-hot)',
     borderRadius: 999,
-    color: 'var(--jp-text-2)', fontSize: 13, fontWeight: 600,
+    color: 'var(--jp-text-2)', fontSize: 14, fontWeight: 600,
     fontFamily: 'inherit', cursor: 'pointer',
   },
 

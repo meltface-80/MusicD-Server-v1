@@ -593,7 +593,7 @@ const s = {
     lineHeight: 1.1,
   },
   tileLabel: {
-    fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
+    fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
     color: 'var(--text-tertiary)',
     lineHeight: 1,
   },
@@ -623,7 +623,7 @@ const s = {
     padding: '0 16px 8px',
   },
   recentTitle: {
-    fontSize: 14, fontWeight: 700, color: 'var(--text-primary)',
+    fontSize: 15, fontWeight: 700, color: 'var(--text-primary)',
     // Shared by the plain <div> heading and the <button> one, so the button
     // has to be told it is not a button.
     background: 'none', border: 'none', padding: 0, margin: 0,
@@ -636,7 +636,7 @@ const s = {
   recentLoading: { display: 'flex', justifyContent: 'center', padding: '20px 0' },
   recentEmpty: {
     padding: '18px 16px', color: 'var(--text-tertiary)',
-    fontSize: 11, lineHeight: 1.4,
+    fontSize: 12, lineHeight: 1.4,
   },
   spinner: {
     width: 22, height: 22,
@@ -678,21 +678,21 @@ const s = {
   tile2Img: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
   tile2Empty: { fontSize: 24, color: 'rgba(var(--tint-rgb), 0.2)' },
   tile2Sub: {
-    fontSize: 9, color: 'var(--text-tertiary)',
+    fontSize: 11, color: 'var(--text-tertiary)',
     marginBottom: 2,
   },
   tile2Title: {
-    fontSize: 11, fontWeight: 700, color: 'var(--text-primary)',
+    fontSize: 12, fontWeight: 700, color: 'var(--text-primary)',
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
     marginBottom: 1,
   },
   tile2Artist: {
-    fontSize: 10, color: 'var(--text-secondary)',
+    fontSize: 12, color: 'var(--text-secondary)',
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
     marginBottom: 2,
   },
   tile2Fmt: {
-    fontSize: 9, fontFamily: 'var(--font-mono)',
+    fontSize: 11, fontFamily: 'var(--font-mono)',
     color: 'var(--text-tertiary)', letterSpacing: '0.04em',
   },
 
@@ -730,11 +730,11 @@ const s = {
   },
   bannerBody: { flex: 1, minWidth: 0 },
   bannerTitle: {
-    fontSize: 13, fontWeight: 700,
+    fontSize: 14, fontWeight: 700,
     color: 'var(--text-primary)', marginBottom: 2,
   },
   bannerSub: {
-    fontSize: 11, color: 'var(--text-secondary)',
+    fontSize: 12, color: 'var(--text-secondary)',
     lineHeight: 1.4,
   },
   bannerActions: {
@@ -744,14 +744,14 @@ const s = {
     padding: '6px 12px',
     background: 'var(--accent)', color: 'var(--on-accent)',
     border: 'none', borderRadius: 6,
-    fontSize: 11, fontWeight: 600, cursor: 'pointer',
+    fontSize: 12, fontWeight: 600, cursor: 'pointer',
     whiteSpace: 'nowrap',
   },
   bannerBtnGhost: {
     padding: '6px 10px',
     background: 'var(--bg-elevated)', color: 'var(--text-secondary)',
     border: '1px solid var(--border)', borderRadius: 6,
-    fontSize: 11, cursor: 'pointer',
+    fontSize: 12, cursor: 'pointer',
     whiteSpace: 'nowrap',
   },
   bannerBtnX: {

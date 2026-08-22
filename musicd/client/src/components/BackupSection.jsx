@@ -139,7 +139,7 @@ export default function BackupSection() {
           <RefreshCw size={14} style={{ animation: 'spin 1.5s linear infinite' }} />
           <div>
             <strong>Restoring from {restoreSucceeded}</strong>
-            <div style={{ fontSize: 11, marginTop: 2, opacity: 0.85 }}>
+            <div style={{ fontSize: 12, marginTop: 2, opacity: 0.85 }}>
               musicd is restarting -- the page will be unreachable for ~30 seconds. Refresh the browser when it comes back. If the API doesn't return after 60 seconds, check the container with <code>docker logs musicd</code>.
             </div>
           </div>
@@ -293,15 +293,15 @@ function humanSize(bytes) {
 }
 
 const s = {
-  loading: { padding: 12, fontSize: 12, color: 'var(--text-tertiary)' },
+  loading: { padding: 12, fontSize: 13, color: 'var(--text-tertiary)' },
   intro: {
-    fontSize: 12, lineHeight: 1.5, color: 'var(--text-secondary)',
+    fontSize: 13, lineHeight: 1.5, color: 'var(--text-secondary)',
     padding: '4px 0 12px',
   },
   createBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 8,
     padding: '10px 18px',
-    fontSize: 13, fontWeight: 500,
+    fontSize: 14, fontWeight: 500,
     background: 'var(--accent)', color: 'var(--bg-base)',
     border: 'none', borderRadius: 'var(--radius-sm)',
     cursor: 'pointer',
@@ -317,17 +317,17 @@ const s = {
     border: '1px solid rgba(244, 113, 116, 0.3)',
     borderRadius: 'var(--radius-sm)',
     color: 'var(--red, #f47174)',
-    fontSize: 12, lineHeight: 1.4,
+    fontSize: 13, lineHeight: 1.4,
     marginBottom: 12,
   },
   empty: {
-    fontSize: 12, color: 'var(--text-tertiary)',
+    fontSize: 13, color: 'var(--text-tertiary)',
     padding: '12px 0',
     fontStyle: 'italic',
   },
   list: { marginTop: 8, marginBottom: 12 },
   listHeader: {
-    fontSize: 10, fontWeight: 700,
+    fontSize: 12, fontWeight: 700,
     color: 'var(--text-tertiary)',
     textTransform: 'uppercase',
     letterSpacing: '0.06em',
@@ -347,12 +347,12 @@ const s = {
   },
   rowText: { minWidth: 0, overflow: 'hidden' },
   rowName: {
-    fontSize: 11, fontFamily: 'var(--font-mono)',
+    fontSize: 12, fontFamily: 'var(--font-mono)',
     color: 'var(--text-primary)',
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
   },
   rowMeta: {
-    fontSize: 10, color: 'var(--text-tertiary)',
+    fontSize: 12, color: 'var(--text-tertiary)',
     marginTop: 2,
   },
   rowActions: { display: 'flex', gap: 6, flexShrink: 0 },
@@ -376,17 +376,17 @@ const s = {
     background: 'rgba(255, 196, 0, 0.08)',
     border: '1px solid rgba(255, 196, 0, 0.30)',
     borderRadius: 'var(--radius-sm)',
-    fontSize: 11,
+    fontSize: 12,
     color: 'var(--text-primary)',
   },
   confirmYes: {
-    padding: '4px 10px', fontSize: 11, fontWeight: 600,
+    padding: '4px 10px', fontSize: 12, fontWeight: 600,
     background: '#e6a700', color: 'black',
     border: 'none', borderRadius: 12,
     cursor: 'pointer',
   },
   confirmNo: {
-    padding: '4px 10px', fontSize: 11,
+    padding: '4px 10px', fontSize: 12,
     background: 'transparent', color: 'var(--text-secondary)',
     border: '1px solid var(--border)', borderRadius: 12,
     cursor: 'pointer',
@@ -401,7 +401,7 @@ const s = {
     border: '1px solid rgba(94, 209, 117, 0.30)',
     borderRadius: 'var(--radius-sm)',
     color: 'var(--text-primary)',
-    fontSize: 12,
+    fontSize: 13,
   },
 
   // Not-configured panel
@@ -413,18 +413,18 @@ const s = {
   },
   notConfigTitle: {
     display: 'flex', alignItems: 'center', gap: 6,
-    fontSize: 13, fontWeight: 600,
+    fontSize: 14, fontWeight: 600,
     color: 'var(--amber, #e6a700)',
     marginBottom: 8,
   },
   notConfigText: {
-    fontSize: 11, lineHeight: 1.5,
+    fontSize: 12, lineHeight: 1.5,
     color: 'var(--text-secondary)',
     margin: '6px 0',
   },
   codeBlock: {
     fontFamily: 'var(--font-mono)',
-    fontSize: 10, lineHeight: 1.5,
+    fontSize: 12, lineHeight: 1.5,
     background: 'var(--bg-base)',
     color: 'var(--text-primary)',
     padding: 10,
@@ -444,13 +444,13 @@ const s = {
     border: '1px solid var(--border)',
   },
   summary: {
-    fontSize: 12, fontWeight: 600,
+    fontSize: 13, fontWeight: 600,
     color: 'var(--text-secondary)',
     cursor: 'pointer',
     padding: 4,
   },
   restoreHelp: {
-    fontSize: 11, lineHeight: 1.5,
+    fontSize: 12, lineHeight: 1.5,
     color: 'var(--text-secondary)',
     padding: '8px 4px 4px',
   },

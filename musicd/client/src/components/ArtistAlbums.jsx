@@ -200,17 +200,17 @@ const s = {
   // 24/600 (was 22/700). Section headers and card text follow the
   // same JPLAY token discipline as AlbumGrid + AlbumDetail.
   page: { padding: '20px 16px 120px', background: 'var(--jp-bg)', minHeight: '100%' },
-  back: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--jp-text-3)', marginBottom: 14, background: 'none', border: 'none', cursor: 'pointer' },
+  back: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--jp-text-3)', marginBottom: 14, background: 'none', border: 'none', cursor: 'pointer' },
   header: { marginBottom: 16 },
   heading: { fontSize: 24, fontWeight: 600, letterSpacing: '-0.3px', marginBottom: 4, color: 'var(--jp-text)' },
-  sub: { fontSize: 11, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)' },
+  sub: { fontSize: 12, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)' },
   actionRow: { display: 'flex', gap: 8, marginBottom: 22, flexWrap: 'wrap' },
   // White-fill primary action — matches AlbumDetail's Play button.
   playAllBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '8px 14px', borderRadius: 999,
     background: 'var(--jp-accent)', color: 'var(--jp-bg)',
-    fontSize: 12, fontWeight: 600,
+    fontSize: 13, fontWeight: 600,
     border: 'none', cursor: 'pointer',
   },
   // Outline-style secondary action — quiet white-on-translucent.
@@ -218,14 +218,14 @@ const s = {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '8px 13px', borderRadius: 999,
     background: 'transparent', color: 'var(--jp-text-2)',
-    fontSize: 12, fontWeight: 500,
+    fontSize: 13, fontWeight: 500,
     border: '1px solid var(--jp-border-hot)', cursor: 'pointer',
   },
   bioBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '8px 13px', borderRadius: 999,
     background: 'transparent', color: 'var(--jp-text-2)',
-    fontSize: 12, fontWeight: 500,
+    fontSize: 13, fontWeight: 500,
     border: '1px solid var(--jp-border)', cursor: 'pointer',
   },
   bioBtnDisabled: {
@@ -235,14 +235,14 @@ const s = {
   infoBtn: { width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: 'var(--jp-text-2)', border: '1px solid var(--jp-border)', cursor: 'pointer', flexShrink: 0 },
   loadWrap: { display: 'flex', justifyContent: 'center', paddingTop: 60 },
   spinner: { width: 22, height: 22, border: '2px solid var(--jp-border)', borderTopColor: 'var(--jp-accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
-  empty: { paddingTop: 40, textAlign: 'center', color: 'var(--jp-text-3)', fontSize: 13 },
+  empty: { paddingTop: 40, textAlign: 'center', color: 'var(--jp-text-3)', fontSize: 14 },
   // Section: lighter divider (was solid var(--border) at 10%
   // white). JPLAY uses barely-there dividers — just enough to
   // structure the page without drawing borders into the eye.
   section: { marginBottom: 28 },
   sectionHeader: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, paddingBottom: 6, borderBottom: '1px solid var(--jp-border)' },
-  sectionTitle: { fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--jp-text-2)' },
-  sectionCount: { fontSize: 11, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)' },
+  sectionTitle: { fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--jp-text-2)' },
+  sectionCount: { fontSize: 12, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)' },
   grid: { /* layout via .album-grid in index.css (now JPLAY-tuned) */ },
   // (cardYear retained as an inert style for any leftover callers
   // but no longer rendered — year was dropped from the card to

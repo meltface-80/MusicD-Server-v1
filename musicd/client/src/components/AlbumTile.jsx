@@ -130,8 +130,8 @@ const s = {
   artBoxDim: { opacity: 0.45 },
   art: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
   artEmpty: { fontSize: 24, color: 'rgba(var(--tint-rgb), 0.18)' },
-  cardTitle: { fontSize: 13, fontWeight: 500, color: 'var(--jp-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 2, lineHeight: 1.25 },
-  cardArtist: { fontSize: 12, fontWeight: 400, color: 'var(--jp-text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  cardTitle: { fontSize: 14, fontWeight: 500, color: 'var(--jp-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 2, lineHeight: 1.25 },
+  cardArtist: { fontSize: 13, fontWeight: 400, color: 'var(--jp-text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   serviceBadge: { position: 'absolute', left: 6, bottom: 6, display: 'flex', pointerEvents: 'none' },
   inLibrary: {
     position: 'absolute', right: 6, bottom: 6,

@@ -225,17 +225,17 @@ const s = {
   spinner: { width: 22, height: 22, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
   header: { display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 20 },
   heading: { fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' },
-  count: { fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' },
-  empty: { paddingTop: 40, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 },
+  count: { fontSize: 13, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' },
+  empty: { paddingTop: 40, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 14 },
   section: { marginBottom: 28 },
-  sectionHeader: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, color: 'var(--text-tertiary)', fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase' },
+  sectionHeader: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, color: 'var(--text-tertiary)', fontSize: 12, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase' },
 
   // Artists
   artistRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 4px', background: 'none', border: 'none', width: '100%', cursor: 'pointer', borderBottom: '1px solid var(--border)', textAlign: 'left' },
-  artistAvatar: { width: 38, height: 38, borderRadius: '50%', background: 'var(--accent-dim)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, flexShrink: 0 },
+  artistAvatar: { width: 38, height: 38, borderRadius: '50%', background: 'var(--accent-dim)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, flexShrink: 0 },
   artistInfo: { flex: 1, display: 'flex', flexDirection: 'column', gap: 2 },
-  artistName: { fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' },
-  artistCount: { fontSize: 11, color: 'var(--text-tertiary)' },
+  artistName: { fontSize: 15, fontWeight: 500, color: 'var(--text-primary)' },
+  artistCount: { fontSize: 12, color: 'var(--text-tertiary)' },
   chevron: { fontSize: 18, color: 'var(--text-tertiary)', paddingRight: 4 },
 
   // Albums
@@ -250,16 +250,16 @@ const s = {
   // Themed rather than a fixed dark scrim — see the same overlay in
   // ServiceScreen.jsx for why this app cannot assume a dark ground.
   busyOverlay: { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--jp-bg)', opacity: 0.82, color: 'var(--jp-text)' },
-  actionError: { margin: '0 0 16px', padding: '9px 11px', borderRadius: 6, fontSize: 12, color: 'var(--jp-hot)', background: 'rgba(255,90,90,0.08)' },
-  albumTitle: { fontSize: 11, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  albumArtist: { fontSize: 10, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  actionError: { margin: '0 0 16px', padding: '9px 11px', borderRadius: 6, fontSize: 13, color: 'var(--jp-hot)', background: 'rgba(255,90,90,0.08)' },
+  albumTitle: { fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  albumArtist: { fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
 
   // Tracks
   trackRow: { display: 'grid', gridTemplateColumns: '28px 1fr auto 46px', alignItems: 'center', gap: 8, padding: '9px 4px', background: 'none', border: 'none', cursor: 'pointer', width: '100%', borderBottom: '1px solid var(--border)', textAlign: 'left' },
-  trackNum: { fontSize: 11, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', textAlign: 'right' },
+  trackNum: { fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', textAlign: 'right' },
   trackInfo: { display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' },
-  trackTitle: { fontSize: 13, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  trackMeta: { fontSize: 10, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  trackFmt: { fontSize: 9, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)' },
-  trackDur: { fontSize: 11, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', textAlign: 'right' },
+  trackTitle: { fontSize: 14, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  trackMeta: { fontSize: 12, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  trackFmt: { fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)' },
+  trackDur: { fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', textAlign: 'right' },
 }

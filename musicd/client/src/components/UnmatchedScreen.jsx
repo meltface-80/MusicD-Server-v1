@@ -362,14 +362,14 @@ const s = {
   root: { padding: 16, paddingBottom: 80 },
   header: { marginBottom: 16 },
   title: { fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 },
-  subtitle: { fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 },
-  help: { fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 },
-  message: { padding: 24, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 },
+  subtitle: { fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 12 },
+  help: { fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 },
+  message: { padding: 24, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 14 },
   errorRow: { display: 'inline-flex', alignItems: 'center', gap: 6, color: '#e85a7a', marginBottom: 12 },
   empty: { },
   emptyTitle: { fontSize: 16, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 },
-  emptyHint: { fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5 },
-  btn: { padding: '8px 14px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', border: '1px solid var(--border)', fontSize: 12, cursor: 'pointer' },
+  emptyHint: { fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.5 },
+  btn: { padding: '8px 14px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', border: '1px solid var(--border)', fontSize: 13, cursor: 'pointer' },
 
   list: { display: 'flex', flexDirection: 'column', gap: 6 },
   row: {
@@ -382,9 +382,9 @@ const s = {
   cover: { width: 48, height: 48, borderRadius: 4, objectFit: 'cover', flexShrink: 0 },
   coverPlaceholder: { width: 48, height: 48, borderRadius: 4, background: 'var(--bg-elevated)', flexShrink: 0 },
   rowText: { flex: 1, minWidth: 0, overflow: 'hidden' },
-  rowTitle: { fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  rowArtist: { fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 },
-  rowMeta: { fontSize: 10, color: 'var(--text-tertiary)', marginTop: 3 },
+  rowTitle: { fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  rowArtist: { fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 },
+  rowMeta: { fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 },
   statusUnmatched: { color: '#e85a7a' },
   statusUncertain: { color: '#e6a700' },
 
@@ -392,8 +392,8 @@ const s = {
   overlay: { position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'flex-end' },
   sheet: { paddingBottom: 'var(--safe-bot)', background: 'var(--bg-surface)', borderRadius: '16px 16px 0 0', width: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', borderTop: '1px solid var(--border)' },
   sheetHeader: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)', gap: 8 },
-  sheetTitle: { fontSize: 15, fontWeight: 700 },
-  sheetSubtitle: { fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 },
+  sheetTitle: { fontSize: 16, fontWeight: 700 },
+  sheetSubtitle: { fontSize: 13, color: 'var(--text-tertiary)', marginTop: 2 },
   closeBtn: { width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-elevated)', color: 'var(--text-tertiary)', border: '1px solid var(--border)', flexShrink: 0 },
   // Middle scrollable area inside the sheet -- holds candidates +
   // search section. Pinned header stays above; pinned reject footer
@@ -406,31 +406,31 @@ const s = {
   // Section label above each group of candidates ("Candidates the
   // matcher found", "Search results"). Quiet, all-caps, like a list
   // header in iOS settings.
-  sectionLabel: { fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--text-tertiary)', padding: '0 4px 6px' },
+  sectionLabel: { fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--text-tertiary)', padding: '0 4px 6px' },
   candRow: { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'var(--bg-overlay)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', marginBottom: 6 },
   candText: { flex: 1, minWidth: 0, overflow: 'hidden' },
-  candTitle: { fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  candArtist: { fontSize: 11, color: 'var(--text-secondary)', marginTop: 1 },
-  candMeta: { fontSize: 10, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: 'var(--font-mono)' },
+  candTitle: { fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  candArtist: { fontSize: 12, color: 'var(--text-secondary)', marginTop: 1 },
+  candMeta: { fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: 'var(--font-mono)' },
   candActions: { display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 },
   iconBtn: { width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-sm)', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-tertiary)', textDecoration: 'none' },
-  confirmBtn: { padding: '6px 10px', fontSize: 11, fontWeight: 600, borderRadius: 'var(--radius-sm)', background: 'var(--accent)', color: 'var(--on-accent)', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' },
-  rejectBtn: { width: '100%', padding: '10px 12px', fontSize: 12, fontWeight: 500, borderRadius: 'var(--radius-sm)', background: 'transparent', color: '#e85a7a', border: '1px solid #e85a7a', cursor: 'pointer' },
+  confirmBtn: { padding: '6px 10px', fontSize: 12, fontWeight: 600, borderRadius: 'var(--radius-sm)', background: 'var(--accent)', color: 'var(--on-accent)', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' },
+  rejectBtn: { width: '100%', padding: '10px 12px', fontSize: 13, fontWeight: 500, borderRadius: 'var(--radius-sm)', background: 'transparent', color: '#e85a7a', border: '1px solid #e85a7a', cursor: 'pointer' },
   btnBusy: { opacity: 0.6, cursor: 'wait' },
   // Manual search section (#v1.1.0.21). Sits between candidate list
   // and the footer reject button. Closed by default; a single button
   // opens an input + Search button. Pre-populated with the album's
   // existing title + artist so the obvious case needs no typing.
   searchSection: { padding: '8px 12px 12px', borderTop: '1px solid var(--border-soft, var(--border))' },
-  searchOpenBtn: { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg-overlay)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', cursor: 'pointer' },
+  searchOpenBtn: { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', fontSize: 13, color: 'var(--text-secondary)', background: 'var(--bg-overlay)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', cursor: 'pointer' },
   searchRow: { display: 'flex', gap: 6, marginBottom: 8 },
-  searchInput: { flex: 1, minWidth: 0, padding: '8px 10px', fontSize: 13, background: 'var(--bg-overlay)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', outline: 'none' },
-  searchBtn: { padding: '8px 12px', fontSize: 12, fontWeight: 600, background: 'var(--accent)', color: 'var(--on-accent)', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' },
-  searchErr: { padding: '8px 12px', fontSize: 11, color: '#e85a7a' },
-  searchEmpty: { padding: '8px 4px', fontSize: 11, color: 'var(--text-tertiary)' },
+  searchInput: { flex: 1, minWidth: 0, padding: '8px 10px', fontSize: 14, background: 'var(--bg-overlay)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', outline: 'none' },
+  searchBtn: { padding: '8px 12px', fontSize: 13, fontWeight: 600, background: 'var(--accent)', color: 'var(--on-accent)', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' },
+  searchErr: { padding: '8px 12px', fontSize: 12, color: '#e85a7a' },
+  searchEmpty: { padding: '8px 4px', fontSize: 12, color: 'var(--text-tertiary)' },
   searchResults: { paddingTop: 4 },
   // Fingerprint loading hint (#v1.1.0.22). Italic, secondary colour,
   // makes the wait feel intentional rather than broken.
-  fpHint: { padding: '8px 4px', fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' },
+  fpHint: { padding: '8px 4px', fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic' },
   sheetFooter: { padding: '12px 16px', borderTop: '1px solid var(--border)' },
 }

@@ -34,5 +34,5 @@ const s = {
     boxShadow: '0 1px 3px rgba(var(--tint-rgb), 0.25)',
     pointerEvents: 'none', userSelect: 'none',
   },
-  count: { fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', lineHeight: 1 },
+  count: { fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)', lineHeight: 1 },
 }

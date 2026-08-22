@@ -30,6 +30,24 @@ router.get('/', (req, res) => {
     // artist pages. Off by default: an upgrade should not silently
     // change what the library looks like.
     library_group_versions: require('../settings').getBool('library_group_versions', false),
+    // v1.1.38.0 — the metadata pipeline's new switches.
+    //
+    // listenbrainz_token is what makes the fast matching path available
+    // at all. ListenBrainz runs MusicBrainz's own fuzzy matcher as a
+    // public endpoint, at fifty lookups per request and fifty requests
+    // per ten seconds against MusicBrainz's one per second — but it was
+    // closed to anonymous callers over AI scraping, so it needs a free
+    // account token. With no token the matcher behaves exactly as it did
+    // before this release.
+    //
+    // The token itself is never sent back to the client. A settings page
+    // that echoes a credential is a credential in every browser cache and
+    // every screenshot; the UI needs to know whether one is SET, not what
+    // it is.
+    listenbrainz_token_set: require('../settings').get('listenbrainz_token', '') !== '',
+    matcher_use_listenbrainz: require('../settings').getBool('matcher_use_listenbrainz', true),
+    matcher_use_fingerprint:  require('../settings').getBool('matcher_use_fingerprint', true),
+    works_enabled:            require('../settings').getBool('works_enabled', true),
   });
 });
 
@@ -41,13 +59,21 @@ router.patch('/', tierMiddleware.requireFeature('settings_write'), (req, res) =>
   // These power the new CPU Tweaks settings page.
   const allowed = ['vl_enabled', 'vl_target_lufs', 'vl_mode', 'mb_contact', 'vl_max_concurrency', 'vl_max_cpu_temp_c',
     // v1.1.34.0 — album version grouping toggle.
-    'library_group_versions'];
+    'library_group_versions',
+    // v1.1.38.0 — metadata pipeline switches. See the GET above.
+    'listenbrainz_token', 'matcher_use_listenbrainz',
+    'matcher_use_fingerprint', 'works_enabled'];
   // Settings that hold opaque tokens or credentials we paste from
   // external services. Mobile copy-paste sometimes drags in surrounding
   // quotes (smart quotes from rich rendered pages) or trailing whitespace
   // newlines. Strip these on save (#v1.1.0.1). With the lastfm/fanart/
   // audiodb keys baked in, only mb_contact remains in this set.
-  const TRIMMED = new Set(['mb_contact']);
+  // v1.1.38.0 — the ListenBrainz token joins this set for exactly the
+  // reason the comment above gives: it is pasted from a web page on a
+  // phone, and mobile copy-paste drags in smart quotes and trailing
+  // newlines. A token with a trailing newline fails auth with a message
+  // that says nothing about whitespace.
+  const TRIMMED = new Set(['mb_contact', 'listenbrainz_token']);
   // v1.1.3.5: numeric settings with bounds. Out-of-range values are
   // clamped before write rather than rejected — the UI sliders
   // already enforce bounds, so an out-of-range value here means

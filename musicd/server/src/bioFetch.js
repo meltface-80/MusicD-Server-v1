@@ -8,6 +8,11 @@
 //
 // Sources tried, in order:
 //   Albums:   Wikipedia → MB annotation → Last.fm → AudioDB
+//
+// (Until v1.1.38.0 that album line described an intention rather than
+// the code: AudioDB was never wired in for albums at all, and the
+// Last.fm step passed a release-group mbid to an endpoint that indexes
+// release mbids. Both are real now.)
 //   Artists:  Wikipedia → Last.fm → AudioDB → MB annotation
 //
 // Why this order: Wikipedia is highest-quality (edited prose), and
@@ -31,7 +36,7 @@ const MAX_BIO_CHARS = 8000;         // cap stored content; UI scrolls
 
 // Shared MB throttle. We need to keep 1 req/sec across the matcher
 // and bio fetcher, so this gets imported and updated by both.
-const mbThrottle = require('./mbThrottle');
+const mbHttp = require('./mbHttp');
 
 // ── Settings helpers ─────────────────────────────────────────────────
 
@@ -92,22 +97,16 @@ async function fetchMbUrls(entityType, mbid) {
     err.code = 'NO_MB_CONTACT';
     throw err;
   }
-  await mbThrottle.wait();
-  const url = `https://musicbrainz.org/ws/2/${entityType}/${mbid}`;
-  const serviceHealth = require('./serviceHealth');
-  let res;
-  try {
-    res = await axios.get(url, {
-      params: { inc: 'url-rels+annotation', fmt: 'json' },
-      headers: { 'User-Agent': buildUserAgent() },
-      timeout: REQUEST_TIMEOUT_MS,
-    });
-    serviceHealth.recordSuccess('musicbrainz');
-  } catch (e) {
-    serviceHealth.recordFailure('musicbrainz', e.message || 'unknown error');
-    throw e;
-  }
-  const data = res.data || {};
+  // v1.1.38.0 — through src/mbHttp.js rather than a local axios call.
+  // This module called mbThrottle itself and then talked to MusicBrainz
+  // directly, which was fine for the throttle but meant it had no 503
+  // handling at all: a rate-limit response surfaced as a bio failure and
+  // was cached as one. mbHttp honours Retry-After and shares the single
+  // process-wide throttle with the matcher, the art fetcher and the logo
+  // fetcher — which, before this release, were three separate pacers.
+  const data = (await mbHttp.request(
+    `/${entityType}/${mbid}`, { inc: 'url-rels+annotation' }, { contact }
+  )) || {};
   const rels = data.relations || [];
   const urls = {};
   for (const rel of rels) {
@@ -209,8 +208,28 @@ async function fetchLastfm(method, params) {
   }
 }
 
-async function fetchLastfmAlbumBio(mbid) {
-  const data = await fetchLastfm('album.getInfo', { mbid });
+/**
+ * Last.fm album bio.
+ *
+ * v1.1.38.0 — this was a near-guaranteed miss.
+ *
+ * It was called as `fetchLastfmAlbumBio(album.mb_release_group_id)`, and
+ * `album.getInfo`'s mbid parameter indexes RELEASE mbids, not release
+ * GROUP mbids. So step three of the album bio chain almost never
+ * returned anything, and the chain was effectively Wikipedia, then the
+ * MusicBrainz annotation, then nothing.
+ *
+ * Now: the release mbid when the album row actually has one — that IS
+ * the right kind of id and it is exact — then artist and album by name,
+ * which is how every other Last.fm client looks an album up and which
+ * needs no MusicBrainz id at all.
+ */
+async function fetchLastfmAlbumBio({ releaseMbid, artist, album }) {
+  let data = null;
+  if (releaseMbid) data = await fetchLastfm('album.getInfo', { mbid: releaseMbid });
+  if (!data?.album?.wiki?.summary && artist && album) {
+    data = await fetchLastfm('album.getInfo', { artist, album });
+  }
   if (!data?.album?.wiki?.summary) return null;
   // Last.fm wraps their summary in HTML and tacks on a "Read more on
   // Last.fm" link. Strip the markup, drop everything after the
@@ -256,6 +275,38 @@ async function fetchAudioDbArtistBio(mbid) {
     return {
       content: content.slice(0, MAX_BIO_CHARS),
       url: artist.strWebsite ? `https://${artist.strWebsite}` : null,
+    };
+  } catch (e) {
+    serviceHealth.recordFailure('audiodb', e.message || 'unknown error');
+    return null;
+  }
+}
+
+// ── Source: TheAudioDB, albums ───────────────────────────────────────
+// The artist path has used this API since #30.23. The album path never
+// did, even though album-mb.php is keyed on the RELEASE GROUP mbid —
+// exactly the id this server stores, and the one Last.fm could not use.
+// Same key, same health key, same length rules as the artist call above.
+
+async function fetchAudioDbAlbumBio(releaseGroupMbid) {
+  if (!releaseGroupMbid) return null;
+  const { AUDIODB_API_KEY } = require('./apiCredentials');
+  const serviceHealth = require('./serviceHealth');
+  try {
+    const res = await axios.get(`https://www.theaudiodb.com/api/v1/json/${AUDIODB_API_KEY}/album-mb.php`, {
+      params: { i: releaseGroupMbid },
+      timeout: REQUEST_TIMEOUT_MS,
+    });
+    serviceHealth.recordSuccess('audiodb');
+    const album = res.data?.album?.[0];
+    if (!album?.strDescriptionEN) return null;
+    const content = album.strDescriptionEN.trim();
+    if (content.length < MIN_USEFUL_CHARS) return null;
+    return {
+      content: content.slice(0, MAX_BIO_CHARS),
+      url: album.strMusicBrainzID
+        ? `https://musicbrainz.org/release-group/${album.strMusicBrainzID}`
+        : null,
     };
   } catch (e) {
     serviceHealth.recordFailure('audiodb', e.message || 'unknown error');
@@ -325,7 +376,7 @@ async function getAlbumBio(albumId, { force = false } = {}) {
 
   // Get the album's MBID
   const album = database.prepare(
-    `SELECT id, title, album_artist, mb_release_group_id, match_status
+    `SELECT id, title, album_artist, mb_release_group_id, mb_release_id, match_status
      FROM albums WHERE id = ?`
   ).get(albumId);
   if (!album) return null;
@@ -374,10 +425,26 @@ async function getAlbumBio(albumId, { force = false } = {}) {
   // 3. Last.fm
   if (!result) {
     try {
-      const lfm = await fetchLastfmAlbumBio(album.mb_release_group_id);
+      const lfm = await fetchLastfmAlbumBio({
+        releaseMbid: album.mb_release_id || null,
+        artist: album.album_artist || null,
+        album: album.title || null,
+      });
       if (lfm) result = { source: 'lastfm', ...lfm };
     } catch (e) {
       console.warn('[bio] Last.fm fetch failed:', e.message);
+    }
+  }
+
+  // 4. TheAudioDB, keyed on the release group — see above. Costs no
+  //    MusicBrainz request, which matters: bios are already the largest
+  //    single block of MusicBrainz traffic in this server.
+  if (!result) {
+    try {
+      const adb = await fetchAudioDbAlbumBio(album.mb_release_group_id);
+      if (adb) result = { source: 'audiodb', ...adb };
+    } catch (e) {
+      console.warn('[bio] AudioDB album fetch failed:', e.message);
     }
   }
 
