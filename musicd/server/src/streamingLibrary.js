@@ -70,6 +70,11 @@ const SERVICES = {
     albumPrefix: 'qobuz:',
     pathPrefix:  'qobuz://',
     favColumn:   'qobuz_favorited',
+    // Qobuz accepts large limits on favorite/getUserFavorites — the LMS
+    // Qobuz plugin asks for 5000 in a single request. 500 a page keeps
+    // each response a sane size while still making a 10,000-favourite
+    // library 20 requests rather than 100.
+    favPageSize: 500,
   },
   tidal: {
     id:         'tidal',
@@ -77,6 +82,9 @@ const SERVICES = {
     albumPrefix: 'tidal:',
     pathPrefix:  'tidal://',
     favColumn:   'tidal_favorited',
+    // Tidal's v1 favourites endpoint caps at 100 per page and the client
+    // clamps to it; asking for more silently returns 100.
+    favPageSize: 100,
   },
 };
 
@@ -302,8 +310,22 @@ for (const id of SERVICE_IDS) {
   };
 }
 
-const FAV_PAGE_SIZE = 100;
-const FAV_MAX_PAGES = 50;   // 5000 favourites; a safety stop, not a target
+// v1.1.34.0 — THERE IS NO FAVOURITES LIMIT.
+//
+// This used to page 100 at a time and stop after 50 pages, which capped
+// a sync at exactly 5000 albums and reported "5000" as the total — so a
+// library larger than that silently synced a prefix of itself and said
+// it was finished. (The LMS Qobuz plugin has the same number as a hard
+// constant, QOBUZ_USERDATA_LIMIT = 5000, which is why raising it there
+// is a known thing people have to do.)
+//
+// It now pages until the service says there are no more, using the
+// total the service itself reports as the target, so progress counts
+// against the real number. The only remaining bound is an absolute
+// runaway stop: it exists so a misbehaving endpoint that always returns
+// a full page cannot loop forever, and it is set far above any real
+// library rather than at a number anyone could reach.
+const FAV_RUNAWAY_STOP = 200000;
 
 function syncState(service) {
   serviceDef(service);
@@ -313,26 +335,60 @@ function syncState(service) {
 // Pull every favourited album id from the service, following its
 // pagination. Normalises the two services' different response shapes
 // down to an array of { serviceAlbumId }.
-async function _fetchFavoriteAlbumIds(service) {
+async function _fetchFavoriteAlbumIds(service, onProgress) {
+  const def = serviceDef(service);
   const api = apiFor(service);
+  const pageSize = def.favPageSize || 100;
   const ids = [];
+  const seen = new Set();
   let offset = 0;
-  for (let page = 0; page < FAV_MAX_PAGES; page++) {
-    const r = await api.getFavorites('albums', FAV_PAGE_SIZE, offset);
+  let reportedTotal = null;
+
+  for (;;) {
+    const r = await api.getFavorites('albums', pageSize, offset);
     // Qobuz: { albums: { items: [...], total } }
     // Tidal: { items: [ { item: {...} } ], totalNumberOfItems }
     let items = [];
     if (r && r.albums && Array.isArray(r.albums.items)) {
       items = r.albums.items;
+      if (reportedTotal === null && Number.isFinite(Number(r.albums.total))) {
+        reportedTotal = Number(r.albums.total);
+      }
     } else if (r && Array.isArray(r.items)) {
       items = r.items.map((row) => (row && row.item) ? row.item : row);
+      if (reportedTotal === null && Number.isFinite(Number(r.totalNumberOfItems))) {
+        reportedTotal = Number(r.totalNumberOfItems);
+      }
     }
     if (items.length === 0) break;
+
     for (const it of items) {
-      if (it && it.id != null) ids.push(String(it.id));
+      if (!it || it.id == null) continue;
+      const id = String(it.id);
+      // De-duplicated: a favourite added while we are paging shifts the
+      // window and can hand us the same album twice. Without this the
+      // count drifts above the real total and an album gets cached twice.
+      if (seen.has(id)) continue;
+      seen.add(id);
+      ids.push(id);
     }
-    offset += items.length;
-    if (items.length < FAV_PAGE_SIZE) break;
+
+    // Tell the caller the real target as soon as the service states it,
+    // so progress counts against the true number from the first page
+    // rather than against however much has been fetched so far.
+    if (onProgress) onProgress({ fetched: ids.length, total: reportedTotal });
+
+    // Advance by the page size actually requested, not by how many came
+    // back: a page containing duplicates would otherwise re-request the
+    // same window forever.
+    offset += pageSize;
+    if (items.length < pageSize) break;
+    if (reportedTotal !== null && ids.length >= reportedTotal) break;
+    if (ids.length >= FAV_RUNAWAY_STOP) {
+      log.warn(`${def.label}: stopped paging favourites at ${FAV_RUNAWAY_STOP} — ` +
+        'the service kept returning full pages past its own reported total');
+      break;
+    }
   }
   return ids;
 }
@@ -342,7 +398,12 @@ async function _runSync(service) {
   const st = _syncStates[service];
   const dbh = db.get();
 
-  const remoteIds = await _fetchFavoriteAlbumIds(service);
+  const remoteIds = await _fetchFavoriteAlbumIds(service, ({ fetched, total }) => {
+    // Paging a 10,000-favourite library is itself a minute of requests.
+    // Surfacing the target during that phase is the difference between
+    // "it is working" and "it is stuck at zero".
+    st.total = total !== null ? total : fetched;
+  });
   st.total = remoteIds.length;
   log.info(`${def.label}: ${remoteIds.length} favourite album(s) to reconcile`);
 
@@ -473,6 +534,11 @@ module.exports = {
   loggedInServices,
   statuses,
   syncState,
+  // Exported for test/streaming-library.test.js. The paging loop is the
+  // piece that silently capped a sync at 5000 albums and reported it as
+  // complete, so it is worth being able to drive directly against a
+  // stubbed client rather than only through a live account.
+  _fetchFavoriteAlbumIds,
   startFavoritesSync,
   startScheduledSync,
   stopScheduledSync,

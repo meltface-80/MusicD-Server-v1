@@ -12,6 +12,8 @@ import {
   SelectChip, SelectionBar, SelectionSheet, SelectionTick,
 } from './AlbumSelection'
 import ServiceBadge from './ServiceBadge'
+import VersionBadge from './VersionBadge'
+import AlbumTile from './AlbumTile'
 
 const PAGE_SIZE = 200
 
@@ -393,7 +395,14 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
     // no picks). Suppressed on Favourites/Saved For Later because
     // the funnel UI isn't shown there.
     const focusParam = focusEnabled ? focus.queryString : ''
-    const data = await api.get(`/library/albums?${sortQuery(s)}&limit=${limit}&offset=${off}${favParam}${savedParam}${tagParam}${focusParam}`)
+    // v1.1.34.0 — ask the server to collapse album versions, but only on
+    // the Albums wall. Favourites and Saved-for-later deliberately do
+    // NOT: there you picked a specific version, and hiding it behind
+    // another copy of the same record would hide the exact row you saved.
+    // The server ignores this unless the user has the setting on, so the
+    // parameter says "this surface may collapse", not "collapse".
+    const versionsParam = (!favoritesOnly && !savedOnly) ? '&versions=collapse' : ''
+    const data = await api.get(`/library/albums?${sortQuery(s)}&limit=${limit}&offset=${off}${favParam}${savedParam}${tagParam}${focusParam}${versionsParam}`)
     if (append) setAlbums(prev => [...prev, ...data])
     else setAlbums(data)
     setHasMore(data.length === limit)
@@ -1137,73 +1146,24 @@ function FirstScanProgress({ status }) {
   )
 }
 
+// v1.1.34.0 — the wall's tile is now the shared one in AlbumTile.jsx,
+// used by the artist page and the Qobuz / Tidal screens too. There were
+// three copies of this component and they drifted: the streaming glyph
+// added in v1.1.33.0 never reached the artist page, and the service
+// screens grew an optional quality line that made their tiles taller
+// than everyone else's. One component, one height, everywhere.
 function AlbumCard({ album, onClick, selecting = false, selected = false }) {
-  const [imgSrc, setImgSrc] = useState(null)
-  const [imgErr, setImgErr] = useState(false)
-  const cardRef = useRef(null)
-
-  // Lazy load image when card scrolls into view
-  useEffect(() => {
-    if (!album.cover_art) return
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setImgSrc(album.cover_art)
-        observer.disconnect()
-      }
-    }, { rootMargin: '150px' })
-    if (cardRef.current) observer.observe(cardRef.current)
-    return () => observer.disconnect()
-  }, [album.cover_art])
-
   return (
-    <button
-      ref={cardRef}
-      style={s.card}
+    <AlbumTile
+      album={album}
       onClick={onClick}
-      // Kept after the long-press menu was removed, and deliberately: a
-      // right-click (desktop) or long-press (some Android browsers) on a
-      // tile opens the browser's own image menu — "Save image", "Copy
-      // image" — which is exactly what the iOS callout suppression in
-      // index.css exists to prevent. There is no app menu behind it any
-      // more; this only stops the browser one.
-      onContextMenu={e => e.preventDefault()}
-      aria-pressed={selecting ? selected : undefined}
-    >
-      <div style={{ ...s.artBox, ...(selecting && !selected ? s.artBoxDim : {}) }}>
-        {imgSrc && !imgErr
-          ? <img src={imgSrc} alt="" style={s.art} onError={() => setImgErr(true)} loading="lazy" draggable={false} />
-          : <div style={s.artEmpty}>♫</div>
-        }
-        {/* Drawn only while selecting: an empty circle on every tile the rest
-            of the time would be a permanent piece of chrome over the artwork,
-            which is what this wall is for. */}
-        {selecting && <SelectionTick on={selected} />}
-        {/* v1.1.33.0 — Qobuz / Tidal marker. `service` is derived from the
-            album id server-side, so it is null for every local album and the
-            badge renders nothing: no guard needed here, and no site can be
-            missed by forgetting one. Bottom-left, opposite the selection
-            tick, so the two never overlap. */}
-        {album.service && (
-          <span style={s.serviceBadge}>
-            <ServiceBadge service={album.service} size={16} />
-          </span>
-        )}
-      </div>
-      <div style={s.cardTitle}>{album.title}</div>
-      <div style={s.cardArtist}>{album.album_artist || album.artist}</div>
-    </button>
+      selecting={selecting}
+      selected={selected}
+    />
   )
 }
 
 const s = {
-  // v1.1.33.0 — the streaming marker sits over the artwork's bottom-left
-  // corner. Absolute inside artBox (which is already position:relative for
-  // the selection tick), so it rides the art rather than the card and does
-  // not shift the title below it.
-  serviceBadge: {
-    position: 'absolute', left: 6, bottom: 6,
-    display: 'flex', pointerEvents: 'none',
-  },
   // v1.1.0.62 — JPLAY-style page layout. Was 14px 10px with 120px
   // bottom for the now-playing strip; JPLAY uses generous side
   // padding (16px+) so the grid doesn't crowd the edges. Bottom
@@ -1345,53 +1305,6 @@ const s = {
              Left here as a no-op so any code path that still reads it
              doesn't blow up; safe to delete in a future cleanup. */ },
   card: { display: 'block', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', minWidth: 0 },
-  // v1.1.0.62 — JPLAY-style art tile. Was rounded-8 with a charcoal
-  // fallback bg and small marginBottom. Now: 4px radius (almost
-  // square — JPLAY uses sharper corners that read as "physical
-  // record sleeve" rather than "iOS app icon"), pure black
-  // fallback so the absent-art state doesn't pop out as a charcoal
-  // hole in the grid, and a more generous marginBottom (8px) so
-  // the title has room to breathe.
-  artBox: {
-    // position: relative so the selection tick can sit over the artwork.
-    position: 'relative', width: '100%', aspectRatio: '1/1', borderRadius: 4, overflow: 'hidden', background: 'var(--jp-bg-surface)', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  art: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
-  artEmpty: { fontSize: 24, color: 'rgba(var(--tint-rgb), 0.18)' },
-  // Title 13/500 (was 11/500) — large enough to read at arm's
-  // length on a phone, restrained enough to let the cover dominate.
-  cardTitle: { fontSize: 13, fontWeight: 500, color: 'var(--jp-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 2, lineHeight: 1.25 },
-  // Artist 12/400 secondary (was 10/400) — pairs visually with the
-  // title without competing.
-  cardArtist: { fontSize: 12, fontWeight: 400, color: 'var(--jp-text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  // Year line dropped from the JPLAY-style card. Year is auxiliary
-  // info; in JPLAY it lives on the album detail screen, not in the
-  // grid. The cardYear style is kept defined for any leftover
-  // callers but no longer rendered by AlbumCard.
-  cardYear: { fontSize: 9, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', marginTop: 1 },
-  emptyMsg: { padding: '40px 24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.5 },
-
-  // v1.1.0.71 — tag chip strip styles. Sits below the sort/heart pill
-  // row on the Albums screen. Horizontal scroll for overflow (the
-  // .jp-chip-row class hides the scrollbar). Smaller padding + font
-  // than the pill row above so the two strips read as different
-  // hierarchical levels — the upper row is "view controls," the
-  // lower row is "filter to a slice." Active chip uses the same
-  // 10%-white treatment as the favourites pill, with optional
-  // per-tag colour for users who set one.
-  tagChipRow: {
-    display: 'flex',
-    gap: 6,
-    overflowX: 'auto',
-    overflowY: 'hidden',
-    padding: '8px 0 4px',
-    marginTop: -2,
-    flexWrap: 'nowrap',
-    whiteSpace: 'nowrap',
-  },
-  // While selecting, tiles that are not picked step back. Opacity rather
-  // than a grey wash: a wash would tint the artwork, and telling covers
-  // apart is how the user knows what they are picking.
-  artBoxDim: { opacity: 0.45 },
   tagChip: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '5px 10px',

@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from '../store'
 import { api } from '../api'
-import { Search, X, Loader2 } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import ServiceBadge, { serviceLabel } from './ServiceBadge'
+import AlbumTile from './AlbumTile'
 
 // The Qobuz and Tidal screens (v1.1.33.0).
 //
@@ -279,43 +280,22 @@ function Body({ albums, error, empty, onOpen, opening }) {
   return (
     <div className="album-grid" style={s.grid}>
       {albums.map(a => (
+        // v1.1.34.0 — the shared tile, identical to the album wall's.
+        // These screens used to draw their own, with a quality line that
+        // only appeared when the service reported one, so tiles came out
+        // at two different heights and the grid rows stretched unevenly.
+        // Quality now rides on the album page, where it does not fight
+        // the layout.
         <AlbumTile
           key={a.localAlbumId || a.serviceAlbumId}
           album={a}
-          onOpen={onOpen}
+          onClick={() => onOpen(a)}
           busy={opening === a.serviceAlbumId}
+          inLibrary={!!a.in_library}
+          dim={a.streamable === false}
         />
       ))}
     </div>
-  )
-}
-
-function AlbumTile({ album, onOpen, busy }) {
-  const [imgErr, setImgErr] = useState(false)
-  // Region-locked releases come back with streamable:false. Greying them
-  // here is the difference between "not available where you are" and
-  // finding out at the moment you press play.
-  const dim = album.streamable === false
-  return (
-    <button
-      style={{ ...s.card, ...(dim ? s.cardDim : {}) }}
-      onClick={() => { if (!dim && !busy) onOpen(album) }}
-      disabled={dim}
-      onContextMenu={e => e.preventDefault()}>
-      <div style={s.artBox}>
-        {album.cover && !imgErr
-          ? <img src={album.cover} alt="" style={s.art} loading="lazy" draggable={false}
-              onError={() => setImgErr(true)} />
-          : <div style={s.artEmpty}>♫</div>}
-        {busy && (
-          <div style={s.busy}><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /></div>
-        )}
-        {album.in_library && <span style={s.inLibrary} title="In your library">✓</span>}
-      </div>
-      <div style={s.cardTitle}>{album.title}</div>
-      <div style={s.cardArtist}>{album.artist}</div>
-      {album.quality && <div style={s.cardQuality}>{album.quality}</div>}
-    </button>
   )
 }
 
@@ -353,42 +333,6 @@ const s = {
   },
   chipOn: { background: 'rgba(var(--tint-rgb), 0.10)', color: 'var(--jp-text)' },
   grid: { paddingTop: 14 },
-  card: { background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' },
-  cardDim: { opacity: 0.4, cursor: 'default' },
-  artBox: {
-    position: 'relative', width: '100%', aspectRatio: '1/1', borderRadius: 4,
-    overflow: 'hidden', background: 'var(--jp-bg-surface)', marginBottom: 8,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  },
-  art: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
-  artEmpty: { fontSize: 22, color: 'var(--jp-text-3)' },
-  // Themed, not a fixed dark scrim with a white glyph. The tile below it
-  // is album art, so the instinct is white-on-black — but this app has two
-  // light palettes, and a fixed pair here would be one more entry on
-  // themes.test.js's fixed-colour list for something that does not need to
-  // be fixed at all. The page ground at 0.82 covers the art in every theme
-  // and the spinner reads against it by construction.
-  busy: {
-    position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
-    justifyContent: 'center',
-    background: 'var(--jp-bg)', opacity: 0.82, color: 'var(--jp-text)',
-  },
-  inLibrary: {
-    position: 'absolute', right: 6, bottom: 6, width: 16, height: 16,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    borderRadius: '50%', background: 'var(--jp-bg)', color: 'var(--green)',
-    fontSize: 10, fontWeight: 700,
-    boxShadow: '0 1px 3px rgba(var(--tint-rgb), 0.25)',
-  },
-  cardTitle: {
-    fontSize: 12, fontWeight: 500, color: 'var(--jp-text)',
-    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-  },
-  cardArtist: {
-    fontSize: 11, color: 'var(--jp-text-2)',
-    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-  },
-  cardQuality: { fontSize: 9, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', marginTop: 2 },
   loading: { display: 'flex', justifyContent: 'center', paddingTop: 60 },
   spinner: {
     width: 22, height: 22, border: '2px solid var(--jp-border)',

@@ -56,6 +56,7 @@ const readRaw = (...p) => fs.readFileSync(path.join(SERVER_SRC, ...p), 'utf8');
 // the code that implements it.
 const code = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 const src = (...p) => code(readRaw(...p));
+const src_ = (f) => code(readRaw(f));
 
 // ---------------------------------------------------------------------------
 // A real database, built by the app's own migrations.
@@ -389,6 +390,108 @@ test('the detectors actually detect', () => {
     'the fsp.access check must go red when the guard is not inside the else branch');
   assert.ok(!/const ext = streamingService \? '' : path\.extname/.test(eager),
     'and the extension check must go red on unconditional extname');
+});
+
+// ---------------------------------------------------------------------------
+// 6. Favourites paging has no product limit.
+// ---------------------------------------------------------------------------
+//
+// This used to page 100 at a time and stop after 50 pages: a hard cap at
+// exactly 5000 albums, reported to the user as the TOTAL, so a larger
+// library synced a prefix of itself and said it had finished. (The LMS
+// Qobuz plugin carries the same number as QOBUZ_USERDATA_LIMIT = 5000,
+// which is why raising it there is a known thing people have to do.)
+
+// Drive the real paging loop against a stubbed client, so the arithmetic
+// is exercised rather than the network.
+function withStubbedFavorites(service, total, capture) {
+  const api = streaming.apiFor(service);
+  const original = api.getFavorites;
+  api.getFavorites = async (kind, limit, offset) => {
+    if (capture) capture.push({ limit, offset });
+    const items = [];
+    for (let i = offset; i < Math.min(offset + limit, total); i++) items.push({ id: 1000 + i });
+    return service === 'qobuz'
+      ? { albums: { items, total } }
+      : { items: items.map(it => ({ item: it })), totalNumberOfItems: total };
+  };
+  return () => { api.getFavorites = original; };
+}
+
+test('a favourites list larger than 5000 syncs in full', async () => {
+  const restore = withStubbedFavorites('qobuz', 12000);
+  try {
+    const ids = await streaming._fetchFavoriteAlbumIds('qobuz');
+    assert.equal(ids.length, 12000,
+      `only ${ids.length} of 12000 favourites came back — the old loop stopped ` +
+      'at 50 pages of 100 and called that the total');
+  } finally { restore(); }
+});
+
+test('exactly 5000 favourites is not a boundary any more', async () => {
+  // The old cap landed precisely here, so a library of this size looked
+  // complete while a library of 5001 silently lost one.
+  for (const total of [4999, 5000, 5001]) {
+    const restore = withStubbedFavorites('qobuz', total);
+    try {
+      const ids = await streaming._fetchFavoriteAlbumIds('qobuz');
+      assert.equal(ids.length, total, `${total} favourites came back as ${ids.length}`);
+    } finally { restore(); }
+  }
+});
+
+test('Qobuz is paged 500 at a time and Tidal 100, per what each accepts', async () => {
+  const qCalls = [];
+  let restore = withStubbedFavorites('qobuz', 1200, qCalls);
+  try { await streaming._fetchFavoriteAlbumIds('qobuz'); } finally { restore(); }
+  assert.equal(qCalls[0].limit, 500, 'Qobuz accepts large limits; 100 a page is needless round-trips');
+  assert.equal(qCalls.length, 3, `1200 favourites at 500 a page is 3 requests, not ${qCalls.length}`);
+
+  const tCalls = [];
+  restore = withStubbedFavorites('tidal', 250, tCalls);
+  try { await streaming._fetchFavoriteAlbumIds('tidal'); } finally { restore(); }
+  assert.equal(tCalls[0].limit, 100, 'Tidal caps at 100 per page and the client clamps to it');
+});
+
+test('an empty or short favourites list terminates immediately', async () => {
+  for (const total of [0, 1, 17]) {
+    const calls = [];
+    const restore = withStubbedFavorites('qobuz', total, calls);
+    try {
+      const ids = await streaming._fetchFavoriteAlbumIds('qobuz');
+      assert.equal(ids.length, total);
+      assert.equal(calls.length, 1, `${total} favourites should take one request, took ${calls.length}`);
+    } finally { restore(); }
+  }
+});
+
+test('a duplicate handed back mid-paging is not counted twice', async () => {
+  // Favourite something from the phone while a sync is paging and the
+  // window shifts, so the same album can arrive on two pages. Counting it
+  // twice pushes the total past the real one and caches it twice.
+  const api = streaming.apiFor('qobuz');
+  const original = api.getFavorites;
+  api.getFavorites = async (kind, limit, offset) => {
+    const items = [];
+    for (let i = offset; i < Math.min(offset + limit, 1200); i++) items.push({ id: 1000 + i });
+    if (offset > 0 && items.length) items[0] = { id: 1000 };   // already seen on page 1
+    return { albums: { items, total: 1200 } };
+  };
+  try {
+    const ids = await streaming._fetchFavoriteAlbumIds('qobuz');
+    assert.equal(new Set(ids).size, ids.length, 'the id list contains duplicates');
+  } finally { api.getFavorites = original; }
+});
+
+test('the only remaining bound is a runaway stop, far above any real library', () => {
+  const src = src_('streamingLibrary.js');
+  assert.ok(!/FAV_MAX_PAGES/.test(src),
+    'the 50-page cap must be gone, not merely raised');
+  const m = /FAV_RUNAWAY_STOP = (\d+)/.exec(src);
+  assert.ok(m, 'a runaway stop must exist so a broken endpoint cannot loop forever');
+  assert.ok(Number(m[1]) >= 100000,
+    `the runaway stop is ${m[1]} — low enough to be reachable, which makes it a ` +
+    'product limit wearing a safety hat');
 });
 
 test.after(() => {

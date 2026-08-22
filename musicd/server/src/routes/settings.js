@@ -25,6 +25,11 @@ router.get('/', (req, res) => {
     // We keep their setting rows in the DB harmlessly so old installs
     // aren't disrupted; nothing reads them anymore.
     mb_contact:       loudness.getSetting('mb_contact', ''),
+    // v1.1.34.0 — collapse multiple versions of one album (the original,
+    // the deluxe, the remaster) into a single tile on the album wall and
+    // artist pages. Off by default: an upgrade should not silently
+    // change what the library looks like.
+    library_group_versions: require('../settings').getBool('library_group_versions', false),
   });
 });
 
@@ -34,7 +39,9 @@ router.patch('/', tierMiddleware.requireFeature('settings_write'), (req, res) =>
   const updates = req.body || {};
   // v1.1.3.5: added vl_max_concurrency and vl_max_cpu_temp_c.
   // These power the new CPU Tweaks settings page.
-  const allowed = ['vl_enabled', 'vl_target_lufs', 'vl_mode', 'mb_contact', 'vl_max_concurrency', 'vl_max_cpu_temp_c'];
+  const allowed = ['vl_enabled', 'vl_target_lufs', 'vl_mode', 'mb_contact', 'vl_max_concurrency', 'vl_max_cpu_temp_c',
+    // v1.1.34.0 — album version grouping toggle.
+    'library_group_versions'];
   // Settings that hold opaque tokens or credentials we paste from
   // external services. Mobile copy-paste sometimes drags in surrounding
   // quotes (smart quotes from rich rendered pages) or trailing whitespace
@@ -82,6 +89,15 @@ router.patch('/', tierMiddleware.requireFeature('settings_write'), (req, res) =>
       // stored as strings from manual SQL edits.
       // eslint-disable-next-line eqeqeq
       if (before != v) vlSettingChanged = true;
+    }
+    // v1.1.34.0 — toggling version grouping changes what the album wall
+    // contains, and that list is cached for 30 seconds. Without this the
+    // switch appears to do nothing for half a minute, which reads as the
+    // setting being broken rather than as a cache.
+    if (k === 'library_group_versions') {
+      try { require('./library').invalidateCache(); } catch (e) {
+        // Router not loaded yet — there is no cache to clear.
+      }
     }
     loudness.setSetting(k, v);
   }

@@ -4,6 +4,7 @@ import { api } from '../api'
 import { Volume2, Play, Square, Download, RefreshCw, ChevronRight, ChevronLeft, User, Sliders, Folder, Save, Image as ImageIcon, Radio, LogOut, Cable, Key, Home, Power, Cpu, Palette, Cloud } from 'lucide-react'
 import DspTab from './DspTab'
 import LibraryScopeSection from './LibraryScopeSection'
+import AlbumVersionsSection from './AlbumVersionsSection'
 import HelpTooltip from './HelpTooltip'
 import {
   classifyShare, hasAsyncClipboard, reportDownloadUrl,
@@ -623,6 +624,11 @@ export default function SettingsScreen({ onBack }) {
               matching block fires directly. */}
       <Section id="library" title="Library" icon={<Folder size={14} style={{ marginRight: 8 }} />} openSection={openSection} setOpenSection={setOpenSection}>
         <LibraryScopeSection />
+        {/* v1.1.34.0 — album version grouping. Below the scope picker
+            because scope decides WHAT is in the library and this decides
+            how it is SHOWN; the order reads as narrowing then arranging. */}
+        <div style={s.sectionDivider} />
+        <AlbumVersionsSection />
         {/* Rescan pill (#30.16). Lives at the bottom of the Library
             section so it's visible right alongside the scope picker
             that determines what gets scanned. */}
@@ -3122,6 +3128,11 @@ const s = {
   // accordion; this tiny header lets us divide them visually without
   // splitting into a new <Section>.
   divider: { height: 1, background: 'var(--border)' },
+  // v1.1.34.0 — separates the scope picker from album version grouping
+  // inside Settings → Library. New key; verified absent from this map
+  // before adding, because a duplicate key here is an esbuild warning
+  // rather than an error and the later value would silently win.
+  sectionDivider: { height: 1, background: 'var(--border)', margin: '20px 0 18px' },
   subSectionTitle: { fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 6 },
   // Service health rows (#v1.1.0.24). Stacked vertically below the
   // "Built-in services" subsection title. Each row: dot + name +

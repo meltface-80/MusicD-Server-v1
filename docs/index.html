@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MusicD Server v1 — self-hosted music server</title>
-<meta name="description" content="MusicD Server v1.1.33.0 — a self-hosted music server with a Roon-inspired web UI, Qobuz and Tidal merged into one library, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
+<meta name="description" content="MusicD Server v1.1.34.0 — a self-hosted music server with a Roon-inspired web UI, MusicBrainz album matching, album version grouping, Qobuz and Tidal merged into one library, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
 <style>
   :root {
     --bg:        #1b1d1f;   /* charcoal */
@@ -263,7 +263,7 @@
   Squeezelite and local USB DACs &mdash; with parametric EQ, AutoEQ presets,
   FIR convolution and a per-stream signal path you can actually read.</p>
   <div class="badges">
-    <span class="badge">v1.1.33.0</span>
+    <span class="badge">v1.1.34.0</span>
     <span class="badge">Node 20 &middot; Express &middot; SQLite</span>
     <span class="badge">React SPA &middot; PWA</span>
     <span class="badge plain">Docker &middot; port 32700</span>
@@ -275,11 +275,57 @@
 
 <section id="whats-new" aria-labelledby="whats-new-h">
   <div class="wrap">
-    <h2 id="whats-new-h">What&rsquo;s new in 1.1.33.0</h2>
-    <p class="lead">Qobuz and Tidal join the library you already have &mdash;
-    one album wall, one search, one signal path &mdash; and below them, a DSP
-    page you can read, levelling per zone, and four themes.</p>
+    <h2 id="whats-new-h">What&rsquo;s new in 1.1.34.0</h2>
+    <p class="lead">Album matching that works from artist and title alone,
+    one tile per album instead of one per copy &mdash; and below them, Qobuz
+    and Tidal in the same library, and a DSP page you can read.</p>
     <div class="grid">
+
+      <div class="card new">
+        <span class="tagline">Fixed</span>
+        <h3><span class="em" aria-hidden="true">&#127919;</span>Album matching, and the sum that was wrong</h3>
+        <p>An album whose artist and title were <i>both exactly right</i> did
+        not match. The scoring gave 50 for the title and 30 for the artist
+        against a threshold of 85, so a perfectly tagged record scored 80 and
+        went to the Unmatched page &mdash; unless the year agreed too. A
+        remaster is tagged with the remaster's year while the album's real
+        date is the original's, so the albums most in need of help were the
+        ones guaranteed not to get it.</p>
+        <p>Artist and title agreeing is now enough on its own. Matching also
+        <b>resolves the artist first</b> and then reads their actual
+        discography, so &ldquo;The Rolling Stones&rdquo; against &ldquo;Rolling
+        Stones&rdquo; stops costing you every album they made &mdash; and it
+        uses fewer lookups than before, not more.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">New</span>
+        <h3><span class="em" aria-hidden="true">&#128218;</span>One tile per album, not one per copy</h3>
+        <p>If you own <b>Moon Safari</b>, <b>Moon Safari (Deluxe)</b> and
+        <b>Moon Safari (Remaster)</b>, that is three tiles for one record.
+        Switch on <b>Group album versions</b> in
+        <b>Settings &rarr; Library</b> and they become one &mdash; the best
+        quality copy you own &mdash; with the others listed on its page.</p>
+        <p><b>Nothing is merged or deleted.</b> It changes how the library is
+        shown, not what is in it, and turning it off brings every version
+        straight back. It applies to the album wall and artist pages;
+        Favourites, Saved and search still show each version, because there
+        you picked a particular one.</p>
+      </div>
+
+      <div class="card new">
+        <span class="tagline">Fixed</span>
+        <h3><span class="em" aria-hidden="true">&#128736;&#65039;</span>Tidier than it was</h3>
+        <p><b>Qobuz and Tidal favourites are no longer capped at 5000.</b> The
+        sync stopped there and reported 5000 as the total, so a bigger library
+        synced part of itself and said it had finished.</p>
+        <p><b>The streaming album grids match the main library</b> &mdash; they
+        were drawing their own tiles, at two different heights depending on
+        whether the service reported a quality, so the rows came out ragged.
+        And <b>Play and Add Queue sit side by side on every screen</b>: they
+        were being spread to the edges of their row, which only looked right
+        on a phone.</p>
+      </div>
 
       <div class="card new">
         <span class="tagline">New</span>
@@ -416,32 +462,11 @@
 
       <div class="card new">
         <span class="tagline">Changed</span>
-        <h3><span class="em" aria-hidden="true">&#128266;</span>One volume control, not two</h3>
-        <p>The volume sheet on the mini player is now the same one the
-        full-screen player uses &mdash; <b>DSP</b>, <b>Switch&nbsp;output</b>
-        and <b>Device</b> buttons included, along with the discrete
-        &minus;&nbsp;/&nbsp;+ steps and the fixed-output state.</p>
-        <p>There had been two copies, and every improvement since the icon row
-        shipped had landed on only one of them.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">Changed</span>
         <h3><span class="em" aria-hidden="true">&#128465;&#65039;</span>A shorter side menu</h3>
         <p><b>Home</b> is at the top of it now. <b>Queue</b> has gone &mdash;
         the queue behind the Now&nbsp;Playing tab switcher is the real one, and
         the menu opened a second, lesser copy. <b>Focus library</b> has gone
         too: a set of filters worth keeping is a tag.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">Fixed</span>
-        <h3><span class="em" aria-hidden="true">&#128241;</span>Six safe-area insets that never applied</h3>
-        <p>The side-menu header sat under the status bar, and four bottom
-        sheets ran under the home indicator. Each had been given the right
-        inset; each had it silently thrown away by a shorthand written on the
-        next line. All six are fixed, and a check now fails the build if the
-        pattern comes back.</p>
       </div>
 
       <div class="card new">
@@ -870,7 +895,7 @@
       <code>-e MUSICD_MANIFEST_URL=https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json</code>
       to your <code>docker run</code>, restart, then <b>Check for updates</b>.
       The older parser understands this manifest, so it installs normally. Drop
-      the variable afterwards &mdash; v1.1.33.0 has the same URL as its own
+      the variable afterwards &mdash; v1.1.34.0 has the same URL as its own
       default.
     </div>
   </div>
@@ -943,7 +968,7 @@
 </main>
 
 <footer>
-  MusicD Server v1.1.33.0 &mdash; self-hosted music, one user, one library, one home network.
+  MusicD Server v1.1.34.0 &mdash; self-hosted music, one user, one library, one home network.
   <br>MIT licence &middot; <a href="https://github.com/meltface-80/MusicD-Server-v1">Source on GitHub</a>
 </footer>
 
