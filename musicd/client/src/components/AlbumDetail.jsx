@@ -474,6 +474,15 @@ export default function AlbumDetail({ albumId, onArtistClick, onGenreClick, onBa
             <button style={s.artistBtn} onClick={() => onArtistClick && onArtistClick(album.album_artist || album.artist)}>
               {album.album_artist || album.artist}
             </button>
+          </div>
+        </div>
+
+        {/* v1.1.35.0 — everything except the cover, the title and the artist
+            now runs the FULL width of the page rather than sharing a column
+            with a 144px cover. On a phone that column was about 200pt wide,
+            which is why the format line and the ReplayGain line wrapped and
+            the whole header read as cramped. Same information, given room. */}
+        <div style={s.heroBelow}>
             <div style={s.heroMeta}>
               {(album.release_date || album.year) && (
                 <>
@@ -507,7 +516,7 @@ export default function AlbumDetail({ albumId, onArtistClick, onGenreClick, onBa
                 context. */}
             {albumRg && (
               <div style={s.heroRgRow}>
-                <span style={s.heroRgLabel}>ReplayGain</span>
+                <span style={s.heroRgLabel}>RG</span>
                 <span style={s.heroRgValue}>
                   Album {albumRg.albumGainDb > 0 ? '+' : ''}{albumRg.albumGainDb.toFixed(2)} dB
                   {albumRg.albumPeakDb !== null && (
@@ -560,9 +569,9 @@ export default function AlbumDetail({ albumId, onArtistClick, onGenreClick, onBa
                   />
                 )}
               </div>
-              <button style={s.appendBtn} onClick={handleAppend} title="Add to queue">
-                Add Queue
-              </button>
+              {/* v1.1.35.0 — the Add Queue pill is gone. It duplicated
+                  "Add to Queue" in the Play chevron's menu, and two ways to
+                  do one thing was costing the row the width it needed. */}
               {/* v1.1.33.0 — the circled plus. Only on Qobuz / Tidal albums;
                   a local album has no service favourite to write. Filled once
                   the album is in that service's favourites, which is also what
@@ -602,6 +611,7 @@ export default function AlbumDetail({ albumId, onArtistClick, onGenreClick, onBa
                 </span>
               </div>
             )}
+            {album.match_status === 'matched' && album.mb_release_group_id && (
             <div style={s.matchedPillRow}>
               {album.match_status === 'matched' && album.mb_release_group_id && (
                 <div style={s.mbidChip}>
@@ -667,14 +677,7 @@ export default function AlbumDetail({ albumId, onArtistClick, onGenreClick, onBa
                 </button>
               )}
             </div>
-            {album.match_status !== 'matched' && (
-              <div style={s.notMatchedRow}>
-                <div style={s.notMatchedChip}>
-                  Not matched yet
-                </div>
-              </div>
             )}
-          </div>
         </div>
 
         {/* Bio modal (#30.23). Lazy-loaded; the modal itself fetches
@@ -1592,7 +1595,6 @@ function TrackRowActions({ track, onFavoriteChange, onRatingChange }) {
 // without this component having to know the rule.
 function AlbumVersions({ versions, onOpen }) {
   const [open, setOpen] = useState(false)
-  const others = versions.length - 1
 
   return (
     <div style={s.versionsWrap}>
@@ -1601,11 +1603,8 @@ function AlbumVersions({ versions, onOpen }) {
         <span>{versions.length} versions</span>
         <ChevronDown size={13} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
       </button>
-      {!open && (
-        <span style={s.versionsHint}>
-          {others === 1 ? 'one other copy in your library' : `${others} other copies in your library`}
-        </span>
-      )}
+      {/* v1.1.35.0 — no hint line. The button reads "3 versions", which
+          already says everything the sentence under it was saying. */}
       {open && (
         <div style={s.versionsList}>
           {versions.map(v => (
@@ -1632,6 +1631,15 @@ function AlbumVersions({ versions, onOpen }) {
   )
 }
 
+
+// v1.1.35.0 — one definition of the track-row column layout, used by both the
+// header and every row. Two copies of a grid template is two chances for the
+// header's "#" to stop sitting over the numbers it labels.
+//
+// 20px is two monospace digits with nothing spare, so a right-aligned number
+// finishes level with the row's left padding rather than floating in from it;
+// 46px holds "10:00" the same way on the other side.
+const TRACK_GRID = '20px 1fr 38px'
 
 const s = {
   // v1.1.0.63 — JPLAY-style album page. Pure black ground (was the
@@ -1827,23 +1835,31 @@ const s = {
   // dropshadow — the cover sits flat on the black ground, same as
   // album tiles in the grid. The marginBottom shrinks because we're
   // also dropping the noisy meta + genre pill into a single line.
-  hero: { display: 'flex', gap: 16, marginTop: 4, marginBottom: 22, alignItems: 'flex-start' },
+  // v1.1.35.0 — the hero row is now just the cover and the title block, so
+  // centring them against each other reads better than top-aligning a two-line
+  // block against a 144px square. Everything else moved to heroBelow.
+  hero: { display: 'flex', gap: 16, marginTop: 4, marginBottom: 16, alignItems: 'center' },
   artWrap: { width: 144, height: 144, flexShrink: 0, borderRadius: 4, overflow: 'hidden', background: 'var(--jp-bg-surface)' },
   art: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
   artFallback: { width: '100%', height: '100%', background: 'rgba(var(--tint-rgb), 0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, color: 'rgba(var(--tint-rgb), 0.15)' },
-  heroInfo: { flex: 1, minWidth: 0, paddingTop: 4 },
+  heroInfo: { flex: 1, minWidth: 0 },
+  // The full-width block under the cover: format line, ReplayGain, actions,
+  // versions. Given the whole page width, these stop wrapping on a phone.
+  heroBelow: { marginBottom: 14 },
   // 22/600 (was 18/700). Reads as "section heading" not "headline".
-  heroTitle: { fontSize: 22, fontWeight: 600, color: 'var(--jp-text)', letterSpacing: '-0.3px', lineHeight: 1.2, marginBottom: 4, wordBreak: 'break-word' },
+  heroTitle: { fontSize: 25, fontWeight: 600, color: 'var(--jp-text)', letterSpacing: '-0.4px', lineHeight: 1.18, marginBottom: 5, wordBreak: 'break-word' },
   // Artist name 14/500 secondary-text (was 15/500 at 78% white).
   // Sits as a peer to the title without competing for attention.
-  artistBtn: { background: 'none', border: 'none', padding: 0, fontSize: 14, fontWeight: 500, color: 'var(--jp-text-2)', cursor: 'pointer', marginBottom: 10, display: 'block', textAlign: 'left' },
+  artistBtn: { background: 'none', border: 'none', padding: 0, fontSize: 15, fontWeight: 500, color: 'var(--jp-text-2)', cursor: 'pointer', marginBottom: 0, display: 'block', textAlign: 'left' },
   // Meta line: year · tracks · duration · genre · format-mix all on
   // a single mono line. Each token separated by a thin middle-dot.
   // No more separate genrePill; the genre joins the meta string and
   // is still tappable (rendered as a span with onClick + a subtle
   // underline on hover). 11/400 mono in --jp-text-3 — quiet
   // metadata, not foreground content.
-  heroMeta: { display: 'flex', gap: 6, fontSize: 11, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' },
+  // 12.5 rather than 11, and a wider gap. The line has the full page width
+  // now, so it can afford to be read at arm's length.
+  heroMeta: { display: 'flex', gap: 8, fontSize: 12.5, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', marginBottom: 10, flexWrap: 'wrap', alignItems: 'center', lineHeight: 1.5 },
   heroMetaSep: { color: 'rgba(var(--tint-rgb), 0.18)', userSelect: 'none' },
   heroMetaGenre: {
     background: 'none', border: 'none', padding: 0,
@@ -1894,22 +1910,6 @@ const s = {
     gap: 8,
     marginTop: 14,
     marginBottom: 16,
-  },
-  notMatchedRow: {
-    display: 'flex',
-    justifyContent: 'center',
-    marginTop: 14,
-    marginBottom: 16,
-  },
-  notMatchedChip: {
-    display: 'inline-flex', alignItems: 'center',
-    padding: '5px 12px',
-    background: 'rgba(var(--tint-rgb), 0.04)',
-    color: 'rgba(var(--tint-rgb), 0.45)',
-    border: '1px dashed rgba(var(--tint-rgb), 0.15)',
-    borderRadius: 12,
-    fontSize: 11, fontWeight: 500,
-    fontStyle: 'italic',
   },
   // MBID chip (#30.21). #v1.1.0.31 -- shape matched to the About pill
   // beside it so the pair reads as a balanced row rather than
@@ -1964,7 +1964,6 @@ const s = {
   // four action buttons (Play / Queue / Heart / Share) fit
   // comfortably on a single row at iPhone widths.
   playBtn: { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 20, background: 'var(--jp-accent)', color: 'var(--jp-bg)', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer' },
-  appendBtn: { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 20, background: 'rgba(var(--tint-rgb), 0.1)', color: 'rgba(var(--tint-rgb), 0.7)', fontSize: 13, fontWeight: 600, border: '1px solid rgba(var(--tint-rgb), 0.15)', cursor: 'pointer' },
   // v1.1.33.0 — the circled plus and the line under it. Four new keys;
   // none of them already existed in this map (a duplicate key here is an
   // esbuild WARNING, not an error, and the later value silently wins).
@@ -1997,7 +1996,6 @@ const s = {
     background: 'transparent', color: 'var(--jp-text-2)',
     border: '1px solid rgba(var(--tint-rgb), 0.15)', cursor: 'pointer',
   },
-  versionsHint: { fontSize: 11, color: 'var(--jp-text-3)' },
   versionsList: { width: '100%', display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 },
   versionRow: {
     display: 'flex', alignItems: 'center', gap: 10, width: '100%',
@@ -2098,8 +2096,17 @@ const s = {
   },
   tracklist: { borderTop: '1px solid rgba(var(--tint-rgb), 0.08)', paddingTop: 6 },
   discHeader: { fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(var(--tint-rgb), 0.3)', padding: '14px 8px 4px' },
-  trackHeader: { display: 'grid', gridTemplateColumns: '32px 1fr 52px', padding: '4px 8px', fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(var(--tint-rgb), 0.25)', borderBottom: '1px solid rgba(var(--tint-rgb), 0.06)', marginBottom: 2 },
-  thNum: { textAlign: 'right', paddingRight: 10 },
+  // v1.1.35.0 — the number column was 32px wide with a further 10px of right
+  // padding, so a single-digit track number sat ~22px in from the row edge
+  // while the duration finished 8px from the other one. The left gutter read
+  // as visibly deeper than the right.
+  //
+  // The column is now just wide enough for two digits with no extra padding,
+  // and the row is padded equally on both sides — so the number and the time
+  // are inset by the same amount, and the title starts ~12px earlier into the
+  // bargain.
+  trackHeader: { display: 'grid', gridTemplateColumns: TRACK_GRID, gap: 5, padding: '4px 8px', fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(var(--tint-rgb), 0.25)', borderBottom: '1px solid rgba(var(--tint-rgb), 0.06)', marginBottom: 2 },
+  thNum: { textAlign: 'right' },
   // v1.1.0.63 — JPLAY-style track row. Was a 4-column grid (num /
   // info / dur / actions) where the actions column held the
   // always-visible Heart + Star buttons added in v58. The buttons
@@ -2109,17 +2116,22 @@ const s = {
   // the height too much. Active row gets a quiet 4% white wash —
   // half what the old "0.06" was — JPLAY's active highlights are
   // restrained.
-  trackRow: { display: 'grid', gridTemplateColumns: '32px 1fr 52px', alignItems: 'center', gap: 4, padding: '10px 8px', borderRadius: 6, width: '100%', cursor: 'pointer', background: 'none', border: 'none', textAlign: 'left', transition: 'background 0.1s' },
+  trackRow: { display: 'grid', gridTemplateColumns: TRACK_GRID, alignItems: 'center', gap: 5, padding: '11px 8px', borderRadius: 6, width: '100%', cursor: 'pointer', background: 'none', border: 'none', textAlign: 'left', transition: 'background 0.1s' },
   trackRowActive: { background: 'rgba(var(--tint-rgb), 0.04)' },
-  trackNum: { textAlign: 'right', paddingRight: 10, fontSize: 12, fontFamily: 'var(--font-mono)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', minHeight: 14 },
+  trackNum: { textAlign: 'right', fontSize: 12.5, fontFamily: 'var(--font-mono)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', minHeight: 14 },
   trackInfo: { display: 'flex', flexDirection: 'column', gap: 4, overflow: 'hidden' },
   // 14/500 (was 13/400). JPLAY's track title weight is the
   // visually-dominant element of the row — slightly heavier than
   // the spec line below.
-  trackTitle: { fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--jp-text)' },
-  trackSpec: { display: 'flex', alignItems: 'center', gap: 6 },
+  trackTitle: { fontSize: 15, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--jp-text)' },
+  // v1.1.35.0 — wraps rather than clips. This line only ever just fitted a
+  // phone, and the ReplayGain chip is last, so any width it lost got taken
+  // out of the chip mid-word — "RG -8.(" with the rest cut off. Wrapping
+  // costs a few pixels of row height on a narrow screen and keeps every
+  // figure readable, which is the trade the information is worth.
+  trackSpec: { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', rowGap: 4, minWidth: 0 },
   specText: { fontSize: 10, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' },
-  trackDur: { fontSize: 11, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', textAlign: 'right' },
+  trackDur: { fontSize: 12, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', textAlign: 'right' },
   // v1.1.0.63: small ★ chip rendered inline in the spec line when a
   // track has a non-zero rating. Tiny, gold, no background — just
   // sits among the other meta tokens. Hidden when rating is 0 so
@@ -2182,22 +2194,36 @@ const s = {
   // year/tracks/genre meta line above it; reads as a sub-line.
   heroRgRow: {
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 8,
-    marginTop: 4,
-    fontSize: 11,
+    marginTop: 0,
+    marginBottom: 14,
+    fontSize: 12,
     color: 'var(--jp-text-3)',
     fontFamily: 'var(--font-mono)',
+    flexWrap: 'nowrap',
+    lineHeight: 1.5,
   },
+  // v1.1.35.0 — reads "RG". Spelled out, it was the longest thing on the line
+  // and the least interesting: the numbers beside it are the content. Boxed so
+  // a two-letter label still reads as a label rather than as the start of the
+  // value.
   heroRgLabel: {
-    fontSize: 9,
-    fontWeight: 600,
+    fontSize: 10,
+    fontWeight: 700,
     letterSpacing: '0.06em',
-    textTransform: 'uppercase',
     color: 'var(--jp-text-3)',
+    border: '1px solid var(--jp-border)',
+    borderRadius: 3,
+    padding: '1px 5px',
+    flexShrink: 0,
   },
   heroRgValue: {
     color: 'var(--jp-text-2)',
+    // Wraps INSIDE its own box. Letting the row wrap instead left the "RG"
+    // chip stranded on a line of its own with the numbers underneath it.
+    flex: 1,
+    minWidth: 0,
   },
   heroRgCoverage: {
     color: 'var(--jp-text-3)',
