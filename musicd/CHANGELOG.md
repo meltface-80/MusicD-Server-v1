@@ -12,6 +12,73 @@ Categories used per release:
 
 ---
 
+## v1.1.35.0 — 2026-08-22 — THE ALBUM PAGE, DECLUTTERED
+
+A layout pass on the album page, from a phone screenshot. Same
+information, more room, and three things removed that were saying what
+something next to them already said.
+
+### Changed
+
+- **The album details run the full width of the page.** The release date,
+  track count, duration, genre and the ReplayGain line used to share a
+  column with the cover art — about 200 points wide on a phone, which is
+  why they wrapped and why the whole header read as cramped. The cover
+  now sits beside the title and artist only; everything else has the
+  whole page.
+- **Text is a little larger throughout the page** — the title, the artist,
+  the format line, the ReplayGain figures, the track titles and the
+  track times.
+- **The track list is inset by the same amount on both sides.** The track
+  number column was 32 points wide with another 10 of padding, so a
+  single-digit number floated well in from the left edge while the
+  duration finished tight against the right. The numbers and the times
+  now sit the same distance from their own edges, and the titles get the
+  space back.
+- **ReplayGain is labelled RG.** Spelled out it was the longest thing on
+  the line and the least interesting; the numbers beside it are the
+  content.
+
+### Removed
+
+- **The "Add Queue" button.** The Play button's chevron menu already
+  offers Add to Queue, and the duplicate was taking the row's width.
+  Nothing is lost — the menu is unchanged.
+- **The line under the versions button.** It said "one other copy in your
+  library" beneath a button reading "2 versions".
+- **The "Not matched yet" chip.** See below.
+
+### Fixed
+
+- **An empty row was leaving a gap above every track list.** The row that
+  holds the MusicBrainz chip and the About button is only populated for a
+  matched album, but it rendered regardless — an empty element carrying
+  30 points of margin. Since nothing is matched by default, that hole was
+  on every album page in the app.
+- **The per-track detail line wraps instead of cutting off.** It only just
+  fitted a phone, and the ReplayGain chip is last in the line, so any
+  width it lost was taken out of the chip mid-word.
+
+### About "Not matched yet"
+
+It was not a bug in matching — matching had never run. Two separate
+things have to be set before it can, and neither is on by default:
+
+- **Settings → Metadata → Scheduler** is `off` on a new install, so
+  nothing schedules a match.
+- **Settings → Metadata → MusicBrainz contact** is empty, and the matcher
+  refuses to start without it. That is MusicBrainz's requirement, not
+  ours: their terms ask that clients identify a way to contact whoever is
+  running them.
+
+So the chip was accurately reporting a state that applies to every album
+until those two are set — which makes it a permanent fixture rather than
+information. It is gone. **To actually match your library**, fill in the
+contact and set the scheduler to Automatic; v1.1.34.0's matching
+improvements then apply to everything.
+
+---
+
 ## v1.1.34.0 — 2026-08-21 — ALBUM MATCHING, AND ONE ALBUM PER ALBUM
 
 ### Album matching is better, and the reason was arithmetic

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MusicD Server v1 — self-hosted music server</title>
-<meta name="description" content="MusicD Server v1.1.34.0 — a self-hosted music server with a Roon-inspired web UI, MusicBrainz album matching, album version grouping, Qobuz and Tidal merged into one library, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
+<meta name="description" content="MusicD Server v1.1.35.0 — a self-hosted music server with a Roon-inspired web UI, MusicBrainz album matching, album version grouping, Qobuz and Tidal merged into one library, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
 <style>
   :root {
     --bg:        #1b1d1f;   /* charcoal */
@@ -263,7 +263,7 @@
   Squeezelite and local USB DACs &mdash; with parametric EQ, AutoEQ presets,
   FIR convolution and a per-stream signal path you can actually read.</p>
   <div class="badges">
-    <span class="badge">v1.1.34.0</span>
+    <span class="badge">v1.1.35.0</span>
     <span class="badge">Node 20 &middot; Express &middot; SQLite</span>
     <span class="badge">React SPA &middot; PWA</span>
     <span class="badge plain">Docker &middot; port 32700</span>
@@ -275,11 +275,27 @@
 
 <section id="whats-new" aria-labelledby="whats-new-h">
   <div class="wrap">
-    <h2 id="whats-new-h">What&rsquo;s new in 1.1.34.0</h2>
-    <p class="lead">Album matching that works from artist and title alone,
-    one tile per album instead of one per copy &mdash; and below them, Qobuz
-    and Tidal in the same library, and a DSP page you can read.</p>
+    <h2 id="whats-new-h">What&rsquo;s new in 1.1.35.0</h2>
+    <p class="lead">A roomier album page, album matching that works from
+    artist and title alone, and one tile per album instead of one per copy
+    &mdash; with Qobuz and Tidal in the same library below them.</p>
     <div class="grid">
+
+      <div class="card new">
+        <span class="tagline">Changed</span>
+        <h3><span class="em" aria-hidden="true">&#128241;</span>The album page, given room</h3>
+        <p>The release date, track count, duration and ReplayGain figures used
+        to share a column with the cover art &mdash; about 200 points wide on a
+        phone, which is why they wrapped and why the page felt cramped. The
+        cover now sits beside the title and artist alone; everything else has
+        the full width. Text is a little larger throughout.</p>
+        <p>Three things went, each of them saying what the thing beside it
+        already said: the <b>Add Queue</b> button (the Play menu has it), the
+        line under the versions button, and the <b>Not matched yet</b> chip.
+        An empty row that was leaving a gap above every track list went with
+        them, and the track numbers and times are now inset by the same
+        amount on their own sides.</p>
+      </div>
 
       <div class="card new">
         <span class="tagline">Fixed</span>
@@ -461,15 +477,6 @@
       </div>
 
       <div class="card new">
-        <span class="tagline">Changed</span>
-        <h3><span class="em" aria-hidden="true">&#128465;&#65039;</span>A shorter side menu</h3>
-        <p><b>Home</b> is at the top of it now. <b>Queue</b> has gone &mdash;
-        the queue behind the Now&nbsp;Playing tab switcher is the real one, and
-        the menu opened a second, lesser copy. <b>Focus library</b> has gone
-        too: a set of filters worth keeping is a tag.</p>
-      </div>
-
-      <div class="card new">
         <span class="tagline">New</span>
         <h3><span class="em" aria-hidden="true">&#127925;</span>Playlists, and the menu rows that were greyed out</h3>
         <p>Build playlists and play them: a <b>Playlists</b> entry in the menu,
@@ -479,17 +486,6 @@
         <p><b>Add to Tag</b> and <b>Save for later</b> work from that menu too,
         and <b>Tags</b> has moved out of Settings into the side menu, alongside
         the other ways through your library.</p>
-      </div>
-
-      <div class="card new">
-        <span class="tagline">New</span>
-        <h3><span class="em" aria-hidden="true">&#128274;</span>Music News is opt-in</h3>
-        <p>Four switches in <b>Settings &rarr; Home Screen</b>: new releases
-        from Qobuz, new releases from Bandcamp, Pitchfork reviews, and Bandcamp
-        Daily reviews.</p>
-        <p>All four are off on a new install, and off means off &mdash; not
-        fetched-and-hidden. With nothing enabled the server makes no request to
-        any of those sites and schedules no background refresh at all.</p>
       </div>
 
     </div>
@@ -895,7 +891,7 @@
       <code>-e MUSICD_MANIFEST_URL=https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json</code>
       to your <code>docker run</code>, restart, then <b>Check for updates</b>.
       The older parser understands this manifest, so it installs normally. Drop
-      the variable afterwards &mdash; v1.1.34.0 has the same URL as its own
+      the variable afterwards &mdash; v1.1.35.0 has the same URL as its own
       default.
     </div>
   </div>
@@ -968,7 +964,7 @@
 </main>
 
 <footer>
-  MusicD Server v1.1.34.0 &mdash; self-hosted music, one user, one library, one home network.
+  MusicD Server v1.1.35.0 &mdash; self-hosted music, one user, one library, one home network.
   <br>MIT licence &middot; <a href="https://github.com/meltface-80/MusicD-Server-v1">Source on GitHub</a>
 </footer>
 

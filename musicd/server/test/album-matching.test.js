@@ -427,6 +427,92 @@ test('the album page action buttons sit side by side at every width', () => {
     'than squash three controls');
 });
 
+// ---------------------------------------------------------------------------
+// 7. The album page, decluttered (v1.1.35.0).
+// ---------------------------------------------------------------------------
+
+test('the album page no longer says things it has already said', () => {
+  const d = code(readClient('components', 'AlbumDetail.jsx'));
+
+  assert.ok(!/Not matched yet/.test(d),
+    'the "Not matched yet" chip is gone. It appeared on every album that was ' +
+    'not matched, which on a default install is EVERY album: the metadata ' +
+    'scheduler defaults to off and the MusicBrainz matcher additionally ' +
+    'refuses to run without mb_contact set, so matching has never been ' +
+    'attempted. A permanent chip reporting that is noise, not information.');
+
+  assert.ok(!/other cop(y|ies) in your library/.test(d),
+    'the sentence under the versions button is gone — the button reads ' +
+    '"2 versions", which already says it');
+
+  assert.ok(!/>\s*Add Queue\s*</.test(d),
+    'the Add Queue pill is gone; the Play chevron menu already offers ' +
+    '"Add to Queue", and the duplicate was costing the row its width');
+  assert.ok(/onAddToQueue=/.test(d),
+    'the Play menu must still offer Add to Queue — removing the pill must ' +
+    'not remove the function');
+
+  assert.ok(/heroRgLabel}>RG</.test(d),
+    'the ReplayGain label reads "RG": spelled out it was the longest and ' +
+    'least interesting thing on the line');
+});
+
+test('the matched-only pill row is not rendered when it would be empty', () => {
+  const d = code(readClient('components', 'AlbumDetail.jsx'));
+  const at = d.indexOf('s.matchedPillRow');
+  assert.notEqual(at, -1, 'the pill row is gone entirely');
+  // Every child of that row is gated on the album being matched, so without
+  // a guard on the row ITSELF an unmatched album renders an empty div
+  // carrying 30px of vertical margin — a visible hole above the track list
+  // on every album, since by default nothing is ever matched.
+  const before = d.slice(Math.max(0, at - 200), at);
+  assert.ok(/match_status === 'matched' && album\.mb_release_group_id && \(/.test(before),
+    'the pill row must be guarded, or it leaves an empty margin-bearing div ' +
+    'above the track list on every unmatched album');
+});
+
+test('the hero gives its detail lines the full page width', () => {
+  const d = code(readClient('components', 'AlbumDetail.jsx'));
+  assert.ok(/heroBelow/.test(d),
+    'the format line, ReplayGain and the actions must sit in a full-width ' +
+    'block, not in the ~200pt column left over beside a 144px cover — that ' +
+    'column is what made the page read as cramped on a phone');
+  // The RG label must not be able to wrap away from its own value.
+  const rg = /heroRgRow: \{([^}]*)\}/.exec(readRaw('..', '..', 'client', 'src', 'components', 'AlbumDetail.jsx'));
+  assert.ok(rg, 'heroRgRow style is gone');
+  assert.ok(/flexWrap: 'nowrap'/.test(rg[1]),
+    'the RG row must not wrap as a whole: it left the two-letter label ' +
+    'stranded on a line by itself with the numbers underneath. The VALUE ' +
+    'wraps inside its own box instead.');
+});
+
+test('the track list is inset by the same amount on both sides', () => {
+  const raw = readRaw('..', '..', 'client', 'src', 'components', 'AlbumDetail.jsx');
+  const grid = /const TRACK_GRID = '(\d+)px 1fr (\d+)px'/.exec(raw);
+  assert.ok(grid, 'TRACK_GRID must be one shared constant — the header and the ' +
+    'rows each having their own is how the "#" stops sitting over the numbers');
+
+  const numCol = Number(grid[1]);
+  assert.ok(numCol <= 22,
+    `the track-number column is ${numCol}px. It was 32px with a further 10px ` +
+    'of right padding, so a single-digit number floated ~22px in from the row ' +
+    'edge while the duration finished 8px from the other one — the uneven ' +
+    'gutter. It has to be about two digits wide, no more.');
+  assert.ok(!/trackNum: \{[^}]*paddingRight/.test(raw),
+    'trackNum must not re-add right padding — that padding is exactly what ' +
+    'pushed the number away from its own edge');
+
+  // Both the header and the rows must use the shared constant.
+  assert.equal((raw.match(/gridTemplateColumns: TRACK_GRID/g) || []).length, 2,
+    'the header and the track rows must both use TRACK_GRID');
+
+  // And the spec line wraps rather than clipping its last chip.
+  assert.ok(/trackSpec: \{[^}]*flexWrap: 'wrap'/.test(raw),
+    'the per-track spec must wrap. It only just fitted a phone, and the ' +
+    'ReplayGain chip is last, so any width it lost was taken out of the chip ' +
+    'mid-word — "RG -8.(" with the rest cut off.');
+});
+
 test('the detectors actually detect', () => {
   // A check that cannot fail is worse than no check.
 
@@ -458,6 +544,17 @@ test('the detectors actually detect', () => {
   const delegating = '<AlbumTile album={album} onClick={onClick} />';
   assert.ok(!/artEmpty/.test(delegating),
     'and must stay green for one that delegates');
+
+  // (g) The decluttering, undone.
+  assert.ok(/Not matched yet/.test('<div>Not matched yet</div>'),
+    'the not-matched check must go red if the chip comes back');
+  assert.ok(/>\s*Add Queue\s*</.test('<button>Add Queue</button>'),
+    'the Add Queue check must go red if the pill comes back');
+
+  // (h) The old track grid.
+  const oldGrid = /const TRACK_GRID = '(\d+)px 1fr (\d+)px'/.exec("const TRACK_GRID = '32px 1fr 52px'");
+  assert.ok(oldGrid && Number(oldGrid[1]) > 22,
+    'the gutter check must go red on the 32px number column it replaced');
 
   // (f) The action row back on space-between.
   const spread = "heroActions: { display: 'flex', justifyContent: 'space-between', gap: 6 }";
