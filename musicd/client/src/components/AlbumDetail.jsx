@@ -76,7 +76,7 @@ function FormatBadge({ format, codec }) {
   return (
     <span style={{
       padding: '1px 5px', borderRadius: 3,
-      fontSize: 9, fontWeight: 700, fontFamily: 'var(--font-mono)',
+      fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)',
       background: `${color}22`, color, border: `1px solid ${color}44`,
       flexShrink: 0,
     }}>{label}</span>
@@ -1089,7 +1089,7 @@ const relStyles = {
     marginBottom: 28,
   },
   sectionHeader: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 600,
     letterSpacing: '0.06em',
     textTransform: 'uppercase',
@@ -1135,7 +1135,7 @@ const relStyles = {
     color: 'rgba(var(--tint-rgb), 0.18)',
   },
   tileTitle: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 500,
     color: 'var(--jp-text)',
     whiteSpace: 'nowrap',
@@ -1144,13 +1144,13 @@ const relStyles = {
     lineHeight: 1.25,
   },
   tileYear: {
-    fontSize: 10,
+    fontSize: 12,
     color: 'var(--jp-text-3)',
     fontFamily: 'var(--font-mono)',
     marginTop: 1,
   },
   bioContent: {
-    fontSize: 13,
+    fontSize: 14,
     lineHeight: 1.55,
     color: 'var(--jp-text-2)',
     whiteSpace: 'pre-wrap',
@@ -1163,7 +1163,7 @@ const relStyles = {
   bioSource: {
     display: 'inline-block',
     marginTop: 10,
-    fontSize: 11,
+    fontSize: 12,
     color: 'var(--jp-text-3)',
     textDecoration: 'none',
     paddingLeft: 12,
@@ -1267,8 +1267,8 @@ function AlbumTypeSheet({ onClose, currentType, isLocked, onPick }) {
       <div style={s.sheetPanel} onClick={e => e.stopPropagation()}>
         <div style={s.sheetGrabber} />
         <div style={{ padding: '4px 22px 12px' }}>
-          <div style={{ fontSize: 14, fontWeight: 600 }}>Album type</div>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+          <div style={{ fontSize: 15, fontWeight: 600 }}>Album type</div>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
             Used by the Type filter on the Albums screen.
           </div>
         </div>
@@ -1285,7 +1285,7 @@ function AlbumTypeSheet({ onClose, currentType, isLocked, onPick }) {
                 : <span style={{ ...s.sheetItemIcon, width: 18 }} />}
               <div style={{ flex: 1 }}>
                 <div>{opt.label}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{opt.hint}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{opt.hint}</div>
               </div>
               {isCurrent && isLocked && (
                 <span style={s.sheetSoon}>manual</span>
@@ -1298,7 +1298,7 @@ function AlbumTypeSheet({ onClose, currentType, isLocked, onPick }) {
           <span style={{ ...s.sheetItemIcon, width: 18 }} />
           <div style={{ flex: 1 }}>
             <div>Auto-detect</div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
               Clear manual override and re-derive from album metadata.
             </div>
           </div>
@@ -1674,7 +1674,22 @@ function AlbumVersionsList({ versions, onOpen }) {
 // 20px is two monospace digits with nothing spare, so a right-aligned number
 // finishes level with the row's left padding rather than floating in from it;
 // 46px holds "10:00" the same way on the other side.
-const TRACK_GRID = '20px 1fr 38px'
+// v1.1.38.0 — was '20px 1fr 38px'. The type sweep took the track number
+// and the duration from 12px to 13px, and both columns were sized for
+// 12px with no slack: DM Mono's advance is about 0.6em, so "12:34" wanted
+// 39px in a 38px column and clipped.
+//
+// These are the OLD PROPORTIONS carried to the new size — 1.67em and
+// 3.17em, which is 22px and 42px at 13px — rather than a width picked to
+// fit the worst case. A first cut went to 26px and 46px so that a
+// three-digit track number would fit, and that is wrong twice over: it
+// breaks the even-gutter fix that album-matching.test.js pins (a 26px
+// column right-aligning two digits leaves 10px of slack on the left,
+// which is the uneven gutter that fix removed), and it solves a problem
+// that is not new — three digits overflowed the old 20px column at 12px
+// type as well. Box sets stay as they were; every other album gets its
+// duration back.
+const TRACK_GRID = '22px 1fr 42px'
 
 const s = {
   // v1.1.0.63 — JPLAY-style album page. Pure black ground (was the
@@ -1692,7 +1707,7 @@ const s = {
   content: { position: 'relative', zIndex: 2, padding: '8px 16px 120px' },
   loadWrap: { display: 'flex', justifyContent: 'center', paddingTop: 80, background: 'var(--jp-bg)', minHeight: '100%' },
   spinner: { width: 24, height: 24, border: '2px solid rgba(var(--tint-rgb), 0.1)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
-  back: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(var(--tint-rgb), 0.4)', background: 'none', border: 'none', cursor: 'pointer' },
+  back: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'rgba(var(--tint-rgb), 0.4)', background: 'none', border: 'none', cursor: 'pointer' },
 
   // v1.1.0.61: top nav row — back arrow on the left, ⋯ overflow on
   // the right. Replaces the old single-line back button at the top
@@ -1758,7 +1773,7 @@ const s = {
     background: 'transparent',
     border: 'none',
     color: 'var(--text-primary)',
-    fontSize: 15, fontWeight: 500,
+    fontSize: 16, fontWeight: 500,
     textAlign: 'left',
     cursor: 'pointer',
   },
@@ -1769,14 +1784,14 @@ const s = {
     background: 'transparent',
     border: 'none',
     color: 'rgba(var(--tint-rgb), 0.35)',
-    fontSize: 15, fontWeight: 500,
+    fontSize: 16, fontWeight: 500,
     textAlign: 'left',
     cursor: 'default',
   },
   sheetItemIcon: { flexShrink: 0 },
   sheetSoon: {
     marginLeft: 'auto',
-    fontSize: 11, fontWeight: 600,
+    fontSize: 12, fontWeight: 600,
     color: 'rgba(var(--tint-rgb), 0.4)',
     fontFamily: 'var(--font-mono)',
     letterSpacing: '0.05em',
@@ -1794,7 +1809,7 @@ const s = {
     border: '1px solid rgba(var(--tint-rgb), 0.12)',
     borderRadius: 999,
     color: 'var(--text-primary)',
-    fontSize: 14, fontWeight: 600,
+    fontSize: 15, fontWeight: 600,
     cursor: 'pointer',
   },
   // v1.1.0.63: track-action-sheet specific bits. The album sheet
@@ -1807,12 +1822,12 @@ const s = {
     marginBottom: 6,
   },
   sheetTrackTitle: {
-    fontSize: 14, fontWeight: 600,
+    fontSize: 15, fontWeight: 600,
     color: 'var(--jp-text)',
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
   },
   sheetTrackArtist: {
-    fontSize: 12, fontWeight: 400,
+    fontSize: 13, fontWeight: 400,
     color: 'var(--jp-text-2)',
     marginTop: 2,
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
@@ -1898,7 +1913,7 @@ const s = {
   heroTitle: { fontSize: 25, fontWeight: 600, color: 'var(--jp-text)', letterSpacing: '-0.4px', lineHeight: 1.18, marginBottom: 5, wordBreak: 'break-word' },
   // Artist name 14/500 secondary-text (was 15/500 at 78% white).
   // Sits as a peer to the title without competing for attention.
-  artistBtn: { background: 'none', border: 'none', padding: 0, fontSize: 15, fontWeight: 500, color: 'var(--jp-text-2)', cursor: 'pointer', marginBottom: 0, display: 'block', textAlign: 'left' },
+  artistBtn: { background: 'none', border: 'none', padding: 0, fontSize: 16, fontWeight: 500, color: 'var(--jp-text-2)', cursor: 'pointer', marginBottom: 0, display: 'block', textAlign: 'left' },
   // Meta line: year · tracks · duration · genre · format-mix all on
   // a single mono line. Each token separated by a thin middle-dot.
   // No more separate genrePill; the genre joins the meta string and
@@ -1907,11 +1922,11 @@ const s = {
   // metadata, not foreground content.
   // 12.5 rather than 11, and a wider gap. The line has the full page width
   // now, so it can afford to be read at arm's length.
-  heroMeta: { display: 'flex', gap: 8, fontSize: 12.5, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', marginBottom: 10, flexWrap: 'wrap', alignItems: 'center', lineHeight: 1.5 },
+  heroMeta: { display: 'flex', gap: 8, fontSize: 13, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', marginBottom: 10, flexWrap: 'wrap', alignItems: 'center', lineHeight: 1.5 },
   heroMetaSep: { color: 'rgba(var(--tint-rgb), 0.18)', userSelect: 'none' },
   heroMetaGenre: {
     background: 'none', border: 'none', padding: 0,
-    color: 'var(--jp-text-2)', cursor: 'pointer', fontSize: 11,
+    color: 'var(--jp-text-2)', cursor: 'pointer', fontSize: 12,
     fontFamily: 'var(--font-mono)',
     textDecoration: 'underline', textDecorationColor: 'rgba(var(--tint-rgb), 0.15)',
     textUnderlineOffset: 3,
@@ -1974,7 +1989,7 @@ const s = {
     background: 'rgba(var(--tint-rgb), 0.06)',
     border: '1px solid rgba(var(--tint-rgb), 0.12)',
     borderRadius: 11,
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: 'var(--font-mono)',
     color: 'rgba(var(--tint-rgb), 0.7)',
     width: 'fit-content',
@@ -2004,14 +2019,14 @@ const s = {
     color: 'rgba(var(--tint-rgb), 0.85)',
     border: '1px solid rgba(var(--tint-rgb), 0.12)',
     borderRadius: 12,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 500,
     cursor: 'pointer',
   },
   // Play and Queue pills -- padding tightened in #v1.1.0.33 so all
   // four action buttons (Play / Queue / Heart / Share) fit
   // comfortably on a single row at iPhone widths.
-  playBtn: { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 20, background: 'var(--jp-accent)', color: 'var(--jp-bg)', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer' },
+  playBtn: { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 20, background: 'var(--jp-accent)', color: 'var(--jp-bg)', fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer' },
   // v1.1.33.0 — the circled plus and the line under it. Four new keys;
   // none of them already existed in this map (a duplicate key here is an
   // esbuild WARNING, not an error, and the later value silently wins).
@@ -2041,10 +2056,10 @@ const s = {
     display: 'flex', alignItems: 'center', gap: 8, marginTop: 10,
     flexWrap: 'wrap',
   },
-  serviceLineText: { fontSize: 11, color: 'var(--jp-text-3)' },
+  serviceLineText: { fontSize: 12, color: 'var(--jp-text-3)' },
   versionsToggle: {
     display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
-    padding: '6px 11px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+    padding: '6px 11px', borderRadius: 20, fontSize: 13, fontWeight: 600,
     background: 'transparent', color: 'var(--jp-text-2)',
     border: '1px solid rgba(var(--tint-rgb), 0.15)', cursor: 'pointer',
   },
@@ -2056,8 +2071,8 @@ const s = {
     border: '1px solid var(--jp-border)', cursor: 'pointer',
   },
   versionRowOn: { background: 'rgba(var(--tint-rgb), 0.08)', color: 'var(--jp-text)', cursor: 'default' },
-  versionTitle: { flex: 1, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  versionMeta: { fontSize: 10, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', flexShrink: 0 },
+  versionTitle: { flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  versionMeta: { fontSize: 12, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', flexShrink: 0 },
 
   // v56: Play split-button. Two halves of one visual pill — the left
   // half (label "Play") triggers Play Now directly; the right half
@@ -2075,7 +2090,7 @@ const s = {
     display: 'inline-flex', alignItems: 'center', gap: 5,
     padding: '8px 12px 8px 14px',
     background: 'transparent', color: 'var(--jp-bg)',
-    fontSize: 13, fontWeight: 700,
+    fontSize: 14, fontWeight: 700,
     border: 'none', cursor: 'pointer',
     borderRadius: '20px 0 0 20px',
     borderRight: '1px solid rgba(0,0,0,0.18)',
@@ -2109,7 +2124,7 @@ const s = {
     border: 'none',
     textAlign: 'left',
     color: 'var(--jp-text)',
-    fontSize: 14, fontWeight: 500,
+    fontSize: 15, fontWeight: 500,
     cursor: 'pointer',
     borderRadius: 6,
     width: '100%',
@@ -2147,7 +2162,7 @@ const s = {
     padding: 0,
   },
   tracklist: { borderTop: '1px solid rgba(var(--tint-rgb), 0.08)', paddingTop: 6 },
-  discHeader: { fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(var(--tint-rgb), 0.3)', padding: '14px 8px 4px' },
+  discHeader: { fontSize: 12, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(var(--tint-rgb), 0.3)', padding: '14px 8px 4px' },
   // v1.1.35.0 — the number column was 32px wide with a further 10px of right
   // padding, so a single-digit track number sat ~22px in from the row edge
   // while the duration finished 8px from the other one. The left gutter read
@@ -2157,7 +2172,7 @@ const s = {
   // and the row is padded equally on both sides — so the number and the time
   // are inset by the same amount, and the title starts ~12px earlier into the
   // bargain.
-  trackHeader: { display: 'grid', gridTemplateColumns: TRACK_GRID, gap: 5, padding: '4px 8px', fontSize: 9, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(var(--tint-rgb), 0.25)', borderBottom: '1px solid rgba(var(--tint-rgb), 0.06)', marginBottom: 2 },
+  trackHeader: { display: 'grid', gridTemplateColumns: TRACK_GRID, gap: 5, padding: '4px 8px', fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(var(--tint-rgb), 0.25)', borderBottom: '1px solid rgba(var(--tint-rgb), 0.06)', marginBottom: 2 },
   thNum: { textAlign: 'right' },
   // v1.1.0.63 — JPLAY-style track row. Was a 4-column grid (num /
   // info / dur / actions) where the actions column held the
@@ -2170,31 +2185,31 @@ const s = {
   // restrained.
   trackRow: { display: 'grid', gridTemplateColumns: TRACK_GRID, alignItems: 'center', gap: 5, padding: '11px 8px', borderRadius: 6, width: '100%', cursor: 'pointer', background: 'none', border: 'none', textAlign: 'left', transition: 'background 0.1s' },
   trackRowActive: { background: 'rgba(var(--tint-rgb), 0.04)' },
-  trackNum: { textAlign: 'right', fontSize: 12.5, fontFamily: 'var(--font-mono)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', minHeight: 14 },
+  trackNum: { textAlign: 'right', fontSize: 13, fontFamily: 'var(--font-mono)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', minHeight: 14 },
   trackInfo: { display: 'flex', flexDirection: 'column', gap: 4, overflow: 'hidden' },
   // 14/500 (was 13/400). JPLAY's track title weight is the
   // visually-dominant element of the row — slightly heavier than
   // the spec line below.
-  trackTitle: { fontSize: 15, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--jp-text)' },
+  trackTitle: { fontSize: 16, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--jp-text)' },
   // v1.1.35.0 — wraps rather than clips. This line only ever just fitted a
   // phone, and the ReplayGain chip is last, so any width it lost got taken
   // out of the chip mid-word — "RG -8.(" with the rest cut off. Wrapping
   // costs a few pixels of row height on a narrow screen and keeps every
   // figure readable, which is the trade the information is worth.
   trackSpec: { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', rowGap: 4, minWidth: 0 },
-  specText: { fontSize: 10, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' },
-  trackDur: { fontSize: 12, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', textAlign: 'right' },
+  specText: { fontSize: 12, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' },
+  trackDur: { fontSize: 13, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', textAlign: 'right' },
   // v1.1.0.63: small ★ chip rendered inline in the spec line when a
   // track has a non-zero rating. Tiny, gold, no background — just
   // sits among the other meta tokens. Hidden when rating is 0 so
   // unrated rows are pure clean.
   trackRatingChip: {
-    fontSize: 10,
+    fontSize: 12,
     color: '#ffc62b',
     letterSpacing: 0.5,
     fontFamily: 'var(--font-mono)',
   },
-  multiTag: { padding: '1px 4px', borderRadius: 3, fontSize: 9, fontWeight: 700, fontFamily: 'var(--font-mono)', background: 'rgba(91,127,255,0.2)', color: 'var(--accent)', border: '1px solid rgba(91,127,255,0.3)' },
+  multiTag: { padding: '1px 4px', borderRadius: 3, fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', background: 'rgba(91,127,255,0.2)', color: 'var(--accent)', border: '1px solid rgba(91,127,255,0.3)' },
 
   // v1.1.0.76 — quiet RG chip in the track spec line. Same visual
   // weight as the "kHz / kbps / LUFS" specText to its left, but
@@ -2204,7 +2219,7 @@ const s = {
   rgChip: {
     padding: '1px 5px',
     borderRadius: 3,
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: 600,
     fontFamily: 'var(--font-mono)',
     background: 'rgba(var(--tint-rgb), 0.05)',
@@ -2220,7 +2235,7 @@ const s = {
     padding: '10px 18px',
   },
   rgBlockTitle: {
-    fontSize: 10, fontWeight: 600,
+    fontSize: 12, fontWeight: 600,
     color: 'var(--jp-text-3)',
     letterSpacing: '0.06em',
     textTransform: 'uppercase',
@@ -2233,11 +2248,11 @@ const s = {
     rowGap: 4,
   },
   rgLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'var(--jp-text-2)',
   },
   rgValue: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'var(--jp-text)',
     fontFamily: 'var(--font-mono)',
     textAlign: 'right',
@@ -2270,7 +2285,7 @@ const s = {
     alignItems: 'flex-start',
     gap: 8,
     marginTop: 0,
-    fontSize: 12,
+    fontSize: 13,
     color: 'var(--jp-text-3)',
     fontFamily: 'var(--font-mono)',
     flexWrap: 'nowrap',
@@ -2281,7 +2296,7 @@ const s = {
   // a two-letter label still reads as a label rather than as the start of the
   // value.
   heroRgLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: 700,
     letterSpacing: '0.06em',
     color: 'var(--jp-text-3)',
@@ -2332,10 +2347,10 @@ const s = {
     boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
   },
   shareHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 14px' },
-  shareTitle: { fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' },
+  shareTitle: { fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' },
   shareClose: { width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-sm)', background: 'var(--bg-elevated)', color: 'var(--text-tertiary)', border: 'none', cursor: 'pointer' },
   sharePreview: { width: 'calc(100% - 32px)', margin: '0 16px 16px', borderRadius: 10, display: 'block', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' },
-  shareHint: { padding: '0 16px', fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' },
+  shareHint: { padding: '0 16px', fontSize: 13, color: 'var(--text-tertiary)', textAlign: 'center' },
 }
 
 // v1.1.0.57 — named exports so NowPlaying's About panel can use the

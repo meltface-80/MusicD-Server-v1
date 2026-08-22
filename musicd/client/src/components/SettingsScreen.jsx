@@ -252,7 +252,7 @@ export default function SettingsScreen({ onBack }) {
   // v1.1.0.23: lastfm/fanart/audiodb keys are now baked in (see
   // server/src/apiCredentials.js) so the only paste-credential left
   // is the MusicBrainz contact (per-deployer).
-  const CREDENTIAL_KEYS = new Set(['mb_contact'])
+  const CREDENTIAL_KEYS = new Set(['mb_contact', 'listenbrainz_token'])
   const TRIM_QUOTES_REGEX = /^[\s"'\u201C\u201D\u2018\u2019]+|[\s"'\u201C\u201D\u2018\u2019]+$/g
 
   const update = (key, value) => {
@@ -694,6 +694,41 @@ export default function SettingsScreen({ onBack }) {
           </HelpTooltip>
         </div>
 
+        {/* ── 0b. ListenBrainz token (v1.1.38.0) ───────────────────────
+            Sits directly under the MusicBrainz contact because it is the
+            same kind of thing — an identity the matcher needs before it
+            can use a faster path — and because someone filling in one
+            should see the other.
+
+            What it buys: ListenBrainz runs MusicBrainz's own fuzzy
+            matcher as a public endpoint, taking fifty lookups per request
+            at fifty requests per ten seconds, against MusicBrainz's one
+            request per second. On a two thousand album library that is
+            the difference between about half an hour of matching and
+            about half a minute. It also matches on TRACK titles, so an
+            album whose own title is mangled can still be identified.
+
+            The value is never read back from the server — the settings
+            endpoint returns listenbrainz_token_set, a boolean, because a
+            settings page that echoes a credential puts it in every
+            browser cache and every screenshot. So the field starts empty
+            and shows whether one is already stored. */}
+        <div style={{ ...s.divider, margin: '14px 0 10px' }} />
+        <div style={s.subSectionTitle}>ListenBrainz token</div>
+        <Row label={settings.listenbrainz_token_set ? 'Token (stored)' : 'Token'}>
+          <input type="password" autoComplete="off"
+            placeholder={settings.listenbrainz_token_set ? '•••••••• — type to replace' : 'Paste your ListenBrainz token'}
+            value={settings.listenbrainz_token || ''}
+            onChange={e => update('listenbrainz_token', e.target.value)}
+            style={s.textInput} />
+        </Row>
+        <div style={s.helpRow}>
+          <HelpTooltip>
+          Optional, and free. With a token the matcher uses the ListenBrainz mapper first — the same fuzzy index MusicBrainz uses itself, but in batches of fifty rather than one request per second. Matching a large library drops from tens of minutes to seconds, and albums with mangled titles can still be identified from their track names. Without a token everything still works, just at MusicBrainz's rate limit. Get one from your profile at{' '}
+          <a href="https://listenbrainz.org/settings/" target="_blank" rel="noopener noreferrer" style={s.link}>listenbrainz.org</a>.
+          </HelpTooltip>
+        </div>
+
         {/* ── Metadata Scanning scheduler (#v1.1.0.28) ───────────────
             Mode picker + scheduled-window pickers + live status panel.
             Off / Automatic / Scheduled. Calls /api/scheduler/* */}
@@ -854,7 +889,7 @@ export default function SettingsScreen({ onBack }) {
             background: 'rgba(91,127,255,0.08)',
             border: '1px solid rgba(91,127,255,0.24)',
             borderRadius: 6,
-            fontSize: 12, color: 'var(--jp-text)',
+            fontSize: 13, color: 'var(--jp-text)',
           }}>
             Queued {rematchResult.queuedCount} albums. Hit “Start matching” above to begin reprocessing.
           </div>
@@ -866,7 +901,7 @@ export default function SettingsScreen({ onBack }) {
             <details> so it doesn't clutter the section. */}
         {diagnostic && diagnostic.totalUnmatched > 0 && (
           <details style={{ marginTop: 10 }}>
-            <summary style={{ cursor: 'pointer', color: 'var(--jp-text-3)', fontSize: 11 }}>
+            <summary style={{ cursor: 'pointer', color: 'var(--jp-text-3)', fontSize: 12 }}>
               Show what the rescan would change
             </summary>
             <div style={{
@@ -874,7 +909,7 @@ export default function SettingsScreen({ onBack }) {
               background: 'var(--jp-bg-elevated)',
               border: '1px solid var(--jp-border)',
               borderRadius: 6,
-              fontSize: 12, color: 'var(--jp-text-2)',
+              fontSize: 13, color: 'var(--jp-text-2)',
               lineHeight: 1.5,
             }}>
               <div>
@@ -884,16 +919,16 @@ export default function SettingsScreen({ onBack }) {
               </div>
               {diagnostic.samples?.length > 0 && (
                 <div style={{ marginTop: 8 }}>
-                  <div style={{ fontSize: 11, color: 'var(--jp-text-3)', marginBottom: 4 }}>
+                  <div style={{ fontSize: 12, color: 'var(--jp-text-3)', marginBottom: 4 }}>
                     Examples of cleaner changes ({diagnostic.samples.length}):
                   </div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>
                     {diagnostic.samples.map(sm => (
                       <div key={sm.id} style={{ padding: '4px 0', borderTop: '1px solid var(--jp-border)' }}>
                         <div style={{ color: 'var(--jp-text-3)' }}>was: {sm.album_artist} — {sm.title}</div>
                         <div>now: {sm.cleanedArtist} — {sm.cleanedTitle}</div>
                         {(sm.titleStripped.length > 0 || sm.artistStripped.length > 0) && (
-                          <div style={{ color: 'var(--jp-text-3)', fontSize: 10 }}>
+                          <div style={{ color: 'var(--jp-text-3)', fontSize: 12 }}>
                             stripped: {[...sm.titleStripped, ...sm.artistStripped].join(' · ')}
                           </div>
                         )}
@@ -1316,7 +1351,7 @@ export default function SettingsScreen({ onBack }) {
         {/* Last-check status (#v1.1.0.25). Surfaced inline rather than
             attached to the URL input which is now baked-in. */}
         {remoteStatus?.lastCheck && (
-          <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)' }}>
+          <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-tertiary)' }}>
             Last update check: {relTimeShort(remoteStatus.lastCheck)}
             {remoteStatus.lastResult?.error && (
               <span style={{ color: '#ff8888', marginLeft: 6 }}>
@@ -1635,7 +1670,7 @@ function MetadataSchedulerSection() {
         <div style={{ marginTop: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>From</span>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>From</span>
               <input
                 type="time"
                 value={windowDraft.start}
@@ -1644,7 +1679,7 @@ function MetadataSchedulerSection() {
               />
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>to</span>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>to</span>
               <input
                 type="time"
                 value={windowDraft.end}
@@ -1657,7 +1692,7 @@ function MetadataSchedulerSection() {
             </button>
           </div>
           {windowError && <div style={s.matchError}>{windowError}</div>}
-          <div style={{ ...s.help, marginTop: 6, fontSize: 11 }}>
+          <div style={{ ...s.help, marginTop: 6, fontSize: 12 }}>
             Times are in the container's local timezone. Set <code>TZ</code> env variable on the container if you want them in your local time (default is UTC).
           </div>
         </div>
@@ -1669,7 +1704,7 @@ function MetadataSchedulerSection() {
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
                   {schedulerStatusLabel(status)}
                 </div>
                 {/* v1.1.0.78 — suppress status.message when it
@@ -1679,7 +1714,7 @@ function MetadataSchedulerSection() {
                     "Paused: music is playing" for that state, so
                     rendering both produces two near-identical lines. */}
                 {status.message && status.status !== 'paused-playback' && (
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
                     {status.message}
                   </div>
                 )}
@@ -1704,10 +1739,10 @@ function MetadataSchedulerSection() {
 
             {status.thermalC != null && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 8, borderTop: '1px dashed var(--border)' }}>
-                <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>CPU temperature</span>
+                <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>CPU temperature</span>
                 <span
                   style={{
-                    fontSize: 12, fontWeight: 600,
+                    fontSize: 13, fontWeight: 600,
                     color: status.thermalC >= status.thermalCeilingC ? '#ff8888'
                          : status.thermalC >= status.thermalCeilingC - 5 ? '#ffaa55'
                          : 'var(--text-secondary)',
@@ -1733,10 +1768,10 @@ function MetadataSchedulerSection() {
                 anything. */}
             {status.lastUnmatchedRequeueAt && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, paddingTop: 8, borderTop: '1px dashed var(--border)' }}>
-                <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                   Last auto-retry of failed matches
                 </span>
-                <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                   {relTimeShort(Math.floor(status.lastUnmatchedRequeueAt / 1000))}
                   {status.lastUnmatchedRequeueCount > 0 && (
                     <span style={{ color: 'var(--text-tertiary)', marginLeft: 6 }}>
@@ -1972,7 +2007,7 @@ function BugReportPanel({ currentVersion }) {
             border: '1px solid var(--border-soft)',
             borderRadius: 6,
             color: 'var(--text-secondary)',
-            fontSize: 12, fontWeight: 500,
+            fontSize: 13, fontWeight: 500,
             cursor: 'pointer',
           }}
         >
@@ -1982,7 +2017,7 @@ function BugReportPanel({ currentVersion }) {
         <div>
           {!result ? (
             <>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 6 }}>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>
                 Briefly describe what happened. Recent server logs and your version are included automatically.
               </div>
               <textarea
@@ -1999,7 +2034,7 @@ function BugReportPanel({ currentVersion }) {
                   border: '1px solid var(--border-soft)',
                   borderRadius: 6,
                   color: 'var(--text-primary)',
-                  fontSize: 12,
+                  fontSize: 13,
                   fontFamily: 'inherit',
                   resize: 'vertical',
                 }}
@@ -2013,7 +2048,7 @@ function BugReportPanel({ currentVersion }) {
                     background: 'var(--accent)',
                     border: 'none', borderRadius: 6,
                     color: 'var(--on-accent)',
-                    fontSize: 12, fontWeight: 600,
+                    fontSize: 13, fontWeight: 600,
                     cursor: sending ? 'default' : 'pointer',
                     opacity: (sending || !note.trim()) ? 0.5 : 1,
                   }}
@@ -2029,7 +2064,7 @@ function BugReportPanel({ currentVersion }) {
                     border: '1px solid var(--border-soft)',
                     borderRadius: 6,
                     color: 'var(--text-secondary)',
-                    fontSize: 12,
+                    fontSize: 13,
                     cursor: 'pointer',
                   }}
                 >
@@ -2039,7 +2074,7 @@ function BugReportPanel({ currentVersion }) {
             </>
           ) : (
             // Capture succeeded — now offer share / mailto / copy
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
               <div style={{ marginBottom: 8 }}>
                 Report captured ({result.id}). Send it to <code style={{ fontFamily: 'var(--font-mono)' }}>{BUG_REPORT_RECIPIENT}</code>:
               </div>
@@ -2052,7 +2087,7 @@ function BugReportPanel({ currentVersion }) {
                       background: 'var(--accent)',
                       border: 'none', borderRadius: 6,
                       color: 'var(--on-accent)',
-                      fontSize: 12, fontWeight: 600,
+                      fontSize: 13, fontWeight: 600,
                       cursor: 'pointer',
                     }}
                   >
@@ -2069,7 +2104,7 @@ function BugReportPanel({ currentVersion }) {
                       background: 'var(--accent)',
                       border: 'none', borderRadius: 6,
                       color: 'var(--on-accent)',
-                      fontSize: 12, fontWeight: 600,
+                      fontSize: 13, fontWeight: 600,
                       cursor: 'pointer',
                     }}
                   >
@@ -2084,7 +2119,7 @@ function BugReportPanel({ currentVersion }) {
                     border: '1px solid var(--border-soft)',
                     borderRadius: 6,
                     color: 'var(--text-secondary)',
-                    fontSize: 12, fontWeight: 500,
+                    fontSize: 13, fontWeight: 500,
                     cursor: 'pointer',
                   }}
                 >
@@ -2098,7 +2133,7 @@ function BugReportPanel({ currentVersion }) {
                     border: '1px solid var(--border-soft)',
                     borderRadius: 6,
                     color: 'var(--text-secondary)',
-                    fontSize: 12, fontWeight: 500,
+                    fontSize: 13, fontWeight: 500,
                     cursor: 'pointer',
                   }}
                 >
@@ -2112,7 +2147,7 @@ function BugReportPanel({ currentVersion }) {
                     border: '1px solid var(--border-soft)',
                     borderRadius: 6,
                     color: 'var(--text-tertiary)',
-                    fontSize: 12,
+                    fontSize: 13,
                     cursor: 'pointer',
                   }}
                 >
@@ -2120,14 +2155,14 @@ function BugReportPanel({ currentVersion }) {
                 </button>
               </div>
               {hasShared && (
-                <div style={{ marginTop: 10, fontSize: 11, color: '#3fd07a' }}>
+                <div style={{ marginTop: 10, fontSize: 12, color: '#3fd07a' }}>
                   {canShareFiles
                     ? 'Thanks — your mail app should be open with the report attached.'
                     : 'Thanks — your mail app should be open with a summary. Attach the saved report file to it if you have not already.'}
                 </div>
               )}
               {!canShareFiles && (
-                <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+                <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
                   {shareMode === SHARE_INSECURE ? (
                     <>
                       <b>Save report file</b> downloads <code style={{ fontFamily: 'var(--font-mono)' }}>{result.filename}</code>
@@ -2150,7 +2185,7 @@ function BugReportPanel({ currentVersion }) {
             </div>
           )}
           {error && (
-            <div style={{ marginTop: 10, fontSize: 11, color: 'var(--red, #e05555)' }}>
+            <div style={{ marginTop: 10, fontSize: 12, color: 'var(--red, #e05555)' }}>
               {error}
             </div>
           )}
@@ -2497,13 +2532,13 @@ const tierStyles = {
     marginBottom: 10,
   },
   tierLabelSmall: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'var(--text-tertiary)',
     textTransform: 'uppercase',
     letterSpacing: '0.06em',
   },
   tierBadge: (tier) => ({
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 600,
     padding: '3px 8px',
     borderRadius: 4,
@@ -2512,7 +2547,7 @@ const tierStyles = {
   }),
   resetBtn: {
     marginLeft: 'auto',
-    fontSize: 11,
+    fontSize: 12,
     padding: '4px 10px',
     background: 'none',
     border: '1px solid var(--border)',
@@ -2529,19 +2564,19 @@ const tierStyles = {
     marginTop: 6,
   },
   demoBannerTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 600,
     color: '#ffb86b',
     marginBottom: 4,
   },
   demoBannerBody: {
-    fontSize: 12,
+    fontSize: 13,
     color: 'var(--text-secondary)',
     lineHeight: 1.5,
     marginBottom: 10,
   },
   enterCodeBtn: {
-    fontSize: 12,
+    fontSize: 13,
     padding: '8px 14px',
     background: '#ffb86b',
     color: '#1a1208',
@@ -2566,13 +2601,13 @@ const tierStyles = {
   upgradeText: {
     flex: 1,
     minWidth: 160,
-    fontSize: 12,
+    fontSize: 13,
     color: 'var(--text-secondary)',
     lineHeight: 1.5,
   },
   upgradeBtn: {
     flex: '0 0 auto',
-    fontSize: 11,
+    fontSize: 12,
     padding: '5px 12px',
     background: 'none',
     border: '1px solid var(--border)',
@@ -2585,7 +2620,7 @@ const tierStyles = {
     marginTop: 6,
   },
   channelPickerLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'var(--text-tertiary)',
     textTransform: 'uppercase',
     letterSpacing: '0.06em',
@@ -2622,34 +2657,34 @@ const tierStyles = {
     marginBottom: 2,
   },
   channelRowRight: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'var(--text-tertiary)',
     fontFamily: 'var(--font-mono)',
     marginLeft: 'auto',
   },
   channelRadio: {
-    fontSize: 14,
+    fontSize: 15,
     color: 'var(--accent)',
     width: 14,
   },
   channelLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 500,
   },
   channelVersion: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'var(--text-tertiary)',
     fontFamily: 'var(--font-mono)',
     float: 'right',
   },
   channelDescription: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'var(--text-tertiary)',
     marginTop: 4,
     paddingLeft: 22,
   },
   stabilityBadge: (stability) => ({
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: 500,
     padding: '1px 6px',
     borderRadius: 3,
@@ -2659,7 +2694,7 @@ const tierStyles = {
     letterSpacing: '0.04em',
   }),
   singleChannelNote: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'var(--text-tertiary)',
     fontStyle: 'italic',
   },
@@ -2685,12 +2720,12 @@ const tierStyles = {
     width: '100%',
   },
   modalTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: 600,
     marginBottom: 6,
   },
   modalBody: {
-    fontSize: 12,
+    fontSize: 13,
     color: 'var(--text-secondary)',
     marginBottom: 14,
     lineHeight: 1.5,
@@ -2710,7 +2745,7 @@ const tierStyles = {
     marginBottom: 6,
   },
   codeError: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#ff8888',
     marginBottom: 8,
   },
@@ -2722,7 +2757,7 @@ const tierStyles = {
   },
   modalCancel: {
     padding: '8px 14px',
-    fontSize: 12,
+    fontSize: 13,
     background: 'transparent',
     border: '1px solid var(--border)',
     color: 'var(--text-secondary)',
@@ -2731,7 +2766,7 @@ const tierStyles = {
   },
   modalSubmit: {
     padding: '8px 14px',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 600,
     background: 'var(--accent)',
     border: 'none',
@@ -2741,7 +2776,7 @@ const tierStyles = {
   },
   modalSubmitDisabled: {
     padding: '8px 14px',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 600,
     background: 'var(--bg-overlay)',
     border: '1px solid var(--border)',
@@ -2767,11 +2802,11 @@ const s = {
     padding: '12px 14px',
   },
   releaseNotesTitle: {
-    fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
+    fontSize: 12, fontWeight: 700, letterSpacing: '0.06em',
     textTransform: 'uppercase', color: 'var(--text-secondary)',
     marginBottom: 8,
   },
-  releaseNotesEmpty: { fontSize: 12, color: 'var(--text-tertiary)' },
+  releaseNotesEmpty: { fontSize: 13, color: 'var(--text-tertiary)' },
 
   // v1.1.0.74 — collapsed "What's new" trigger. Reads as a quiet
   // tappable link, not as a primary action button — the actual
@@ -2781,7 +2816,7 @@ const s = {
   releaseNotesLink: {
     display: 'inline-flex', alignItems: 'center', gap: 4,
     background: 'none', border: 'none', padding: 0,
-    fontSize: 13, fontWeight: 500,
+    fontSize: 14, fontWeight: 500,
     color: 'var(--text-primary)',
     textDecoration: 'underline',
     textUnderlineOffset: 3,
@@ -2806,7 +2841,7 @@ const s = {
     background: 'var(--bg-elevated)',
     color: 'var(--text-tertiary)',
     border: '1px solid var(--border)',
-    fontSize: 14,
+    fontSize: 15,
     cursor: 'pointer',
     flexShrink: 0,
   },
@@ -2826,7 +2861,7 @@ const s = {
     borderRadius: 'var(--radius-sm)',
     color: 'var(--text-primary)',
     padding: '6px 8px',
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: 'inherit',
     minWidth: 80,
   },
@@ -2853,13 +2888,13 @@ const s = {
     opacity: 0.55,
   },
   pendingCellLabel: {
-    fontSize: 10, fontWeight: 600,
+    fontSize: 12, fontWeight: 600,
     textTransform: 'uppercase', letterSpacing: '0.05em',
     color: 'var(--text-tertiary)',
     marginBottom: 3,
   },
   pendingCellCount: {
-    fontSize: 14, fontWeight: 700, color: 'var(--text-primary)',
+    fontSize: 15, fontWeight: 700, color: 'var(--text-primary)',
   },
 
   // Mode pills for the metadata scheduler (#v1.1.0.28). Themed to
@@ -2876,7 +2911,7 @@ const s = {
   modePill: {
     display: 'inline-flex', alignItems: 'center', gap: 7,
     padding: '8px 16px', borderRadius: 18,
-    fontSize: 13, fontWeight: 600,
+    fontSize: 14, fontWeight: 600,
     color: 'var(--text-secondary)',
     background: 'var(--bg-elevated)',
     border: '1px solid var(--border)',
@@ -2894,7 +2929,7 @@ const s = {
   changelogLink: {
     background: 'none', border: 'none', padding: 0,
     color: 'var(--accent)', textDecoration: 'underline',
-    fontSize: 12, cursor: 'pointer',
+    fontSize: 13, cursor: 'pointer',
   },
 
   // Changelog modal -- slides up like the album-candidates sheet
@@ -2904,20 +2939,20 @@ const s = {
   clSheet: { background: 'var(--bg-surface)', borderRadius: '16px 16px 0 0', width: '100%', maxHeight: '92vh', display: 'flex', flexDirection: 'column', borderTop: '1px solid var(--border)' },
   clHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid var(--border)' },
   clTitle: { fontSize: 16, fontWeight: 700 },
-  clCloseBtn: { width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-elevated)', color: 'var(--text-tertiary)', border: '1px solid var(--border)', fontSize: 14, cursor: 'pointer' },
+  clCloseBtn: { width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-elevated)', color: 'var(--text-tertiary)', border: '1px solid var(--border)', fontSize: 15, cursor: 'pointer' },
   clBody: { flex: 1, overflowY: 'auto', padding: '12px 18px 24px' },
 
   // Tiny markdown renderer styles. Not full markdown -- just the few
   // bits we use in CHANGELOG.md and release-notes blocks.
-  mdRoot: { color: 'var(--text-primary)', lineHeight: 1.5, fontSize: 13 },
+  mdRoot: { color: 'var(--text-primary)', lineHeight: 1.5, fontSize: 14 },
   mdH1: { fontSize: 18, fontWeight: 700, margin: '12px 0 8px' },
-  mdH2: { fontSize: 15, fontWeight: 700, margin: '14px 0 6px', color: 'var(--text-primary)' },
-  mdH3: { fontSize: 12, fontWeight: 700, margin: '10px 0 4px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)' },
-  mdP:  { fontSize: 12, color: 'var(--text-secondary)', margin: '0 0 8px', lineHeight: 1.55 },
+  mdH2: { fontSize: 16, fontWeight: 700, margin: '14px 0 6px', color: 'var(--text-primary)' },
+  mdH3: { fontSize: 13, fontWeight: 700, margin: '10px 0 4px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)' },
+  mdP:  { fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 8px', lineHeight: 1.55 },
   mdUl: { margin: '4px 0 12px', paddingLeft: 18, color: 'var(--text-secondary)' },
-  mdLi: { fontSize: 12, marginBottom: 4, lineHeight: 1.55 },
+  mdLi: { fontSize: 13, marginBottom: 4, lineHeight: 1.55 },
   mdHr: { border: 'none', borderTop: '1px solid var(--border)', margin: '14px 0' },
-  mdCode: { fontFamily: 'var(--font-mono)', fontSize: 11, padding: '1px 5px', background: 'var(--bg-elevated)', borderRadius: 3 },
+  mdCode: { fontFamily: 'var(--font-mono)', fontSize: 12, padding: '1px 5px', background: 'var(--bg-elevated)', borderRadius: 3 },
 
   // back: removed in #30.20 — Settings used to have an explicit text
   //   "Back" button, but the topbar chevron has been the canonical
@@ -2966,7 +3001,7 @@ const s = {
   restartConfirmText: {
     flex: 1,
     minWidth: 0,
-    fontSize: 14,
+    fontSize: 15,
     color: 'var(--text-primary)',
     textWrap: 'balance',
     lineHeight: 1.35,
@@ -2983,7 +3018,7 @@ const s = {
     color: '#ffffff',
     border: 'none',
     borderRadius: 8,
-    fontSize: 13, fontWeight: 600,
+    fontSize: 14, fontWeight: 600,
     cursor: 'pointer',
   },
   restartConfirmNo: {
@@ -2993,10 +3028,10 @@ const s = {
     color: 'var(--text-secondary)',
     border: '1px solid var(--border-bright)',
     borderRadius: 8,
-    fontSize: 13, fontWeight: 600,
+    fontSize: 14, fontWeight: 600,
     cursor: 'pointer',
   },
-  brandWordmark: { fontSize: 14, fontWeight: 800, letterSpacing: '-0.3px', display: 'inline-flex', marginBottom: 2 },
+  brandWordmark: { fontSize: 15, fontWeight: 800, letterSpacing: '-0.3px', display: 'inline-flex', marginBottom: 2 },
   brandMusic: { color: 'rgba(var(--tint-rgb), 0.92)' },
   brandD: { color: '#5b7fff' },
 
@@ -3013,7 +3048,7 @@ const s = {
   },
   sectionCardTitle: {
     display: 'inline-flex', alignItems: 'center',
-    fontSize: 14, fontWeight: 600, color: 'var(--text-primary)',
+    fontSize: 15, fontWeight: 600, color: 'var(--text-primary)',
   },
 
   // Section sub-page (#30.26). A SectionPage occupies the full
@@ -3048,34 +3083,34 @@ const s = {
     background: 'transparent', border: 'none',
     cursor: 'pointer', textAlign: 'left',
   },
-  sectionTitle: { display: 'inline-flex', alignItems: 'center', fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' },
+  sectionTitle: { display: 'inline-flex', alignItems: 'center', fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' },
   sectionToggle: {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     width: 24, height: 24, color: 'var(--text-tertiary)',
   },
   sectionBody: { padding: '0 16px 14px', borderTop: '1px solid var(--border)' },
   sectionIcon: { width: 18, height: 18, borderRadius: 4, objectFit: 'contain', display: 'block' },
-  help: { fontSize: 11, color: 'var(--text-tertiary)', marginTop: 12, lineHeight: 1.4 },
+  help: { fontSize: 12, color: 'var(--text-tertiary)', marginTop: 12, lineHeight: 1.4 },
   // v52: helpRow is the host for a HelpTooltip when help text used
   // to live inline. Right-aligned with negative margin so it tucks
   // tight to the section title line above it.
   helpRow: { display: 'flex', justifyContent: 'flex-end', marginTop: -2, marginBottom: 4 },
   row: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border)' },
-  rowLabel: { fontSize: 13, color: 'var(--text-secondary)' },
+  rowLabel: { fontSize: 14, color: 'var(--text-secondary)' },
   rowControl: {},
   targetRow: { display: 'flex', alignItems: 'center', gap: 10 },
   slider: { width: 120, accentColor: 'var(--accent)' },
-  valLabel: { fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', width: 60, textAlign: 'right' },
+  valLabel: { fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', width: 60, textAlign: 'right' },
   toggle: { width: 38, height: 22, borderRadius: 11, background: 'var(--bg-overlay)', border: '1px solid var(--border)', position: 'relative', cursor: 'pointer', padding: 0 },
   toggleOn: { background: 'var(--accent)', borderColor: 'var(--accent)' },
   toggleKnob: { position: 'absolute', width: 16, height: 16, borderRadius: '50%', background: '#fff', top: 2, left: 2, transition: 'left 0.15s' },
   toggleKnobOn: { left: 19 },
   progressBlock: { marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' },
   progressTop: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, gap: 8 },
-  progressLabel: { fontSize: 11, color: 'var(--text-tertiary)' },
+  progressLabel: { fontSize: 12, color: 'var(--text-tertiary)' },
   progressTrack: { height: 3, background: 'var(--bg-overlay)', borderRadius: 1.5, overflow: 'hidden' },
   progressFill: { height: '100%', background: 'var(--accent)', transition: 'width 0.4s ease' },
-  actionBtn: { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 14, fontSize: 11, color: 'var(--text-secondary)', background: 'var(--bg-overlay)', border: '1px solid var(--border)', cursor: 'pointer' },
+  actionBtn: { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 14, fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg-overlay)', border: '1px solid var(--border)', cursor: 'pointer' },
   // v1.1.0.77 — disabled variant for "All tracks scanned" / "All
   // matched" idle states. Reads as informational rather than
   // actionable: muted text, no hover affordance, no border emphasis.
@@ -3089,7 +3124,7 @@ const s = {
   // the count is informational not alarming.
   rescanStatus: {
     marginTop: 6,
-    fontSize: 12,
+    fontSize: 13,
     color: 'var(--jp-text-2)',
     lineHeight: 1.4,
   },
@@ -3107,10 +3142,10 @@ const s = {
   // original left-aligned actionRow — the user scoped this change
   // to the Metadata page specifically.
   actionRowEnd: { display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' },
-  artMessage: { fontSize: 11, color: 'var(--text-tertiary)', padding: '6px 10px', marginTop: 6, background: 'var(--bg-overlay)', borderRadius: 'var(--radius-sm)' },
+  artMessage: { fontSize: 12, color: 'var(--text-tertiary)', padding: '6px 10px', marginTop: 6, background: 'var(--bg-overlay)', borderRadius: 'var(--radius-sm)' },
   // Match-error pills (#30.19) — used when the start request fails
   // (no contact set, etc) or when the running matcher logs a fault.
-  matchError: { fontSize: 11, color: '#e85a7a', padding: '6px 10px', marginTop: 6, background: 'rgba(232,90,122,0.08)', border: '1px solid rgba(232,90,122,0.25)', borderRadius: 'var(--radius-sm)' },
+  matchError: { fontSize: 12, color: '#e85a7a', padding: '6px 10px', marginTop: 6, background: 'rgba(232,90,122,0.08)', border: '1px solid rgba(232,90,122,0.25)', borderRadius: 'var(--radius-sm)' },
   // Scrobble "connected as ..." badge (#30.25). Pill-shaped, green
   // dot to read as "all good, you're hooked up". Sits in the value
   // column of a Row so it lines up with the form fields above.
@@ -3120,7 +3155,7 @@ const s = {
     background: 'rgba(94,209,117,0.10)',
     border: '1px solid rgba(94,209,117,0.30)',
     borderRadius: 12,
-    fontSize: 12,
+    fontSize: 13,
     color: 'var(--text-primary)',
   },
   // Sub-section header (#30.19) inside the Metadata Refresh section.
@@ -3133,7 +3168,7 @@ const s = {
   // before adding, because a duplicate key here is an esbuild warning
   // rather than an error and the later value would silently win.
   sectionDivider: { height: 1, background: 'var(--border)', margin: '20px 0 18px' },
-  subSectionTitle: { fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 6 },
+  subSectionTitle: { fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 6 },
   // Service health rows (#v1.1.0.24). Stacked vertically below the
   // "Built-in services" subsection title. Each row: dot + name +
   // subtitle, plus an indented error message on failure.
@@ -3146,8 +3181,8 @@ const s = {
   },
   healthMain: { display: 'flex', alignItems: 'center', gap: 10 },
   healthText: { flex: 1, minWidth: 0 },
-  healthName: { fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' },
-  healthSub: { fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 },
+  healthName: { fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' },
+  healthSub: { fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 },
   // Coloured dots. ok = green, fail = red, idle = neutral grey. Width
   // and box-shadow chosen to read at small sizes on a phone.
   healthDotOk:   { width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: '#3dd066', boxShadow: '0 0 0 2px rgba(61, 208, 102, 0.18)' },
@@ -3155,21 +3190,21 @@ const s = {
   healthDotIdle: { width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: 'var(--text-tertiary)', opacity: 0.45 },
   // Error line shown only on fail. Truncated to 80 chars in JSX; the
   // full text is in the title attribute for desktop hover.
-  healthError: { fontSize: 10, color: '#e85a7a', fontFamily: 'var(--font-mono)', marginLeft: 20, lineHeight: 1.4, wordBreak: 'break-word' },
-  actionBtnGhost: { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 14, fontSize: 11, color: 'var(--text-tertiary)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' },
-  abortBtn: { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 14, fontSize: 11, color: '#e85a7a', background: 'rgba(232,90,122,0.1)', border: '1px solid rgba(232,90,122,0.3)', cursor: 'pointer' },
-  versionTag: { fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' },
+  healthError: { fontSize: 12, color: '#e85a7a', fontFamily: 'var(--font-mono)', marginLeft: 20, lineHeight: 1.4, wordBreak: 'break-word' },
+  actionBtnGhost: { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 14, fontSize: 12, color: 'var(--text-tertiary)', background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer' },
+  abortBtn: { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 14, fontSize: 12, color: '#e85a7a', background: 'rgba(232,90,122,0.1)', border: '1px solid rgba(232,90,122,0.3)', cursor: 'pointer' },
+  versionTag: { fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' },
   updateBlock: { marginTop: 12, marginBottom: 10 },
-  updateBtnIdle: { width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', background: 'var(--bg-overlay)', border: '1px solid var(--border)', cursor: 'pointer' },
-  updateBtnAvailable: { width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, color: '#fff', background: '#5b7fff', border: '1px solid #5b7fff', cursor: 'pointer', boxShadow: '0 2px 12px rgba(91,127,255,0.3)' },
-  updateBtnDisabled: { width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, color: 'rgba(var(--tint-rgb), 0.7)', background: 'rgba(91,127,255,0.4)', border: '1px solid rgba(91,127,255,0.4)', cursor: 'not-allowed' },
-  errorMsg: { padding: '8px 10px', borderRadius: 6, background: 'rgba(232,90,122,0.1)', border: '1px solid rgba(232,90,122,0.3)', color: '#e85a7a', fontSize: 11, marginBottom: 10 },
-  logToggle: { fontSize: 10, color: 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', textDecoration: 'underline', fontFamily: 'var(--font-mono)' },
-  logBox: { marginTop: 6, padding: '8px 10px', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text-secondary)', fontSize: 10, fontFamily: 'var(--font-mono)', whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 240, overflowY: 'auto', lineHeight: 1.4 },
-  textInput: { background: 'var(--bg-overlay)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', fontSize: 11, width: 180 },
-  urlInput: { width: '100%', boxSizing: 'border-box', background: 'var(--bg-overlay)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', fontSize: 10, lineHeight: 1.4, outline: 'none' },
+  updateBtnIdle: { width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 14px', borderRadius: 8, fontSize: 14, fontWeight: 500, color: 'var(--text-secondary)', background: 'var(--bg-overlay)', border: '1px solid var(--border)', cursor: 'pointer' },
+  updateBtnAvailable: { width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 16px', borderRadius: 8, fontSize: 14, fontWeight: 700, color: '#fff', background: '#5b7fff', border: '1px solid #5b7fff', cursor: 'pointer', boxShadow: '0 2px 12px rgba(91,127,255,0.3)' },
+  updateBtnDisabled: { width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 16px', borderRadius: 8, fontSize: 14, fontWeight: 600, color: 'rgba(var(--tint-rgb), 0.7)', background: 'rgba(91,127,255,0.4)', border: '1px solid rgba(91,127,255,0.4)', cursor: 'not-allowed' },
+  errorMsg: { padding: '8px 10px', borderRadius: 6, background: 'rgba(232,90,122,0.1)', border: '1px solid rgba(232,90,122,0.3)', color: '#e85a7a', fontSize: 12, marginBottom: 10 },
+  logToggle: { fontSize: 12, color: 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', textDecoration: 'underline', fontFamily: 'var(--font-mono)' },
+  logBox: { marginTop: 6, padding: '8px 10px', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text-secondary)', fontSize: 12, fontFamily: 'var(--font-mono)', whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 240, overflowY: 'auto', lineHeight: 1.4 },
+  textInput: { background: 'var(--bg-overlay)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', fontSize: 12, width: 180 },
+  urlInput: { width: '100%', boxSizing: 'border-box', background: 'var(--bg-overlay)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', fontSize: 12, lineHeight: 1.4, outline: 'none' },
   link: { color: 'var(--accent)', textDecoration: 'none' },
   segControl: { display: 'flex', background: 'var(--bg-overlay)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', gap: 0 },
-  segBtn: { padding: '5px 14px', fontSize: 12, fontWeight: 500, color: 'var(--text-tertiary)', background: 'transparent', border: 'none', cursor: 'pointer', borderRadius: 0 },
+  segBtn: { padding: '5px 14px', fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)', background: 'transparent', border: 'none', cursor: 'pointer', borderRadius: 0 },
   segBtnActive: { background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 700 },
 }

@@ -831,6 +831,85 @@ function init() {
   safeAddColumn('albums', 'version_key', 'TEXT');
   try { db.exec('CREATE INDEX IF NOT EXISTS idx_albums_version_key ON albums(version_key) WHERE version_key IS NOT NULL'); } catch (e) {}
 
+  // ── v1.1.38.0 ───────────────────────────────────────────────────────
+  //
+  // art_attempted_at / art_attempt_count. The cover-art job was the ONLY
+  // background job in this server with no negative cache, and that made
+  // it the largest source of steady-state API traffic in the whole
+  // system.
+  //
+  // Its pending queue was `SELECT COUNT(*) FROM albums WHERE cover_art IS
+  // NULL`, with nothing recording that we had already looked and found
+  // nothing. Compare the others: matching has match_status, bios have
+  // bio_attempted_at, logos have logo_fetched_at and always write a
+  // typographic fallback so they terminate. Art had none of that, so an
+  // album that genuinely has no art anywhere — a bootleg, a private
+  // pressing, a folder of loose files — was re-queried against
+  // MusicBrainz on every scheduler cycle for the life of the install,
+  // and the queue never drained.
+  //
+  // The count as well as the stamp, because "never retry" is the wrong
+  // answer too: art does get uploaded to the Cover Art Archive later. The
+  // retry curve lives in ART_PENDING_SQL below.
+  safeAddColumn('albums', 'art_attempted_at', 'INTEGER');
+  safeAddColumn('albums', 'art_attempt_count', 'INTEGER DEFAULT 0');
+  try { db.exec('CREATE INDEX IF NOT EXISTS idx_albums_art_attempt ON albums(art_attempted_at)'); } catch (e) {}
+
+  // Track-level MusicBrainz identifiers.
+  //
+  // music-metadata already hands us these on every file it reads and the
+  // scanner was throwing five of the six away. On a Picard-tagged library
+  // they are the artist resolution and the entire works graph, sitting in
+  // the files, free — the matcher was spending two MusicBrainz searches
+  // per artist to re-derive something the tags already said.
+  //
+  // mb_recording_id is also written by the matcher's AcoustID stage, for
+  // files Picard never touched. isrc is kept because it is the one
+  // identifier that survives a re-rip with different tags.
+  safeAddColumn('tracks', 'mb_recording_id', 'TEXT');
+  safeAddColumn('tracks', 'mb_work_id', 'TEXT');
+  safeAddColumn('tracks', 'isrc', 'TEXT');
+  // Negative cache for the works resolver, for the same reason as
+  // art_attempted_at: a track whose recording MusicBrainz has attached to
+  // no work must not be asked about again on every cycle.
+  safeAddColumn('tracks', 'work_attempted_at', 'INTEGER');
+  try { db.exec('CREATE INDEX IF NOT EXISTS idx_tracks_recording ON tracks(mb_recording_id) WHERE mb_recording_id IS NOT NULL'); } catch (e) {}
+
+  // Works — the composition, as distinct from any recording of it.
+  //
+  // A MusicBrainz work attaches to RECORDINGS, never to release groups:
+  // the chain is work <- performance <- recording <- track <- medium <-
+  // release <- release group. So works can never identify an album, and
+  // nothing in this schema tries. What they give us is classical: the
+  // composer as an entity, the canonical work title ("Symphony No. 5 in
+  // C minor, Op. 67") in place of "I. Allegro con brio", and an ISWC,
+  // which is a composition-level identifier that survives bad tags.
+  //
+  // One work serves every recording of it across the library — a symphony
+  // movement recorded by six orchestras is six recordings and one work —
+  // so this table stays small and the cache hit rate is the entire
+  // economics of the feature.
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS works (
+        id            TEXT PRIMARY KEY,
+        title         TEXT NOT NULL,
+        type          TEXT,
+        iswc          TEXT,
+        language      TEXT,
+        composer      TEXT,
+        composer_mbid TEXT,
+        fetched_at    INTEGER
+      );
+      CREATE TABLE IF NOT EXISTS track_works (
+        track_id TEXT NOT NULL,
+        work_id  TEXT NOT NULL,
+        PRIMARY KEY (track_id, work_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_track_works_work ON track_works(work_id);
+    `);
+  } catch (e) { console.error('[db] works tables create:', e.message); }
+
   // v1.1.34.0 — one-time re-queue of albums the old matcher could not
   // place. The scoring it used could not match an album whose title and
   // artist were both EXACTLY right (55+35 is the new arithmetic; the old
@@ -1173,4 +1252,30 @@ function close() {
   }
 }
 
-module.exports = { init, get, isReady, close, rebuildAlbumStats };
+/**
+ * What "this album still needs cover art" means — defined ONCE.
+ *
+ * v1.1.38.0. Two places ask the question: scanner.enrichMissingArt picks
+ * the work, and metadataScheduler.pendingCounts decides whether to enter
+ * the job at all. If those two disagree the scheduler either never starts
+ * a job that has work waiting, or starts one that immediately finds
+ * nothing and reports a queue that never empties. They disagreed by
+ * construction before this release, because only one of them existed.
+ *
+ * The retry curve: never tried, or tried once more than 7 days ago, or
+ * tried twice more than 30 days ago. Three attempts and we stop asking
+ * automatically — but a forced run ignores this predicate entirely, so
+ * "Fetch missing artwork" in the UI always does something.
+ *
+ * Written as a fragment with no leading AND so a caller can drop it into
+ * either a WHERE or an AND position; every caller wraps it in brackets.
+ */
+const ART_PENDING_SQL = `
+  cover_art IS NULL AND (
+    art_attempted_at IS NULL
+    OR (COALESCE(art_attempt_count, 0) <= 1 AND art_attempted_at < unixepoch() - 604800)
+    OR (COALESCE(art_attempt_count, 0) = 2  AND art_attempted_at < unixepoch() - 2592000)
+  )
+`;
+
+module.exports = { init, get, isReady, close, rebuildAlbumStats, ART_PENDING_SQL };

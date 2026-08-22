@@ -137,8 +137,8 @@ const s = {
   },
   handle: { width: 40, height: 4, background: 'var(--text-muted)', borderRadius: 2, margin: '8px auto 4px', opacity: 0.4 },
   header: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '8px 16px 12px', borderBottom: '1px solid var(--border)', gap: 12 },
-  title: { fontSize: 15, fontWeight: 700 },
-  subtitle: { fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 },
+  title: { fontSize: 16, fontWeight: 700 },
+  subtitle: { fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 },
   iconBtn: { width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border)', cursor: 'pointer', flexShrink: 0 },
 
   tabs: {
@@ -153,7 +153,7 @@ const s = {
   tab: {
     padding: '6px 12px',
     borderRadius: 14,
-    fontSize: 11, fontWeight: 500,
+    fontSize: 12, fontWeight: 500,
     background: 'transparent',
     color: 'var(--text-tertiary)',
     border: '1px solid transparent',
@@ -193,7 +193,7 @@ const s = {
     color: 'var(--accent)',
   },
   gridLabel: {
-    fontSize: 9,
+    fontSize: 11,
     color: 'var(--text-tertiary)',
     textAlign: 'center',
     lineHeight: 1.2,
@@ -223,7 +223,7 @@ const s = {
   saveError: {
     margin: '0 12px',
     padding: '6px 10px',
-    fontSize: 11,
+    fontSize: 12,
     color: '#e85a7a',
     background: 'rgba(232,90,122,0.08)',
     border: '1px solid rgba(232,90,122,0.25)',
@@ -232,7 +232,7 @@ const s = {
   resetBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 5,
     padding: '8px 12px',
-    borderRadius: 14, fontSize: 11,
+    borderRadius: 14, fontSize: 12,
     background: 'transparent',
     color: 'var(--text-tertiary)',
     border: '1px solid var(--border)',
@@ -240,7 +240,7 @@ const s = {
   },
   saveBtn: {
     padding: '8px 18px',
-    borderRadius: 14, fontSize: 12, fontWeight: 600,
+    borderRadius: 14, fontSize: 13, fontWeight: 600,
     background: 'var(--accent)',
     color: 'white',
     border: 'none',

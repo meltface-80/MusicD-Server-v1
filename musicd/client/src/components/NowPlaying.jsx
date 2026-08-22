@@ -278,18 +278,18 @@ const s = {
   // because the mini-bar is fighting for attention at the bottom
   // of the screen. Title is the shoutiest token here.
   trackTitle: {
-    fontSize: 14, fontWeight: 600,
+    fontSize: 15, fontWeight: 600,
     color: 'var(--jp-text)',
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
     marginBottom: 2,
     width: '100%',
   },
   trackArtist: {
-    fontSize: 12, fontWeight: 400, color: 'var(--jp-text-2)',
+    fontSize: 13, fontWeight: 400, color: 'var(--jp-text-2)',
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
     width: '100%',
   },
-  idle: { fontSize: 13, color: 'var(--jp-text-3)' },
+  idle: { fontSize: 14, color: 'var(--jp-text-3)' },
 
   // Right-cluster icon buttons (renderer + volume). No fill, no
   // border — just a quiet outline button on hover would be ideal
@@ -318,7 +318,7 @@ const s = {
     background: 'var(--accent)',
     color: 'var(--on-accent)',
     borderRadius: 9,
-    fontSize: 10, fontWeight: 700,
+    fontSize: 12, fontWeight: 700,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     boxShadow: '0 0 0 2px var(--bg-surface)',
     pointerEvents: 'none',

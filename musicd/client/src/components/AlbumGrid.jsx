@@ -946,7 +946,7 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
                 ? 'No albums match this tag.'
                 : `No albums match all ${tagFilter.size} selected tags.`}
               <br /><br />
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                 <button
                   onClick={() => setTagFilter(new Set())}
                   style={{ background: 'none', border: 'none', color: 'var(--jp-text-2)', textDecoration: 'underline', cursor: 'pointer', padding: 0 }}
@@ -961,7 +961,7 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
             <>
               No albums match the current Focus filters.
               <br /><br />
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                 Open the Focus bar to remove pills, or
                 {' '}<button
                   onClick={() => focus.clearAll && focus.clearAll()}
@@ -973,7 +973,7 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
             <>
               Nothing saved for later yet.
               <br /><br />
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                 Tap an album's <strong>⋯</strong> menu and choose <strong>Save for later</strong> to add it here.
               </span>
             </>
@@ -981,7 +981,7 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
             <>
               No favourites yet.
               <br /><br />
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                 Tap the heart on any album page to add it here.
               </span>
             </>
@@ -989,7 +989,7 @@ export default function AlbumGrid({ onAlbumSelect, favoritesOnly = false, savedO
             <>
               No albums in library yet.
               <br /><br />
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                 Add music to <code>/mnt/dietpi_userdata/4tb</code> and tap Rescan in the side menu.
               </span>
             </>
@@ -1208,7 +1208,7 @@ const s = {
   gridArea: { paddingTop: 8, paddingBottom: 120 },
   titleRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   heading: { fontSize: 24, fontWeight: 600, letterSpacing: '-0.3px', color: 'var(--jp-text)' },
-  statsRow: { fontSize: 11, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)' },
+  statsRow: { fontSize: 12, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)' },
   // v1.1.11.0 — the sort sheet. Replaces the old sortRow/sortBtn/sortActive
   // trio (dead since the v1.1.0.62 chip row) and sortChipActive (which styled
   // the three Title/Artist/Year pills this sheet replaced).
@@ -1247,8 +1247,8 @@ const s = {
     width: 16, flexShrink: 0,
   },
   sortText: { display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 },
-  sortLabel: { fontSize: 13, fontWeight: 600 },
-  sortNote: { fontSize: 11, color: 'var(--jp-text-3)' },
+  sortLabel: { fontSize: 14, fontWeight: 600 },
+  sortNote: { fontSize: 12, color: 'var(--jp-text-3)' },
   // v1.1.0.62 — JPLAY-style chip row. Was a wrap-flex centred
   // pill row with bordered chips on var(--bg-elevated). JPLAY
   // uses a horizontal scroller pinned to the start, no-border
@@ -1274,7 +1274,7 @@ const s = {
   iconChip: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '7px 13px', borderRadius: 999,
-    fontSize: 12, fontWeight: 500,
+    fontSize: 13, fontWeight: 500,
     color: 'var(--jp-text-2)',
     background: 'rgba(var(--tint-rgb), 0.05)',
     border: '1px solid transparent',
@@ -1308,7 +1308,7 @@ const s = {
   tagChip: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '5px 10px',
-    fontSize: 12, fontWeight: 500,
+    fontSize: 13, fontWeight: 500,
     background: 'transparent',
     color: 'var(--jp-text-2)',
     border: '1px solid var(--jp-border)',
@@ -1322,7 +1322,7 @@ const s = {
     color: 'var(--jp-text)',
   },
   tagChipCount: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: 'var(--font-mono)',
     color: 'var(--jp-text-3)',
     fontWeight: 400,
@@ -1344,16 +1344,16 @@ const fs = {
   wrap: { padding: '24px 16px', display: 'flex', justifyContent: 'center' },
   card: { width: '100%', maxWidth: 360, padding: '22px 22px 24px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' },
   title: { fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 },
-  subtitle: { fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.45, marginBottom: 18 },
+  subtitle: { fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.45, marginBottom: 18 },
   steps: { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 },
   step: { display: 'flex', alignItems: 'center', gap: 10 },
-  stepDot: { width: 18, height: 18, borderRadius: '50%', background: 'var(--bg-overlay)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0 },
+  stepDot: { width: 18, height: 18, borderRadius: '50%', background: 'var(--bg-overlay)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: 'var(--text-tertiary)', flexShrink: 0 },
   stepActive: { background: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--on-accent)', animation: 'pulse 1.4s ease-in-out infinite' },
   stepDone: { background: 'rgba(63,208,122,0.15)', borderColor: 'rgba(63,208,122,0.4)', color: '#3fd07a' },
-  stepLabel: { fontSize: 12, color: 'var(--text-tertiary)' },
+  stepLabel: { fontSize: 13, color: 'var(--text-tertiary)' },
   stepLabelActive: { color: 'var(--text-primary)', fontWeight: 600 },
   detailBlock: { paddingTop: 12, borderTop: '1px solid var(--border)' },
-  detailText: { fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', marginBottom: 6 },
+  detailText: { fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', marginBottom: 6 },
   progressTrack: { height: 3, background: 'var(--bg-overlay)', borderRadius: 1.5, overflow: 'hidden' },
   progressFill: { height: '100%', background: 'var(--accent)', transition: 'width 0.4s ease' },
 }

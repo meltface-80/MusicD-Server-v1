@@ -248,19 +248,19 @@ export function DeviceSettingsOverlay({ rendererId, renderer, onClose }) {
       </div>
       <div style={s.dspOverlayBody}>
         {loading && (
-          <div style={{ padding: '24px 18px', color: 'var(--text-tertiary)', fontSize: 13 }}>
+          <div style={{ padding: '24px 18px', color: 'var(--text-tertiary)', fontSize: 14 }}>
             Loading…
           </div>
         )}
         {!loading && error === 'not-found' && (
-          <div style={{ padding: '14px 18px', color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6 }}>
+          <div style={{ padding: '14px 18px', color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6 }}>
             <b>{renderer?.name || 'This device'}</b> doesn't expose per-device audio settings.
             Sonos, DLNA, and other network renderers are configured at the device itself —
             try the Sonos app or your renderer's web UI.
           </div>
         )}
         {!loading && error && error !== 'not-found' && (
-          <div style={{ padding: '14px 18px', color: 'var(--red, #f47174)', fontSize: 13 }}>
+          <div style={{ padding: '14px 18px', color: 'var(--red, #f47174)', fontSize: 14 }}>
             Couldn't load device settings: {error}
           </div>
         )}
@@ -310,7 +310,7 @@ const s = {
   },
   volSliderWrap: { display: 'flex', alignItems: 'center', gap: 12 },
   volSlider: { flex: 1, accentColor: 'var(--accent)' },
-  volMax: { fontSize: 11, color: 'rgba(var(--tint-rgb), 0.5)', fontFamily: 'var(--font-mono)', width: 28, textAlign: 'right' },
+  volMax: { fontSize: 12, color: 'rgba(var(--tint-rgb), 0.5)', fontFamily: 'var(--font-mono)', width: 28, textAlign: 'right' },
   // v1.1.3.8 — circular − / + volume steps at the right end of the
   // slider row. Same 36px circle as the Now Playing screen's device
   // button so every round control reads as one family. touch-action
@@ -340,10 +340,10 @@ const s = {
     color: 'var(--text-secondary)',
     cursor: 'pointer',
   },
-  volIconLabel: { fontSize: 11, fontWeight: 500, letterSpacing: '0.02em' },
+  volIconLabel: { fontSize: 12, fontWeight: 500, letterSpacing: '0.02em' },
   volFixedLabel: {
     textAlign: 'center', padding: '12px 0',
-    fontSize: 13, fontWeight: 500,
+    fontSize: 14, fontWeight: 500,
     color: 'var(--text-tertiary)',
     fontFamily: 'var(--font-mono)',
   },
@@ -375,7 +375,7 @@ const s = {
     cursor: 'pointer', borderRadius: 6,
   },
   dspOverlayTitle: {
-    fontSize: 14, fontWeight: 700,
+    fontSize: 15, fontWeight: 700,
     color: 'var(--text-primary)',
     letterSpacing: '0.02em',
   },

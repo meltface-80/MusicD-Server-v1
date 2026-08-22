@@ -28,10 +28,44 @@ const db = require('./db');
 // still refuse to collapse into one tile.
 const identity = require('./albumIdentity');
 const mbArtist = require('./mbArtist');
+// v1.1.38.0 — every MusicBrainz call in the server now goes through one
+// client. See src/mbHttp.js: it owns the single throttle, the single
+// User-Agent (built from the user's contact, which MB's terms require)
+// and 503 / Retry-After backoff, which this module did not have. Before
+// this release there were THREE independent 1-req/sec pacers pointed at
+// a service that allows one request per second in total, and two of
+// them sent a User-Agent with no contact in it.
+const mbHttp = require('./mbHttp');
+const settings = require('./settings');
+// v1.1.38.0 — the ListenBrainz mapper. See the block in matchOneAlbum for
+// why it sits ahead of every MusicBrainz path.
+const listenBrainz = require('./listenBrainz');
+// v1.1.38.0 — AcoustID, as the last stage of the automatic matcher.
+// Before this release it was reachable only from a manual button.
+const fingerprintMatch = require('./fingerprintMatch');
+// v1.1.38.0 — Qobuz and Tidal as a barcode oracle. See the block in
+// matchOneAlbum for why an exact identifier beats a fuzzy search.
+const streamingBarcode = require('./streamingBarcode');
 
-const MB_BASE = 'https://musicbrainz.org/ws/2';
-const REQUEST_TIMEOUT_MS = 8000;
 const MAX_CANDIDATES_STORED = 5;
+
+// The score at which a candidate is good enough on its own — no runner-up
+// gap required, and no further query worth spending. Named here because
+// v1.1.38.0 made the search fallback stop early on a decisive answer, and
+// two places deciding separately what "decisive" means is how the matched
+// threshold and the scoring weights drifted apart in the first place.
+const DECISIVE_SCORE = 95;
+// The floor for a match that DOES need to have beaten its nearest rival.
+const MATCH_SCORE = 85;
+// Below this an album is unmatched rather than uncertain: not worth a
+// human's time on the triage page.
+const UNCERTAIN_SCORE = 60;
+// How much the ListenBrainz mapper has to agree with itself before we
+// take its answer without asking MusicBrainz anything else. Two sampled
+// tracks landing on the same release is the bar; one track alone is not,
+// because a single-track vote on a song that appears on twelve
+// compilations tells you nothing about which record this is.
+const LB_MIN_CONFIDENCE = 65;
 
 // State
 let _running = false;
@@ -48,57 +82,30 @@ let _progress = {
   startedAt: null,
 };
 
-// Shared 1 req/sec throttle so this module and bioFetch don't breach
-// the MB rate limit when running concurrently (#30.23).
-const mbThrottle = require('./mbThrottle');
-
 /**
- * Throttled HTTP request to the MusicBrainz API. Sleeps before each
- * call so we never exceed 1 req/sec (with a small margin).
+ * Throttled, retrying request to the MusicBrainz API.
+ *
+ * v1.1.38.0 — this used to be forty lines of axios plus its own call to
+ * mbThrottle. It is now a thin adapter over src/mbHttp.js, kept only
+ * because mbArtist.js is handed an `mbRequest(path, params, userAgent)`
+ * callable in its ctx and that signature is worth preserving: it is what
+ * lets mbArtist be tested without a network and without knowing where
+ * the contact string came from.
+ *
+ * The behaviour that changed underneath it is the part that matters. A
+ * 503 from MusicBrainz means "you are going too fast, come back in
+ * Retry-After seconds", and this module used to treat it as a hard
+ * failure — which marked the album errored and, because of the loop bug
+ * fixed in this same release, immediately retried the same album. mbHttp
+ * now honours Retry-After and backs off three times before giving up.
  */
 async function mbRequest(path, params, userAgent) {
-  await mbThrottle.wait();
-
-  const serviceHealth = require('./serviceHealth');
-  const url = `${MB_BASE}${path}`;
-  try {
-    const res = await axios.get(url, {
-      params: { ...params, fmt: 'json' },
-      headers: { 'User-Agent': userAgent },
-      timeout: REQUEST_TIMEOUT_MS,
-    });
-    serviceHealth.recordSuccess('musicbrainz');
-    return res.data;
-  } catch (e) {
-    // 404 on a specific MBID lookup is a normal "not found" -- not a
-    // service failure. Search endpoints don't 404 (they return empty).
-    if (e.response?.status === 404) {
-      serviceHealth.recordSuccess('musicbrainz');
-      throw e;
-    }
-    serviceHealth.recordFailure('musicbrainz', e.message || 'unknown error');
-    throw e;
-  }
+  return mbHttp.request(path, params, { userAgent });
 }
 
-/**
- * Build the User-Agent string that identifies our client to
- * MusicBrainz. Their TOS requires this -- they need a way to contact
- * us if our client misbehaves.
- *
- * The contact part is user-supplied (URL or email). Without it we
- * refuse to start. The version number comes from the VERSION file so
- * MB's logs show which release made the request.
- */
-function buildUserAgent(contact) {
-  let version = 'unknown';
-  try {
-    const fs = require('fs');
-    const path = require('path');
-    version = fs.readFileSync(path.join(__dirname, '../../VERSION'), 'utf-8').trim();
-  } catch {} // not fatal; UA still needs the contact part
-  return `musicd/${version} ( ${contact} )`;
-}
+// Re-exported so the shape of this module does not change for callers
+// that build a User-Agent for a one-off request.
+const buildUserAgent = mbHttp.buildUserAgent;
 
 // v1.1.34.0 — normalise / cleanAlbumTitle / cleanArtistName used to be
 // defined here. They now live in src/albumIdentity.js, because album
@@ -244,19 +251,58 @@ function scoreCandidate(album, candidate, ctx = {}) {
   else if (primary === 'broadcast' || primary === 'other') score -= 4;
 
   // Secondary types describe a DIFFERENT record that shares a name: the
-  // live album, the remix album, the compilation. Penalise unless the
-  // local title says the same thing — which it does via the noise we
-  // stripped, so check the raw title rather than the cleaned one.
+  // live album, the remix album, the compilation.
+  //
+  // v1.1.38.0 — THE PENALTY IS NOW ASYMMETRIC, and that is a fix.
+  //
+  // It used to be a flat −10 for every secondary type the local raw
+  // title did not echo. That is right for "Moon Safari (Live)" against
+  // the studio album. It is wrong for Trainspotting, Purple Rain, The
+  // Harder They Come — soundtracks whose titles contain no word
+  // resembling "soundtrack", and compilations named after the band
+  // rather than described as one. Exact title plus exact artist is 90;
+  // one unearned −10 takes it to 80, under the 85 bar, and a correct
+  // answer lands in triage.
+  //
+  // Absence of evidence is not evidence. So agreement still pays (+4),
+  // but a penalty now needs positive local evidence AGAINST the type:
+  //
+  //   album_type   the scanner computes this per album. When it says
+  //                this is a studio album and MB says compilation, the
+  //                two genuinely disagree and the penalty is earned.
+  //   track count  a compilation or anthology of the same name is
+  //                normally much longer than the studio record. A local
+  //                album of 10 tracks against MB's 2-CD "collection" is
+  //                real evidence; a local album of 40 is not.
+  //
+  // With neither signal available we take a small −3 rather than −10:
+  // enough to break a tie against a plain studio release group, not
+  // enough on its own to push an otherwise perfect match into triage.
   const rawTitleN = normalise(album.title || '');
   const SECONDARY_HINTS = {
     live: /\blive\b/, compilation: /\b(compilation|greatest|best of|anthology|collection)\b/,
     remix: /\bremix/, soundtrack: /\b(soundtrack|ost|score)\b/, demo: /\bdemos?\b/,
     spokenword: /\bspoken\b/, interview: /\binterview\b/, mixtape: /\bmixtape\b/,
   };
+  // 'album' here is the scanner's own classification of the local rows.
+  // Anything else (or nothing at all) means we have no opinion, not that
+  // we disagree.
+  const localType = String(album.album_type || '').toLowerCase();
+  const localSaysStudio = localType === 'album' || localType === 'studio';
   for (const st of secondary) {
-    const hint = SECONDARY_HINTS[st.replace(/[^a-z]/g, '')];
-    if (hint && hint.test(rawTitleN)) score += 4;      // agrees — good evidence
-    else score -= 10;                                  // a different record
+    const key = st.replace(/[^a-z]/g, '');
+    const hint = SECONDARY_HINTS[key];
+    if (hint && hint.test(rawTitleN)) {
+      score += 4;                                      // agrees — good evidence
+      continue;
+    }
+    // A gathering of other people's records is normally longer than the
+    // studio album it shares a name with. 18 is deliberately generous:
+    // plenty of legitimate single-disc compilations sit at 14 or 16.
+    const gathering = key === 'compilation' || key === 'live' || key === 'mixtape';
+    const shortForAGathering = gathering && localTracks > 0 && localTracks <= 18;
+    if (localSaysStudio || shortForAGathering) score -= 10;   // genuinely disagrees
+    else score -= 3;                                          // no opinion either way
   }
 
   // ---- year --------------------------------------------------------
@@ -286,6 +332,55 @@ function scoreCandidate(album, candidate, ctx = {}) {
   if (candidate.score && candidate.score >= 95) score += 8;
 
   return Math.max(0, Math.min(100, score));
+}
+
+/**
+ * Re-score the top two candidates with real track counts from
+ * MusicBrainz, and return the list re-sorted.
+ *
+ * One `/release-group/<id>?inc=releases` per candidate. A release group
+ * holds several releases and they disagree — the point of a deluxe
+ * edition is that it has more tracks — so we take the release whose
+ * count is CLOSEST to the local album's rather than the first or the
+ * mean. Taking the first would systematically favour whichever pressing
+ * MusicBrainz happens to list first, which is not evidence about
+ * anything.
+ *
+ * Failure here is not failure of the match: on a network error the
+ * candidate keeps the score it already had and the caller decides on the
+ * evidence it already has.
+ */
+async function refineWithTrackCounts(ranked, scored_album, userAgent, diagnostic) {
+  const out = ranked.slice();
+  const localTracks = Number(scored_album.track_count) || 0;
+  for (let i = 0; i < Math.min(2, out.length); i++) {
+    const entry = out[i];
+    let data;
+    try {
+      data = await mbRequest(`/release-group/${entry.candidate.id}`, { inc: 'releases' }, userAgent);
+    } catch (e) {
+      // Keep the unrefined score. A tie-break we could not afford is a
+      // tie-break we do without.
+      diagnostic.trackCountError = e.message;
+      continue;
+    }
+    let best = null;
+    for (const rel of (data.releases || [])) {
+      const n = Number(rel['track-count'] || 0);
+      if (!n) continue;
+      if (best === null || Math.abs(n - localTracks) < Math.abs(best - localTracks)) best = n;
+    }
+    if (best === null) continue;
+    out[i] = {
+      candidate: entry.candidate,
+      score: scoreCandidate(scored_album, entry.candidate, {
+        trackCount: localTracks,
+        candidateTrackCount: best,
+      }),
+    };
+  }
+  diagnostic.trackCountRefined = true;
+  return out.sort((a, b) => b.score - a.score);
 }
 
 /**
@@ -385,6 +480,86 @@ async function matchOneAlbum(album, userAgent) {
     titleStripped: id.titleStripped, artistStripped: id.artistStripped,
   };
 
+  // ---- 1b. the ListenBrainz mapper ----------------------------------
+  //
+  // v1.1.38.0, and the reason a full matcher run stopped taking an hour.
+  //
+  // ListenBrainz runs MusicBrainz's own fuzzy matcher — a Typesense index
+  // over artist credit, recording and release names — as a public
+  // endpoint. Two things make it worth putting ahead of everything else
+  // here. It answers on TRACK titles, so an album whose own title is
+  // mangled past the point where any release-group query would hit can
+  // still be identified from the names of the songs on it. And it takes
+  // fifty lookups per POST at fifty requests per ten seconds, against
+  // MusicBrainz's one request per second — so the sampled tracks of an
+  // album cost a fraction of a request where the search fallback costs
+  // up to four whole ones.
+  //
+  // It hands back a RELEASE mbid, and this matcher deals in release
+  // GROUPS, so a confident answer still costs one MusicBrainz lookup to
+  // convert. That is one request against the four-plus below it, and it
+  // is authoritative rather than fuzzy.
+  //
+  // Opt-in twice over: the endpoint needs a free account token (it was
+  // closed to anonymous callers over AI scraping), and the setting can
+  // be turned off independently. With no token this whole block is
+  // skipped and the matcher behaves exactly as it did before.
+  if (dbh && listenBrainz.isConfigured() && settings.getBool('matcher_use_listenbrainz', true)) {
+    let trackTitles = [];
+    try {
+      trackTitles = dbh.prepare(`
+        SELECT title FROM tracks
+        WHERE album_id = ? AND title IS NOT NULL AND TRIM(title) != ''
+        ORDER BY disc_number, track_number
+      `).all(album.id).map(r => r.title);
+    } catch (e) {
+      // No tracks table, or an album row with no tracks (a streaming
+      // placeholder). Not fatal — the mapper simply has nothing to send
+      // and the paths below still run.
+    }
+    if (trackTitles.length > 0) {
+      let lb = null;
+      try {
+        lb = await listenBrainz.lookupAlbum({ title: id.title, artist: id.artist, trackTitles });
+      } catch (e) {
+        // ListenBrainz being down or rate-limiting is not a failed match.
+        // Fall through to the MusicBrainz paths, which is what this
+        // matcher did for every album before this release.
+        diagnostic.listenBrainzError = e.message;
+      }
+      if (lb && lb.releaseMbid) {
+        diagnostic.listenBrainz = {
+          releaseMbid: lb.releaseMbid, agree: lb.agree,
+          sampled: lb.sampled, confidence: lb.confidence,
+        };
+        if (lb.confidence >= LB_MIN_CONFIDENCE) {
+          let rgId = null;
+          try {
+            rgId = await listenBrainz.releaseGroupFor(lb.releaseMbid, { userAgent });
+          } catch (e) {
+            diagnostic.listenBrainzRgError = e.message;
+          }
+          if (rgId) {
+            return {
+              status: 'matched',
+              confidence: lb.confidence,
+              mbid: rgId,
+              artistMbids: lb.artistMbids || [],
+              candidates: [{
+                mbid: rgId,
+                title: lb.releaseName || id.title,
+                artist: lb.artistCreditName || id.artist,
+                score: lb.confidence,
+                source: 'listenbrainz',
+              }],
+              diagnostic: { ...diagnostic, path: 'listenbrainz' },
+            };
+          }
+        }
+      }
+    }
+  }
+
   // ---- 2. artist -> MBID -> their actual discography ----------------
   let discographyScored = null;
   if (dbh) {
@@ -430,10 +605,58 @@ async function matchOneAlbum(album, userAgent) {
     // the most relevant things to show on the triage page.
   }
 
+  // ---- 2b. borrow a barcode from Qobuz or Tidal ---------------------
+  //
+  // v1.1.38.0. The barcode-qualified query below is the best one in this
+  // function — a barcode is an exact identifier, so MusicBrainz either
+  // knows it or does not, with no fuzz in between — and it has almost
+  // never run, because `albums.barcode` is almost always null. Rippers
+  // do not write a UPC.
+  //
+  // The user is logged into Qobuz and/or Tidal, this server already
+  // holds authenticated clients for both, and their album responses
+  // carry the UPC. So before falling back to fuzzy text search, ask a
+  // catalogue we are already paying for. src/streamingBarcode.js does
+  // the asking and refuses to guess: title and artist must agree exactly
+  // after the same normalisation the matcher itself uses, and the track
+  // count must agree too when both sides have one.
+  //
+  // Persisted on the album row, so it is spent once per album rather
+  // than once per matcher run — and so a later manual re-match gets it
+  // for free.
+  let borrowedBarcode = null;
+  if (!album.barcode && streamingBarcode.isAvailable()) {
+    try {
+      const found = await streamingBarcode.findBarcode({
+        title: id.title, artist: id.artist, trackCount: album.track_count,
+      });
+      if (found) {
+        borrowedBarcode = found.barcode;
+        diagnostic.barcodeFrom = found.service;
+        diagnostic.barcode = found.barcode;
+        if (dbh) {
+          try {
+            dbh.prepare('UPDATE albums SET barcode = COALESCE(barcode, ?) WHERE id = ?')
+              .run(found.barcode, album.id);
+          } catch (e) {
+            // Storing it is an optimisation for next time; the query
+            // below uses the value we already hold either way.
+            diagnostic.barcodeStoreError = e.message;
+          }
+        }
+      }
+    } catch (e) {
+      // findBarcode is documented never to throw, but a matcher run must
+      // not depend on that promise being kept.
+      diagnostic.barcodeError = e.message;
+    }
+  }
+
   // ---- 3. search fallback -------------------------------------------
   const attempts = [];
-  if (album.barcode) {
-    const bc = String(album.barcode).replace(/["\\]/g, ' ').trim();
+  const knownBarcode = album.barcode || borrowedBarcode;
+  if (knownBarcode) {
+    const bc = String(knownBarcode).replace(/["\\]/g, ' ').trim();
     if (bc) attempts.push(`releasegroup:"${titleClean}" AND artist:"${artistClean}" AND barcode:"${bc}"`);
   }
   if (album.catalog_number) {
@@ -459,7 +682,26 @@ async function matchOneAlbum(album, userAgent) {
   // raised to 25 here — the old code documented 25 and passed 10.
   attempts.push(`artist:"${artistClean}"`);
 
-  let groups = [];
+  // v1.1.38.0 — THE LOOP USED TO STOP AT THE FIRST ANSWER, NOT THE BEST.
+  //
+  // It was `if (fetched.length > 0) { groups = fetched; break; }`. But
+  // MusicBrainz's Lucene search is fuzzy and frequently returns a
+  // low-relevance hit rather than nothing at all, so one piece of junk
+  // from the title+artist query stopped the raw-strings query and the
+  // artist-only sweep from ever running — and the artist-only sweep is
+  // there specifically to catch titles too mangled for any title query
+  // to hit. The attempts were ordered best-first and then the ordering
+  // was used as a reason not to ask the later ones.
+  //
+  // Now every attempt is scored and the best candidate across all of
+  // them wins. The early exit is kept, but it is now conditional on the
+  // ANSWER rather than on there being one: once a candidate clears the
+  // decisive bar there is nothing a further query could add, so we stop
+  // and save the request. On the albums that were already failing this
+  // costs at most three more requests, and those are precisely the
+  // albums worth spending requests on.
+  const searchScored = [];
+  const queriesUsed = [];
   for (const query of attempts) {
     let data;
     try {
@@ -467,21 +709,28 @@ async function matchOneAlbum(album, userAgent) {
         { query, limit: query.startsWith('artist:') ? 25 : 10 }, userAgent);
     } catch (e) {
       // Network failures are recoverable: 'error' rows are retried on
-      // the next run rather than being remembered as unmatched.
-      return { status: 'error', confidence: null, mbid: null, candidates: [], error: e.message };
-    }
-    const fetched = data['release-groups'] || [];
-    if (fetched.length > 0) {
-      groups = fetched;
-      diagnostic.queryUsed = query;
+      // the next run rather than being remembered as unmatched. But if
+      // an earlier attempt already produced candidates, keep them —
+      // throwing away good evidence because a later, broader query
+      // timed out is worse than answering from what we have.
+      if (searchScored.length === 0) {
+        return { status: 'error', confidence: null, mbid: null, candidates: [], error: e.message };
+      }
+      diagnostic.searchError = e.message;
       break;
     }
+    const fetched = data['release-groups'] || [];
+    if (fetched.length === 0) continue;
+    queriesUsed.push(query);
+    let best = 0;
+    for (const g of fetched) {
+      const score = scoreCandidate(scored_album, g, { trackCount: album.track_count });
+      searchScored.push({ candidate: g, score });
+      if (score > best) best = score;
+    }
+    if (best >= DECISIVE_SCORE) break;
   }
-
-  const searchScored = groups.map(g => ({
-    candidate: g,
-    score: scoreCandidate(scored_album, g, { trackCount: album.track_count }),
-  }));
+  if (queriesUsed.length > 0) diagnostic.queriesUsed = queriesUsed;
 
   // Merge with anything the discography pass found, de-duplicated by
   // MBID, keeping the higher score for a group both passes saw.
@@ -492,10 +741,113 @@ async function matchOneAlbum(album, userAgent) {
   }
   const all = [...byId.values()].sort((a, b) => b.score - a.score);
 
-  if (all.length === 0) {
-    return { status: 'unmatched', confidence: 0, mbid: null, candidates: [], diagnostic };
+  // v1.1.38.0 — the track-count tie-break, which finally fires.
+  //
+  // scoreCandidate has read `ctx.candidateTrackCount` since v1.1.34.0 and
+  // NOTHING has ever written it: neither caller passed one, and neither
+  // could, because browse responses and search results both omit track
+  // counts. So the block was dead. (Its own predecessor was a doc comment
+  // claiming a bonus the code did not have, noted and half-fixed in
+  // v1.1.34.0 — this is the second time this particular nudge has been
+  // described but not delivered.)
+  //
+  // Earning it costs a request, so it is spent only where it can change
+  // the answer: two candidates within ten points of each other, with the
+  // leader short of the match bar. That is the studio-album-against-
+  // deluxe-edition case and very little else, and it is exactly the case
+  // a track count settles. Everywhere else the ranking is already
+  // decided and the request would buy nothing.
+  let refined = all;
+  if (all.length >= 2 && all[0].score < MATCH_SCORE && all[0].score - all[1].score <= 10
+      && Number(album.track_count) > 0) {
+    refined = await refineWithTrackCounts(all, scored_album, userAgent, diagnostic);
   }
-  const decided = decideMatch(all, { fromDiscography: false });
+
+  const decided = refined.length === 0
+    ? { status: 'unmatched', confidence: 0, mbid: null, candidates: [] }
+    : decideMatch(refined, { fromDiscography: false });
+  if (decided.status === 'matched') {
+    return { ...decided, diagnostic: { ...diagnostic, path: decided.path || 'search' } };
+  }
+
+  // ---- 4. fingerprint the residue -----------------------------------
+  //
+  // v1.1.38.0. src/fingerprintMatch.js has been 294 lines of working
+  // AcoustID integration reachable from exactly one place: a manual
+  // button on the Unmatched page. The automatic matcher never called it.
+  //
+  // It is the only source in this system that works when the tags are
+  // worthless, which is the problem the whole matching feature exists to
+  // solve, and it was sitting unused while albums with unreadable
+  // metadata went to triage by the hundred.
+  //
+  // It goes LAST because it is the expensive one, and expensive in a
+  // different currency from everything above: fpcalc decodes real audio,
+  // so this costs CPU and disk on a machine whose scheduler already
+  // backs off at 59 °C, rather than costing MusicBrainz quota. By the
+  // time an album reaches here it has survived identity recovery, the
+  // ListenBrainz mapper, an artist-MBID discography browse and up to
+  // four search queries — so the set is small, and every album in it is
+  // one nothing else could name.
+  //
+  // Its recording MBIDs are kept whatever the outcome: they are what the
+  // works layer needs, and an album we could not place still has tracks
+  // AcoustID recognised.
+  const fpAllowed = settings.getBool('matcher_use_fingerprint', true);
+  if (fpAllowed && album.id) {
+    let fp = null;
+    try {
+      fp = await fingerprintMatch.matchAlbumRow(album, {});
+    } catch (e) {
+      // fpcalc missing from the image, an unreadable file, AcoustID down.
+      // None of those are a reason to fail the album — it already has a
+      // perfectly good 'unmatched' or 'uncertain' answer from the text
+      // paths above, and this was the long shot.
+      diagnostic.fingerprintError = e.message;
+    }
+    if (fp && Array.isArray(fp.candidates) && fp.candidates.length > 0) {
+      diagnostic.fingerprint = { candidates: fp.candidates.length, reason: fp.reason || null };
+      const top = fp.candidates[0];
+      // AcoustID's own agreement across several tracks of one album is
+      // strong evidence — it is derived from the audio, not from a
+      // string somebody typed — so it is allowed to convert an album the
+      // text paths could not place. The bar is its own score, which
+      // already folds in how many sampled tracks agreed.
+      if (top.score >= MATCH_SCORE) {
+        return {
+          status: 'matched',
+          confidence: top.score,
+          mbid: top.mbid,
+          recordingMbids: fp.recordingMbids || [],
+          recordingsByPath: fp.recordingsByPath || {},
+          candidates: fp.candidates.slice(0, MAX_CANDIDATES_STORED),
+          diagnostic: { ...diagnostic, path: 'acoustid' },
+        };
+      }
+      // Not confident enough to take, but far better triage material
+      // than nothing: show the user what the audio suggests.
+      const merged = [...(decided.candidates || []), ...fp.candidates]
+        .slice(0, MAX_CANDIDATES_STORED);
+      return {
+        ...decided,
+        status: decided.status === 'unmatched' && top.score >= UNCERTAIN_SCORE
+          ? 'uncertain' : decided.status,
+        confidence: Math.max(decided.confidence || 0, top.score),
+        recordingMbids: fp.recordingMbids || [],
+          recordingsByPath: fp.recordingsByPath || {},
+        candidates: merged,
+        diagnostic: { ...diagnostic, path: 'acoustid-triage' },
+      };
+    }
+    if (fp && Array.isArray(fp.recordingMbids) && fp.recordingMbids.length > 0) {
+      // No release group agreed on, but AcoustID did recognise the audio.
+      // The recording MBIDs are still worth keeping for the works layer.
+      return { ...decided, recordingMbids: fp.recordingMbids,
+        recordingsByPath: fp.recordingsByPath || {},
+        diagnostic: { ...diagnostic, path: decided.path || 'search' } };
+    }
+  }
+
   return { ...decided, diagnostic: { ...diagnostic, path: decided.path || 'search' } };
 }
 
@@ -537,17 +889,17 @@ function decideMatch(ranked, opts = {}) {
     mbScore: s.candidate.score || null,
   }));
 
-  const decisive = top.score >= 95;
+  const decisive = top.score >= DECISIVE_SCORE;
   const clear = !second || second.score < top.score - 15;
   // Inside one artist's catalogue: a clear leader at 75 is trustworthy.
   const discoClear = opts.fromDiscography
     && top.score >= 75
     && (!second || second.score < top.score - 20);
 
-  if ((top.score >= 85 && (decisive || clear)) || discoClear) {
+  if ((top.score >= MATCH_SCORE && (decisive || clear)) || discoClear) {
     return { status: 'matched', confidence: top.score, mbid: top.candidate.id, candidates: trimmed };
   }
-  if (top.score >= 60) {
+  if (top.score >= UNCERTAIN_SCORE) {
     return { status: 'uncertain', confidence: top.score, mbid: null, candidates: trimmed };
   }
   return { status: 'unmatched', confidence: top.score, mbid: null, candidates: trimmed };
@@ -589,18 +941,106 @@ async function runLoop(contact) {
   // iteration rather than fetching the full list once because the
   // user might add new albums (via library scan) while the matcher
   // runs — those will be picked up automatically.
+  //
+  // v1.1.38.0 — THIS LOOP COULD RUN FOREVER ON ONE ALBUM, and fixing
+  // that is the most important change in this release.
+  //
+  // The pick has always been `WHERE match_status IS NULL OR IN
+  // ('pending', 'error') ORDER BY id LIMIT 1`. When an album fails, the
+  // body writes match_status = 'error' and picks again — and 'error' is
+  // still in that WHERE clause, so the very same row comes back. The
+  // comment on the write says it persists the status "so the loop
+  // doesn't get stuck on the same album forever"; persisting a status
+  // that the query still selects does not remove the row from the query.
+  //
+  // In the healthy case this is invisible: a one-off timeout errors an
+  // album, the album is re-picked, and the retry succeeds. The failure
+  // mode is when MusicBrainz is down or rate-limiting — then EVERY album
+  // errors, so the run consists of album #1, forever, firing up to five
+  // requests a go at a service that is already asking us to slow down,
+  // until the scheduler's one-hour job cap fires. _progress.processed
+  // climbs past _progress.total while it happens, which is why the UI
+  // has been seen showing counts like 4,312 / 2,000.
+  //
+  // The fix is an in-run set of album ids already attempted. It is
+  // per-run and in-memory on purpose: 'error' still means "retry me on
+  // the next run", which is the behaviour the daily stale-requeue and
+  // the Rematch button both rely on. What it must not mean is "retry me
+  // immediately, in this run, having just failed".
+  //
+  // Paging, rather than LIMIT 1, because a set-membership test cannot be
+  // pushed into the SQL without binding a list that grows to the size of
+  // the library. We take a page, walk it for the first id we have not
+  // tried, and move the cursor on. albums.id is TEXT (a content hash),
+  // so ORDER BY id is a stable arbitrary order rather than insertion
+  // order — fine for a full sweep, but it does mean an album added
+  // mid-run can sort BEHIND the cursor. Hence the single wrap at the
+  // end: when the cursor runs out we go back to the start once and pick
+  // up anything that appeared behind us. The attempted set is what makes
+  // that wrap safe, and what guarantees the loop terminates.
+  const PICK_PAGE = 50;
   const pickStmt = database.prepare(`
     -- v1.1.34.0 — album_folder joins the selection because identity
     -- recovery reads it: a folder called "Air - Moon Safari (1998)" is
     -- very often better metadata than the tags, and is the whole
     -- fallback for albums whose album_artist column is empty.
     SELECT id, title, album_artist, year, track_count, album_folder,
-           barcode, catalog_number, mb_release_id, mb_release_group_id
+           album_type, barcode, catalog_number, mb_release_id, mb_release_group_id
     FROM albums
     WHERE excluded = 0 AND (match_status IS NULL OR match_status IN ('pending', 'error'))
+      AND id > ?
     ORDER BY id
-    LIMIT 1
+    LIMIT ${PICK_PAGE}
   `);
+
+  const attempted = new Set();
+  let cursor = '';
+  let wrapped = false;
+
+  // Returns the next album this run has not already tried, or null when
+  // there is genuinely nothing left. Never returns the same id twice.
+  function nextAlbum() {
+    for (;;) {
+      const page = pickStmt.all(cursor);
+      if (page.length === 0) {
+        if (wrapped) return null;
+        // One wrap, to catch rows that sorted behind the cursor because
+        // they were inserted during this run.
+        wrapped = true;
+        cursor = '';
+        continue;
+      }
+      for (const row of page) {
+        if (!attempted.has(row.id)) {
+          // The cursor advances to the row we are RETURNING, not to the
+          // end of the page. Advancing to the end would step over the
+          // rows after it that we have not consumed yet, and they would
+          // be seen again only on the final wrap — which, being a single
+          // wrap, does not get around to all of them. A first cut of
+          // this did exactly that and silently skipped two albums in
+          // seven; the harness in test/album-matching.test.js is there
+          // because reading the code did not reveal it.
+          cursor = row.id;
+          return row;
+        }
+      }
+      // Whole page already tried — step past it and keep paging.
+      cursor = page[page.length - 1].id;
+    }
+  }
+  // Prepared lazily and tolerantly: tracks.mb_recording_id arrives with
+  // this release's migration, and a matcher started against a database
+  // that has not migrated yet should degrade to "no recording MBIDs"
+  // rather than throwing on every album.
+  let recordingMbidStmt = null;
+  try {
+    recordingMbidStmt = database.prepare(
+      'UPDATE tracks SET mb_recording_id = COALESCE(mb_recording_id, ?) WHERE path = ?'
+    );
+  } catch (e) {
+    console.warn('[match] recording MBIDs will not be stored — no mb_recording_id column yet');
+  }
+
   const updateStmt = database.prepare(`
     UPDATE albums
     SET mb_release_group_id = ?,
@@ -613,11 +1053,16 @@ async function runLoop(contact) {
   `);
 
   while (!_stopRequested) {
-    const album = pickStmt.get();
+    const album = nextAlbum();
     if (!album) {
       console.log('[match] No more pending albums, stopping');
       break;
     }
+    // Marked BEFORE the attempt, not after. If matchOneAlbum throws in a
+    // way the catch below does not cover — or the process is interrupted
+    // between the attempt and the write — the album must still not be
+    // handed back to this same run.
+    attempted.add(album.id);
 
     let result;
     try {
@@ -638,9 +1083,11 @@ async function runLoop(contact) {
       matchedBy = fromTag ? 'tag' : 'auto';
     }
 
-    // Persist result. Even errors get persisted so the loop doesn't
-    // get stuck on the same album forever -- they're picked up again
-    // in the next run if the user resets.
+    // Persist result. Errors are persisted too, but note that since
+    // v1.1.38.0 that is no longer what keeps the loop off this album —
+    // the in-run `attempted` set is. Writing 'error' means "retry me on
+    // the NEXT run", which is what the daily stale-requeue and the
+    // Rematch button both act on.
     // v1.1.0.78 — matched_at in unix seconds (was milliseconds in
     // v77 and prior). Schema-wide normalisation; see migration
     // for the conversion of legacy rows.
@@ -653,6 +1100,34 @@ async function runLoop(contact) {
       matchedBy,
       album.id
     );
+
+    // v1.1.38.0 — keep the recording MBIDs AcoustID recognised, keyed by
+    // the file they came from.
+    //
+    // By path rather than by position, deliberately. fingerprintMatch
+    // samples the LONGEST tracks on the album, not the first ones, so
+    // the nth MBID in a flat list is not the nth track — writing them
+    // positionally would attach the wrong recording to most of them, and
+    // a wrong recording MBID propagates straight into the works layer.
+    // The path is the only key that cannot be got wrong.
+    //
+    // This is worth doing even when the album stayed unmatched: the
+    // audio was still recognised, and a recording MBID is what the works
+    // layer needs. Tags remain the main source (the scanner harvests
+    // them at scan time, free) — this fills in for files Picard never
+    // touched.
+    if (result.recordingsByPath && recordingMbidStmt) {
+      for (const [trackPath, recId] of Object.entries(result.recordingsByPath)) {
+        if (!recId) continue;
+        try {
+          recordingMbidStmt.run(recId, trackPath);
+        } catch (e) {
+          // A track deleted between the scan and now. Losing one
+          // recording MBID must not abort the matcher run.
+          console.warn(`[match] could not store recording MBID for ${trackPath}: ${e.message}`);
+        }
+      }
+    }
 
     _progress.processed++;
     if (result.status === 'matched') _progress.matched++;

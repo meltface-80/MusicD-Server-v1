@@ -250,18 +250,18 @@ const s = {
   logoD: { color: 'var(--jp-text)', fontWeight: 700 },
   closeBtn: { width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, color: 'var(--jp-text-2)', background: 'transparent', border: 'none', cursor: 'pointer' },
   nav: { padding: '12px 8px', flex: '0 0 auto' },
-  navLabel: { fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--jp-text-3)', padding: '12px 10px 6px' },
+  navLabel: { fontSize: 12, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--jp-text-3)', padding: '12px 10px 6px' },
   // Nav rows: more breathing room (12px vertical was 10px),
   // 14/500 text in --jp-text-2 by default. Active row uses the
   // monochrome JPLAY pattern: white-fill bar with slightly
   // brighter text. No chromatic accent.
-  navItem: { display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 12px', borderRadius: 6, fontSize: 14, fontWeight: 500, color: 'var(--jp-text-2)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' },
+  navItem: { display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 12px', borderRadius: 6, fontSize: 15, fontWeight: 500, color: 'var(--jp-text-2)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' },
   navItemActive: { background: 'rgba(var(--tint-rgb), 0.06)', color: 'var(--jp-text)' },
   // Unmatched count badge — kept amber for the "needs attention"
   // identity, but slightly more restrained against the new black
   // ground.
   unmatchedBadge: {
-    marginLeft: 'auto', fontSize: 10, fontWeight: 600,
+    marginLeft: 'auto', fontSize: 12, fontWeight: 600,
     padding: '2px 7px', borderRadius: 10,
     background: 'rgba(255,196,0,0.12)', color: '#e6a700',
     minWidth: 18, textAlign: 'center',
@@ -287,6 +287,6 @@ const s = {
   },
   dot: (active) => ({ width: 8, height: 8, borderRadius: '50%', background: active ? 'var(--green)' : 'var(--jp-text-3)', boxShadow: active ? '0 0 6px var(--green)' : 'none', flexShrink: 0 }),
   rendererInfo: { flex: 1, display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'left', overflow: 'hidden' },
-  rendererName: { fontSize: 13, fontWeight: 500, color: 'var(--jp-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  rendererSub: { fontSize: 11, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)' },
+  rendererName: { fontSize: 14, fontWeight: 500, color: 'var(--jp-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  rendererSub: { fontSize: 12, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)' },
 }

@@ -160,10 +160,10 @@ const s = {
   page: { padding: '14px 12px 120px' },
   loadWrap: { display: 'flex', justifyContent: 'center', paddingTop: 40 },
   spinner: { width: 22, height: 22, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
-  back: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 14, background: 'none', border: 'none', cursor: 'pointer' },
+  back: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 14, background: 'none', border: 'none', cursor: 'pointer' },
   header: { marginBottom: 14 },
   heading: { fontSize: 22, fontWeight: 700, letterSpacing: '-0.4px', margin: 0 },
-  sub: { fontSize: 11, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', marginTop: 2, marginBottom: 12 },
+  sub: { fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', marginTop: 2, marginBottom: 12 },
   genreGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 },
   // Pill-style genre buttons — wider than tall, no aspect-ratio constraint.
   // The user asked for "less taller, more pill shaped".
@@ -176,11 +176,11 @@ const s = {
     border: '1px solid rgba(140,170,210,0.18)',
     cursor: 'pointer', textAlign: 'left',
   },
-  genreName: { fontSize: 13, fontWeight: 600, color: '#cfd9e8', letterSpacing: '-0.2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, lineHeight: 1.2 },
-  genreCount: { fontSize: 10, color: 'rgba(207,217,232,0.55)', fontFamily: 'var(--font-mono)', marginLeft: 8, flexShrink: 0 },
+  genreName: { fontSize: 14, fontWeight: 600, color: '#cfd9e8', letterSpacing: '-0.2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, lineHeight: 1.2 },
+  genreCount: { fontSize: 12, color: 'rgba(207,217,232,0.55)', fontFamily: 'var(--font-mono)', marginLeft: 8, flexShrink: 0 },
   albumGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 12 },
   albumCard: { background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', minWidth: 0, width: '100%' },
   albumArt: { width: '100%', aspectRatio: '1 / 1', borderRadius: 8, overflow: 'hidden', background: 'var(--bg-elevated)', marginBottom: 5, display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  albumTitle: { fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  albumArtist: { fontSize: 10, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  albumTitle: { fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  albumArtist: { fontSize: 12, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
 }

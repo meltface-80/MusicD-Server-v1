@@ -103,8 +103,8 @@ const s = {
   wrap: { paddingBottom: 4 },
   row: { display: 'flex', alignItems: 'flex-start', gap: 14, padding: '4px 0 12px' },
   rowText: { flex: 1, minWidth: 0 },
-  rowLabel: { fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 },
-  rowSub: { fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 },
+  rowLabel: { fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 },
+  rowSub: { fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 },
   // Same switch as Settings → Home Screen. Deliberately identical rather
   // than a second look for the same control; the white knob is the fixed
   // fill themes.test.js lists this file for.
@@ -125,9 +125,9 @@ const s = {
   },
   knobOn: { transform: 'translateX(18px)' },
   error: {
-    margin: '0 0 10px', padding: '8px 10px', borderRadius: 6, fontSize: 12,
+    margin: '0 0 10px', padding: '8px 10px', borderRadius: 6, fontSize: 13,
     background: 'rgba(255,59,92,0.08)', border: '1px solid rgba(255,59,92,0.30)',
     color: 'var(--text-secondary)',
   },
-  footnote: { fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, margin: '0 0 8px' },
+  footnote: { fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, margin: '0 0 8px' },
 }

@@ -170,20 +170,20 @@ const s = {
     padding: 8,
   },
   head: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 8px 4px' },
-  title: { fontSize: 15, fontWeight: 700, color: 'var(--jp-text)' },
+  title: { fontSize: 16, fontWeight: 700, color: 'var(--jp-text)' },
   close: {
     width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
     borderRadius: 8, background: 'var(--jp-bg-surface)', color: 'var(--jp-text-2)',
     border: 'none', cursor: 'pointer',
   },
   sub: {
-    padding: '0 8px 8px', fontSize: 12, color: 'var(--jp-text-2)',
+    padding: '0 8px 8px', fontSize: 13, color: 'var(--jp-text-2)',
     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
   },
   // The list scrolls; the create row and Done stay put, so a long list of
   // playlists cannot push the primary actions off screen.
   list: { overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0 },
-  empty: { padding: '18px 10px', fontSize: 12, color: 'var(--jp-text-3)', textAlign: 'center' },
+  empty: { padding: '18px 10px', fontSize: 13, color: 'var(--jp-text-3)', textAlign: 'center' },
   row: {
     display: 'flex', alignItems: 'center', gap: 10,
     width: '100%', boxSizing: 'border-box', minHeight: 46,
@@ -198,30 +198,30 @@ const s = {
   },
   rowIcon: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: 18, flexShrink: 0 },
   rowText: { display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 },
-  rowName: { fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  rowMeta: { fontSize: 11, color: 'var(--jp-text-3)' },
+  rowName: { fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  rowMeta: { fontSize: 12, color: 'var(--jp-text-3)' },
   newBtn: {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
     margin: '6px 0 0', padding: '11px', borderRadius: 10,
     background: 'var(--jp-bg-surface)', border: '1px solid var(--jp-border)',
-    color: 'var(--jp-text)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+    color: 'var(--jp-text)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
   },
   createRow: { display: 'flex', gap: 6, marginTop: 6 },
   input: {
     flex: 1, minWidth: 0, boxSizing: 'border-box', padding: '11px 10px',
-    borderRadius: 10, fontSize: 13,
+    borderRadius: 10, fontSize: 14,
     background: 'var(--jp-bg-surface)', border: '1px solid var(--jp-border)',
     color: 'var(--jp-text)',
   },
   createBtn: {
     padding: '11px 14px', borderRadius: 10, border: 'none',
     background: 'var(--jp-accent)', color: 'var(--jp-bg)',
-    fontSize: 13, fontWeight: 700, cursor: 'pointer',
+    fontSize: 14, fontWeight: 700, cursor: 'pointer',
   },
-  note: { padding: '8px 10px 0', fontSize: 11, color: 'var(--jp-text-2)', textAlign: 'center' },
+  note: { padding: '8px 10px 0', fontSize: 12, color: 'var(--jp-text-2)', textAlign: 'center' },
   done: {
     marginTop: 8, padding: '11px', borderRadius: 10,
     background: 'transparent', border: '1px solid var(--jp-border)',
-    color: 'var(--jp-text-3)', fontSize: 13, cursor: 'pointer',
+    color: 'var(--jp-text-3)', fontSize: 14, cursor: 'pointer',
   },
 }

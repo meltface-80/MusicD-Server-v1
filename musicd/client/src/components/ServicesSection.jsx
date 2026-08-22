@@ -385,34 +385,34 @@ function SignedIn({ svc, state, busy, setBusy, setErr, refresh }) {
 }
 
 const s = {
-  blurb: { fontSize: 12, lineHeight: 1.6, color: 'var(--jp-text-2)', margin: '0 0 18px' },
+  blurb: { fontSize: 13, lineHeight: 1.6, color: 'var(--jp-text-2)', margin: '0 0 18px' },
   card: {
     border: '1px solid var(--jp-border)', borderRadius: 8,
     padding: 14, marginBottom: 14, background: 'transparent',
   },
   cardHead: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 },
   cardHeadText: { flex: 1, display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' },
-  cardTitle: { fontSize: 14, fontWeight: 600, color: 'var(--jp-text)' },
-  cardSub: { fontSize: 11, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)' },
+  cardTitle: { fontSize: 15, fontWeight: 600, color: 'var(--jp-text)' },
+  cardSub: { fontSize: 12, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)' },
   form: { display: 'flex', flexDirection: 'column', gap: 10 },
   input: {
-    width: '100%', padding: '10px 12px', borderRadius: 6, fontSize: 13,
+    width: '100%', padding: '10px 12px', borderRadius: 6, fontSize: 14,
     background: 'var(--jp-bg-surface)', color: 'var(--jp-text)',
     border: '1px solid var(--jp-border)', outline: 'none',
   },
   primaryBtn: {
-    padding: '10px 14px', borderRadius: 6, fontSize: 13, fontWeight: 600,
+    padding: '10px 14px', borderRadius: 6, fontSize: 14, fontWeight: 600,
     background: 'rgba(var(--tint-rgb), 0.14)', color: 'var(--jp-text)',
     border: '1px solid var(--jp-border)', cursor: 'pointer',
   },
   ghostBtn: {
-    padding: '8px 12px', borderRadius: 6, fontSize: 12,
+    padding: '8px 12px', borderRadius: 6, fontSize: 13,
     background: 'transparent', color: 'var(--jp-text-2)',
     border: '1px solid var(--jp-border)', cursor: 'pointer',
   },
   linkBtn: {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-    padding: '10px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+    padding: '10px 12px', borderRadius: 6, fontSize: 13, fontWeight: 600,
     background: 'transparent', color: 'var(--jp-text)',
     border: '1px solid var(--jp-border)', textDecoration: 'none',
   },
@@ -422,22 +422,22 @@ const s = {
     background: 'var(--jp-bg-surface)', border: '1px solid var(--jp-border)',
   },
   codeLabel: {
-    fontSize: 10, letterSpacing: '0.10em', textTransform: 'uppercase',
+    fontSize: 12, letterSpacing: '0.10em', textTransform: 'uppercase',
     color: 'var(--jp-text-3)', fontWeight: 600,
   },
   code: {
     fontSize: 26, fontWeight: 700, letterSpacing: '0.18em',
     fontFamily: 'var(--font-mono)', color: 'var(--jp-text)',
   },
-  note: { fontSize: 11, lineHeight: 1.6, color: 'var(--jp-text-3)', margin: 0 },
+  note: { fontSize: 12, lineHeight: 1.6, color: 'var(--jp-text-3)', margin: 0 },
   rowLabel: {
-    fontSize: 10, fontWeight: 600, letterSpacing: '0.10em',
+    fontSize: 12, fontWeight: 600, letterSpacing: '0.10em',
     textTransform: 'uppercase', color: 'var(--jp-text-3)', marginTop: 6,
   },
   optionList: { display: 'flex', flexDirection: 'column', gap: 6 },
   option: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '9px 12px', borderRadius: 6, fontSize: 12,
+    padding: '9px 12px', borderRadius: 6, fontSize: 13,
     background: 'transparent', color: 'var(--jp-text-2)',
     border: '1px solid var(--jp-border)', cursor: 'pointer', textAlign: 'left',
   },
@@ -445,23 +445,23 @@ const s = {
   btnRow: { display: 'flex', gap: 8, flexWrap: 'wrap' },
   actionBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
-    padding: '8px 12px', borderRadius: 6, fontSize: 12,
+    padding: '8px 12px', borderRadius: 6, fontSize: 13,
     background: 'transparent', color: 'var(--jp-text-2)',
     border: '1px solid var(--jp-border)', cursor: 'pointer',
   },
   dangerBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
-    padding: '8px 12px', borderRadius: 6, fontSize: 12,
+    padding: '8px 12px', borderRadius: 6, fontSize: 13,
     background: 'transparent', color: 'var(--jp-hot)',
     border: '1px solid var(--jp-border)', cursor: 'pointer',
   },
   progress: {
-    fontSize: 11, color: 'var(--jp-text-2)', fontFamily: 'var(--font-mono)',
+    fontSize: 12, color: 'var(--jp-text-2)', fontFamily: 'var(--font-mono)',
     padding: '8px 10px', borderRadius: 6, background: 'var(--jp-bg-surface)',
   },
   error: {
     display: 'flex', alignItems: 'center', gap: 6,
-    fontSize: 11, color: 'var(--jp-hot)', marginBottom: 10,
+    fontSize: 12, color: 'var(--jp-hot)', marginBottom: 10,
     padding: '8px 10px', borderRadius: 6,
     background: 'rgba(255,90,90,0.08)',
   },

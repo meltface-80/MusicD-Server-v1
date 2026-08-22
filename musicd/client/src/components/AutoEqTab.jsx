@@ -362,7 +362,7 @@ const s = {
     border: '1px solid var(--border)',
     borderRadius: 'var(--radius-sm)',
     color: 'var(--text-primary)',
-    fontSize: 13,
+    fontSize: 14,
   },
   notice: {
     display: 'flex', alignItems: 'center', gap: 8,
@@ -370,7 +370,7 @@ const s = {
     background: 'rgba(245, 196, 80, 0.10)',
     border: '1px solid rgba(245, 196, 80, 0.35)',
     borderRadius: 'var(--radius-sm)',
-    fontSize: 12, color: '#f5c450',
+    fontSize: 13, color: '#f5c450',
   },
 
   subsection: {
@@ -382,7 +382,7 @@ const s = {
   },
   subTitle: {
     padding: '9px 12px',
-    fontSize: 11, fontWeight: 700,
+    fontSize: 12, fontWeight: 700,
     letterSpacing: '0.06em', textTransform: 'uppercase',
     color: 'var(--text-secondary)',
     background: 'var(--bg-overlay)',
@@ -401,7 +401,7 @@ const s = {
     background: 'var(--bg-overlay)',
     border: '1px solid var(--border)',
     borderRadius: 'var(--radius-sm)',
-    color: 'var(--text-primary)', fontSize: 12,
+    color: 'var(--text-primary)', fontSize: 13,
     outline: 'none',
   },
 
@@ -411,7 +411,7 @@ const s = {
     borderRadius: 4,
     background: 'var(--bg-overlay)',
   },
-  emptyList: { padding: 20, fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'center' },
+  emptyList: { padding: 20, fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' },
   modelRow: {
     display: 'grid', gridTemplateColumns: '20px 1fr auto',
     alignItems: 'center', gap: 8,
@@ -421,23 +421,23 @@ const s = {
     cursor: 'pointer', textAlign: 'left',
   },
   modelRowActive: { background: 'var(--accent-dim)' },
-  modelName: { fontSize: 12, color: 'var(--text-primary)' },
-  modelCat: { fontSize: 9, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  modelName: { fontSize: 13, color: 'var(--text-primary)' },
+  modelCat: { fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' },
 
   currentLoaded: {
-    fontSize: 11, color: 'var(--text-secondary)',
+    fontSize: 12, color: 'var(--text-secondary)',
     padding: '8px 0 0',
   },
 
   row: { padding: '6px 0' },
   label: {
     display: 'flex', alignItems: 'center', gap: 8,
-    fontSize: 13, color: 'var(--text-primary)',
+    fontSize: 14, color: 'var(--text-primary)',
     cursor: 'pointer', userSelect: 'none',
   },
-  subLabel: { display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 5 },
+  subLabel: { display: 'block', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 5 },
   checkbox: { width: 14, height: 14, accentColor: 'var(--accent)' },
-  help: { fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 8 },
+  help: { fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 8 },
   helpRow: { display: 'flex', justifyContent: 'flex-end', marginTop: -2, marginBottom: 4 },
 
   profileBtns: { display: 'flex', flexDirection: 'column', gap: 4 },
@@ -453,8 +453,8 @@ const s = {
     borderColor: 'var(--accent)',
     background: 'var(--accent-dim)',
   },
-  profileName: { fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' },
-  profileDesc: { fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 },
+  profileName: { fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' },
+  profileDesc: { fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 },
 
   saveRow: {
     display: 'flex', justifyContent: 'flex-end',
@@ -467,7 +467,7 @@ const s = {
     background: 'var(--accent)',
     color: 'var(--on-accent)', border: 'none',
     borderRadius: 'var(--radius-sm)',
-    fontSize: 12, fontWeight: 600,
+    fontSize: 13, fontWeight: 600,
     cursor: 'pointer',
   },
   saveBtnDis: { opacity: 0.4, cursor: 'not-allowed' },
@@ -479,7 +479,7 @@ const s = {
   },
   dbStatusText: {
     flex: 1,
-    fontSize: 11, color: 'var(--text-secondary)',
+    fontSize: 12, color: 'var(--text-secondary)',
     display: 'flex', alignItems: 'center', gap: 5,
   },
   starterBadge: {
@@ -493,7 +493,7 @@ const s = {
     color: 'var(--text-primary)',
     border: '1px solid var(--border)',
     borderRadius: 'var(--radius-sm)',
-    fontSize: 11, fontWeight: 600,
+    fontSize: 12, fontWeight: 600,
     cursor: 'pointer', flexShrink: 0,
   },
   refreshBtnDis: { opacity: 0.5, cursor: 'not-allowed' },

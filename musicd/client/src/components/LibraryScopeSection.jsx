@@ -346,9 +346,9 @@ function basename(p) {
 }
 
 const s = {
-  loading: { padding: 12, fontSize: 12, color: 'var(--text-tertiary)' },
+  loading: { padding: 12, fontSize: 13, color: 'var(--text-tertiary)' },
   intro: {
-    fontSize: 12, lineHeight: 1.5, color: 'var(--text-secondary)',
+    fontSize: 13, lineHeight: 1.5, color: 'var(--text-secondary)',
     padding: '4px 0 12px',
   },
   empty: {
@@ -358,8 +358,8 @@ const s = {
     border: '1px dashed var(--border)',
     marginBottom: 10,
   },
-  emptyTitle: { fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 3 },
-  emptyHint:  { fontSize: 11, color: 'var(--text-tertiary)' },
+  emptyTitle: { fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 3 },
+  emptyHint:  { fontSize: 12, color: 'var(--text-tertiary)' },
   list: { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 },
   row: {
     display: 'grid',
@@ -374,11 +374,11 @@ const s = {
   rowIcon: { color: 'var(--accent)' },
   rowText: { minWidth: 0, overflow: 'hidden' },
   rowPath: {
-    fontSize: 12, fontFamily: 'var(--font-mono)',
+    fontSize: 13, fontFamily: 'var(--font-mono)',
     color: 'var(--text-primary)',
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
   },
-  rowSub: { fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 },
+  rowSub: { fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 },
   removeBtn: {
     width: 24, height: 24,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -389,7 +389,7 @@ const s = {
   addBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '8px 14px',
-    fontSize: 12,
+    fontSize: 13,
     background: 'var(--bg-elevated)',
     color: 'var(--text-primary)',
     border: '1px solid var(--border)',
@@ -414,7 +414,7 @@ const s = {
   },
   fullPageTitle: { fontSize: 17, fontWeight: 700 },
   fullPageSub: {
-    fontSize: 13, color: 'var(--text-tertiary)',
+    fontSize: 14, color: 'var(--text-tertiary)',
     padding: '12px 16px 16px',
     borderBottom: '1px solid var(--border)',
     lineHeight: 1.4,
@@ -446,9 +446,9 @@ const s = {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '12px 16px 6px',
   },
-  sheetTitle: { fontSize: 15, fontWeight: 700 },
+  sheetTitle: { fontSize: 16, fontWeight: 700 },
   sheetSub: {
-    fontSize: 11, color: 'var(--text-tertiary)',
+    fontSize: 12, color: 'var(--text-tertiary)',
     padding: '0 16px 12px',
     borderBottom: '1px solid var(--border)',
   },
@@ -465,10 +465,10 @@ const s = {
   rootHeader: {
     display: 'flex', alignItems: 'center', gap: 10,
     padding: '10px 16px 12px',
-    fontSize: 14, fontFamily: 'var(--font-mono)',
+    fontSize: 15, fontFamily: 'var(--font-mono)',
     color: 'var(--text-secondary)',
   },
-  rootHeaderText: { fontSize: 14 },
+  rootHeaderText: { fontSize: 15 },
 
   browseRow: {
     display: 'flex', alignItems: 'center', gap: 10,
@@ -487,11 +487,11 @@ const s = {
     minWidth: 0, overflow: 'hidden',
   },
   browseRowNameText: {
-    fontSize: 15, color: 'var(--text-primary)',
+    fontSize: 16, color: 'var(--text-primary)',
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
   },
   rowMeta: {
-    fontSize: 12, color: 'var(--text-tertiary)',
+    fontSize: 13, color: 'var(--text-tertiary)',
     fontFamily: 'var(--font-mono)',
     flexShrink: 0,
     minWidth: 0,
@@ -506,7 +506,7 @@ const s = {
     cursor: 'pointer',
   },
   tagAdded: {
-    fontSize: 10, fontWeight: 700,
+    fontSize: 12, fontWeight: 700,
     padding: '3px 8px',
     background: 'var(--accent-dim)',
     color: 'var(--accent)',
@@ -516,7 +516,7 @@ const s = {
     textTransform: 'uppercase',
   },
   tagCovered: {
-    fontSize: 10,
+    fontSize: 12,
     padding: '3px 8px',
     background: 'transparent',
     color: 'var(--text-tertiary)',
@@ -526,12 +526,12 @@ const s = {
     letterSpacing: '0.04em',
   },
   browseEmpty: {
-    fontSize: 13, color: 'var(--text-tertiary)',
+    fontSize: 14, color: 'var(--text-tertiary)',
     padding: '6px 16px 6px 0',
     fontStyle: 'italic',
   },
   browseError: {
-    fontSize: 13, color: 'var(--red, #f47174)',
+    fontSize: 14, color: 'var(--red, #f47174)',
     padding: '6px 16px 6px 0',
   },
   spinner: {

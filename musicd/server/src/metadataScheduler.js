@@ -1,12 +1,13 @@
 // Metadata scheduler (#v1.1.0.28)
 // ================================
 //
-// Orchestrates the five metadata jobs in priority order:
+// Orchestrates the six metadata jobs in priority order:
 //   1. MusicBrainz album matching       (metadataMatch)
 //   2. Cover art                         (scanner.enrichMissingArt)
 //   3. Volume levelling                  (loudness.runScan)
 //   4. Artist logos                      (artistLogos.runFetch)
 //   5. Bios (album + artist)             (bioScanner.scanAll)
+//   6. Classical works                   (mbWorks.runScan)
 //
 // Three modes (settings.scheduler_mode):
 //   off        -- never run automatically; user can still trigger
@@ -219,7 +220,7 @@ function refreshThermalPath() {
 
 function pendingCounts() {
   const database = db.get();
-  const counts = { match: 0, art: 0, vl: 0, logos: 0, bios: 0 };
+  const counts = { match: 0, art: 0, vl: 0, logos: 0, bios: 0, works: 0 };
   try {
     const r1 = database.prepare(`
       SELECT COUNT(*) AS c FROM albums
@@ -228,10 +229,17 @@ function pendingCounts() {
     `).get();
     counts.match = r1?.c || 0;
 
+    // v1.1.38.0 — the SAME predicate scanner.enrichMissingArt selects
+    // with, imported rather than restated. It used to be a bare
+    // `cover_art IS NULL`, which meant an album with no art anywhere
+    // counted as pending on every cycle forever and the art job ran for
+    // the life of the install. Two copies of this rule would let the
+    // scheduler start a job with nothing to do, or skip one with work
+    // waiting; one copy cannot disagree with itself.
     const r2 = database.prepare(`
       SELECT COUNT(*) AS c FROM albums
       WHERE excluded = 0 AND scheduled_excluded = 0
-        AND cover_art IS NULL
+        AND (${db.ART_PENDING_SQL})
     `).get();
     counts.art = r2?.c || 0;
 
@@ -262,6 +270,19 @@ function pendingCounts() {
         AND bio_attempted_at IS NULL
     `).get();
     counts.bios = (r5a?.c || 0) + (r5b?.c || 0);
+
+    // v1.1.38.0 — classical works. Delegated rather than expressed here
+    // because the eligibility rule (a recording MBID present, not yet
+    // attempted, the setting on) belongs with the module that acts on
+    // it. Its own try/catch inside pendingCount() returns 0 on a
+    // partially-migrated database, so a missing works table cannot take
+    // this whole count query down and blank the scheduler UI.
+    try {
+      counts.works = require('./mbWorks').pendingCount();
+    } catch (e) {
+      console.warn('[scheduler] works pending count failed:', e.message);
+      counts.works = 0;
+    }
   } catch (e) {
     console.warn('[scheduler] pendingCounts query failed:', e.message);
   }
@@ -414,6 +435,18 @@ function getJobs() {
       hasPending: () => pendingCounts().bios > 0,
       run: async ({ shouldPause }) => {
         await bioScanner.scanAll({ shouldPause });
+      },
+    },
+    // v1.1.38.0. Last in the priority list on purpose: works are the only
+    // job here that improves a corner of the library rather than all of
+    // it, and every album benefits from the five above before any
+    // classical album benefits from this one.
+    {
+      id: 'works',
+      label: 'Classical works',
+      hasPending: () => pendingCounts().works > 0,
+      run: async ({ shouldPause }) => {
+        await require('./mbWorks').runScan({ shouldPause });
       },
     },
   ];
@@ -663,7 +696,7 @@ function tick() {
   maybeReQueueStaleUnmatched();
 
   const counts = pendingCounts();
-  const total = counts.match + counts.art + counts.vl + counts.logos + counts.bios;
+  const total = counts.match + counts.art + counts.vl + counts.logos + counts.bios + counts.works;
   if (total === 0) {
     _state.status = 'idle';
     return;
@@ -714,7 +747,7 @@ function setWindow(startStr, endStr) {
 function getStatus() {
   const mode = _state.mode;
   const counts = pendingCounts();
-  const totalPending = counts.match + counts.art + counts.vl + counts.logos + counts.bios;
+  const totalPending = counts.match + counts.art + counts.vl + counts.logos + counts.bios + counts.works;
   // Refresh thermal reading on every status call. The tick loop also
   // updates this every 30s while running, but the UI polls /status
   // every 5s, so reading here keeps the user-visible value fresh.

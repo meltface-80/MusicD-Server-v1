@@ -1345,7 +1345,7 @@ function TrackOverflowMenu({ track, variant = 'nowplaying', selection = null,
             color={trackRating > 0 ? '#ffc62b' : 'currentColor'}
           />
           <span>{trackRating > 0 ? `Rated ${trackRating}/5` : 'Rate'}</span>
-          <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-tertiary)' }}>
+          <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-tertiary)' }}>
             {showRater ? 'Hide' : 'Edit'}
           </span>
         </button>
@@ -1385,7 +1385,7 @@ function TrackOverflowMenu({ track, variant = 'nowplaying', selection = null,
             fill={isFav ? '#ff3b5c' : 'none'}
             color={isFav ? '#ff3b5c' : 'currentColor'}
           />
-          <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
             {isFav ? 'Remove album favourite' : 'Favourite this album'}
           </span>
         </button>
@@ -1397,7 +1397,7 @@ function TrackOverflowMenu({ track, variant = 'nowplaying', selection = null,
           disabled={!track?.id}
         >
           <ListMusic size={16} style={s.overflowItemIcon} />
-          <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Add to Playlist</span>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Add to Playlist</span>
         </button>
         <button
           style={s.overflowItem}
@@ -1405,7 +1405,7 @@ function TrackOverflowMenu({ track, variant = 'nowplaying', selection = null,
           disabled={!track?.id}
         >
           <Tag size={16} style={s.overflowItemIcon} />
-          <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Add to Tag</span>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Add to Tag</span>
         </button>
         <button
           style={s.overflowItem}
@@ -1417,7 +1417,7 @@ function TrackOverflowMenu({ track, variant = 'nowplaying', selection = null,
             style={{ ...s.overflowItemIcon, opacity: 0.7 }}
             fill={isSaved ? 'currentColor' : 'none'}
           />
-          <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
             {isSaved ? 'Remove from Saved for later' : 'Save for later'}
           </span>
         </button>
@@ -1505,7 +1505,7 @@ const s = {
 
   tabs: { display: 'flex', alignItems: 'center', gap: 20 },
   tabBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0', position: 'relative' },
-  tabLabel: { fontSize: 12, fontWeight: 700, color: 'rgba(var(--tint-rgb), 0.3)', letterSpacing: '0.08em', display: 'block' },
+  tabLabel: { fontSize: 13, fontWeight: 700, color: 'rgba(var(--tint-rgb), 0.3)', letterSpacing: '0.08em', display: 'block' },
   tabLabelActive: { color: 'var(--jp-text)' },
   tabUnderline: { position: 'absolute', bottom: -2, left: 0, right: 0, height: 2, background: 'var(--accent)', borderRadius: 1 },
 
@@ -1634,7 +1634,7 @@ const s = {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '18px 20px 14px',
   },
-  shareTitle: { fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' },
+  shareTitle: { fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' },
   shareClose: {
     width: 30, height: 30,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1649,7 +1649,7 @@ const s = {
     boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
   },
   shareHint: {
-    padding: '0 16px', fontSize: 12,
+    padding: '0 16px', fontSize: 13,
     color: 'var(--jp-text-3)', textAlign: 'center',
   },
 
@@ -1679,7 +1679,7 @@ const s = {
     marginBottom: 10,
   },
   queueRadioLabel: {
-    fontSize: 13, fontWeight: 500, color: 'var(--text-primary)',
+    fontSize: 14, fontWeight: 500, color: 'var(--text-primary)',
   },
   queueRadioToggle: {
     width: 44, height: 24, padding: 2,
@@ -1708,7 +1708,7 @@ const s = {
   queueHeader: {
     display: 'flex', alignItems: 'center', gap: 6,
     padding: '6px 4px 14px',
-    fontSize: 12,
+    fontSize: 13,
     color: 'var(--text-tertiary)',
     fontFamily: 'var(--font-mono)',
   },
@@ -1741,13 +1741,13 @@ const s = {
   },
   queueRowInfo: { minWidth: 0, overflow: 'hidden' },
   queueRowTitle: {
-    fontSize: 13, fontWeight: 600,
+    fontSize: 14, fontWeight: 600,
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
     display: 'block',
     marginBottom: 2,
   },
   queueRowSub: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'var(--text-tertiary)',
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
     display: 'block',
@@ -1756,7 +1756,7 @@ const s = {
   queueRowSubDot: { margin: '0 4px' },
   queueRowAlbum: { color: 'var(--text-tertiary)' },
   queueRowDur: {
-    fontSize: 11, color: 'var(--text-tertiary)',
+    fontSize: 12, color: 'var(--text-tertiary)',
     fontFamily: 'var(--font-mono)',
     flexShrink: 0,
   },
@@ -1771,7 +1771,7 @@ const s = {
     opacity: 0.35,
   },
   npDividerLabel: {
-    fontSize: 10, fontWeight: 700, letterSpacing: '0.10em',
+    fontSize: 12, fontWeight: 700, letterSpacing: '0.10em',
     textTransform: 'uppercase',
     color: 'var(--accent)',
   },
@@ -1814,7 +1814,7 @@ const s = {
     border: 'none',
     textAlign: 'left',
     color: 'var(--text-primary)',
-    fontSize: 13,
+    fontSize: 14,
     cursor: 'pointer',
     borderRadius: 4,
   },
@@ -1834,7 +1834,7 @@ const s = {
     marginBottom: 6,
   },
   queueSelectCount: {
-    fontSize: 13, fontWeight: 600,
+    fontSize: 14, fontWeight: 600,
     color: 'var(--accent)',
   },
   queueSelectBtns: { display: 'flex', alignItems: 'center', gap: 8 },
@@ -1844,7 +1844,7 @@ const s = {
     border: '1px solid rgba(var(--tint-rgb), 0.16)',
     borderRadius: 999,
     color: 'var(--text-secondary)',
-    fontSize: 12, fontWeight: 500,
+    fontSize: 13, fontWeight: 500,
     cursor: 'pointer',
   },
   queueSelectApply: {
@@ -1853,7 +1853,7 @@ const s = {
     border: '1px solid var(--accent)',
     borderRadius: 999,
     color: 'var(--on-accent)',
-    fontSize: 12, fontWeight: 600,
+    fontSize: 13, fontWeight: 600,
     cursor: 'pointer',
   },
   queueSelectApplyDisabled: {
@@ -1888,7 +1888,7 @@ const s = {
     flexShrink: 0,
   },
   formatText: {
-    fontSize: 12, fontWeight: 500,
+    fontSize: 13, fontWeight: 500,
     color: 'var(--text-secondary)',
     fontFamily: 'var(--font-mono)',
     letterSpacing: '0.02em',
@@ -1927,12 +1927,12 @@ const s = {
   overflowArtImg: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
   overflowHeaderText: { minWidth: 0, flex: 1 },
   overflowTitle: {
-    fontSize: 15, fontWeight: 700,
+    fontSize: 16, fontWeight: 700,
     color: 'var(--text-primary)',
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
   },
   overflowSub: {
-    fontSize: 13, color: 'var(--text-secondary)',
+    fontSize: 14, color: 'var(--text-secondary)',
     marginTop: 2,
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
   },
@@ -1945,7 +1945,7 @@ const s = {
   // a label nothing in the menu says so.
   overflowSectionLabel: {
     padding: '10px 18px 4px',
-    fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
+    fontSize: 12, fontWeight: 700, letterSpacing: '0.08em',
     textTransform: 'uppercase',
     color: 'var(--text-tertiary)',
   },
@@ -1957,7 +1957,7 @@ const s = {
     border: 'none',
     textAlign: 'left',
     color: 'var(--text-primary)',
-    fontSize: 14, fontWeight: 500,
+    fontSize: 15, fontWeight: 500,
     cursor: 'pointer',
   },
   overflowItemDisabled: {
@@ -1968,14 +1968,14 @@ const s = {
     border: 'none',
     textAlign: 'left',
     color: 'var(--text-tertiary)',
-    fontSize: 14, fontWeight: 500,
+    fontSize: 15, fontWeight: 500,
     cursor: 'not-allowed',
     opacity: 0.55,
   },
   overflowItemIcon: { color: 'var(--text-secondary)', flexShrink: 0 },
   overflowSoon: {
     marginLeft: 'auto',
-    fontSize: 10, fontWeight: 700,
+    fontSize: 12, fontWeight: 700,
     fontFamily: 'var(--font-mono)',
     color: 'var(--text-tertiary)',
     border: '1px solid var(--border)',
@@ -1990,7 +1990,7 @@ const s = {
     border: '1px solid rgba(var(--tint-rgb), 0.12)',
     borderRadius: 999,
     color: 'var(--text-primary)',
-    fontSize: 14, fontWeight: 600,
+    fontSize: 15, fontWeight: 600,
     cursor: 'pointer',
   },
 
@@ -2060,14 +2060,14 @@ const s = {
   // (was 12/400 in --jp-text-3). Album also gets a slight contrast
   // lift since it was bordering on too-dim against the new bg.
   trackArtist: { fontSize: 16, fontWeight: 500, color: 'var(--jp-text-2)', marginBottom: 4, cursor: 'pointer' },
-  trackAlbum: { fontSize: 14, fontWeight: 500, color: 'var(--jp-text-3)', cursor: 'pointer' },
+  trackAlbum: { fontSize: 15, fontWeight: 500, color: 'var(--jp-text-3)', cursor: 'pointer' },
 
   // Progress: 2px line, white fill on a 8% white track. Times in
   // mono at --jp-text-3.
   progressSection: { flexShrink: 0, marginBottom: 16 },
   progressTrack: { height: 2, background: 'rgba(var(--tint-rgb), 0.08)', borderRadius: 1, marginBottom: 6, overflow: 'hidden' },
   progressFill: { height: '100%', background: 'var(--jp-accent)', borderRadius: 1, transition: 'width 0.25s linear' },
-  times: { display: 'flex', justifyContent: 'space-between', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--jp-text-3)' },
+  times: { display: 'flex', justifyContent: 'space-between', fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--jp-text-3)' },
 
   // Transport: monochrome on black. Play button keeps the white-
   // fill circle (it's the dominant action and JPLAY does this
@@ -2093,7 +2093,7 @@ const s = {
     border: '1px solid rgba(var(--tint-rgb), 0.1)',
     color: 'rgba(var(--tint-rgb), 0.7)', cursor: 'pointer', maxWidth: '46%',
   },
-  bottomBtnLabel: { fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  bottomBtnLabel: { fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
 
   // Queue tab
   queueList: { flex: 1, overflowY: 'auto', paddingBottom: 32 },
@@ -2126,7 +2126,7 @@ const s = {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     width: 16, flexShrink: 0,
   },
-  skipFoldLabel: { fontSize: 12, fontWeight: 600, letterSpacing: '0.02em' },
+  skipFoldLabel: { fontSize: 13, fontWeight: 600, letterSpacing: '0.02em' },
   // An expanded run is inset so its rows read as belonging to the fold above
   // them rather than as ordinary queue entries that happen to be dim.
   queueRowFolded: { paddingLeft: 24 },
@@ -2152,7 +2152,7 @@ const s = {
   },
   reachedTitle: {
     padding: '10px 12px 6px',
-    fontSize: 12, fontWeight: 600,
+    fontSize: 13, fontWeight: 600,
     color: 'var(--jp-text-2)',
     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
   },
@@ -2163,7 +2163,7 @@ const s = {
     background: 'var(--jp-bg-surface)',
     border: '1px solid var(--jp-border)',
     color: 'var(--jp-text)',
-    fontSize: 14, fontWeight: 600,
+    fontSize: 15, fontWeight: 600,
     textAlign: 'left', cursor: 'pointer',
   },
   reachedCancel: {
@@ -2178,7 +2178,7 @@ const s = {
   queueChip: {
     display: 'inline-flex', alignItems: 'center', gap: 5,
     padding: '5px 11px', borderRadius: 14,
-    fontSize: 11, fontWeight: 600,
+    fontSize: 12, fontWeight: 600,
     color: 'rgba(var(--tint-rgb), 0.55)',
     background: 'rgba(var(--tint-rgb), 0.06)',
     border: '1px solid rgba(var(--tint-rgb), 0.10)',
@@ -2194,7 +2194,7 @@ const s = {
   queueZoneChip: {
     display: 'inline-flex', alignItems: 'center', gap: 5,
     padding: '5px 11px', borderRadius: 14,
-    fontSize: 11, fontWeight: 600,
+    fontSize: 12, fontWeight: 600,
     color: 'rgba(var(--tint-rgb), 0.55)',
     background: 'rgba(var(--tint-rgb), 0.06)',
     border: '1px solid rgba(var(--tint-rgb), 0.10)',
@@ -2217,10 +2217,10 @@ const s = {
     border: '1px solid rgba(var(--tint-rgb), 0.08)',
   },
   queueZonePickerTitle: {
-    fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
+    fontSize: 12, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
     color: 'rgba(var(--tint-rgb), 0.45)', margin: '0 4px 6px',
   },
-  queueZoneEmpty: { fontSize: 11, color: 'rgba(var(--tint-rgb), 0.4)', textAlign: 'center', padding: '8px 0' },
+  queueZoneEmpty: { fontSize: 12, color: 'rgba(var(--tint-rgb), 0.4)', textAlign: 'center', padding: '8px 0' },
   queueZoneRow: {
     display: 'grid', gridTemplateColumns: '18px 1fr auto auto', alignItems: 'center',
     gap: 8, padding: '7px 8px',
@@ -2229,20 +2229,20 @@ const s = {
   },
   queueZoneRowActive: { background: 'var(--accent-dim)' },
   queueZoneRowName: {
-    fontSize: 13, color: 'rgba(var(--tint-rgb), 0.92)',
+    fontSize: 14, color: 'rgba(var(--tint-rgb), 0.92)',
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
   },
   queueZoneRowProto: {
-    fontSize: 9, fontFamily: 'var(--font-mono)',
+    fontSize: 11, fontFamily: 'var(--font-mono)',
     color: 'rgba(var(--tint-rgb), 0.35)', letterSpacing: '1px',
   },
-  queueEmpty: { paddingTop: 60, textAlign: 'center', color: 'rgba(var(--tint-rgb), 0.3)', fontSize: 13 },
+  queueEmpty: { paddingTop: 60, textAlign: 'center', color: 'rgba(var(--tint-rgb), 0.3)', fontSize: 14 },
   queueRow: { display: 'grid', gridTemplateColumns: '32px 1fr 44px', alignItems: 'center', gap: 8, padding: '10px 8px', width: '100%', border: 'none', cursor: 'pointer', borderRadius: 8, textAlign: 'left' },
-  queueNum: { fontSize: 12, fontFamily: 'var(--font-mono)', textAlign: 'right' },
+  queueNum: { fontSize: 13, fontFamily: 'var(--font-mono)', textAlign: 'right' },
   queueInfo: { display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' },
-  queueTitle: { fontSize: 13, fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  queueArtist: { fontSize: 11, color: 'rgba(var(--tint-rgb), 0.35)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  queueDur: { fontSize: 11, color: 'rgba(var(--tint-rgb), 0.3)', fontFamily: 'var(--font-mono)', textAlign: 'right' },
+  queueTitle: { fontSize: 14, fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  queueArtist: { fontSize: 12, color: 'rgba(var(--tint-rgb), 0.35)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  queueDur: { fontSize: 12, color: 'rgba(var(--tint-rgb), 0.3)', fontFamily: 'var(--font-mono)', textAlign: 'right' },
   queueEditCtrls: { display: 'flex', alignItems: 'center', gap: 4 },
   queueIconBtn: {
     width: 28, height: 28,

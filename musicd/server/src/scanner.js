@@ -636,8 +636,8 @@ async function processFile(filePath, existingMap) {
         album_id, album_folder,
         year, release_date, track_number, disc_number, duration, bitrate,
         sample_rate, bit_depth, channels, format, codec,
-        file_size, genre, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch())
+        file_size, genre, mb_recording_id, mb_work_id, isrc, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch())
       ON CONFLICT(path) DO UPDATE SET
         title=excluded.title, artist=excluded.artist, album_artist=excluded.album_artist,
         album=excluded.album,
@@ -647,7 +647,17 @@ async function processFile(filePath, existingMap) {
         disc_number=excluded.disc_number, duration=excluded.duration, bitrate=excluded.bitrate,
         sample_rate=excluded.sample_rate, bit_depth=excluded.bit_depth, channels=excluded.channels,
         format=excluded.format, codec=excluded.codec, file_size=excluded.file_size,
-        genre=excluded.genre, updated_at=unixepoch()
+        genre=excluded.genre,
+        -- v1.1.38.0 — COALESCE, not a plain overwrite. The matcher's
+        -- AcoustID stage also writes mb_recording_id, for files Picard
+        -- never touched; a rescan must not wipe that just because the
+        -- file's own tags are still silent about it. A tag that DOES
+        -- carry a value still wins on the insert path, which is right:
+        -- the file is the more authoritative source when it speaks.
+        mb_recording_id=COALESCE(excluded.mb_recording_id, tracks.mb_recording_id),
+        mb_work_id=COALESCE(excluded.mb_work_id, tracks.mb_work_id),
+        isrc=COALESCE(excluded.isrc, tracks.isrc),
+        updated_at=unixepoch()
     `).run(
       id, filePath, path.basename(filePath),
       title, artist, albumArtist, album,
@@ -665,6 +675,9 @@ async function processFile(filePath, existingMap) {
       codec,
       stat.size,
       stripControl(genre),
+      firstMbid(common.musicbrainz_recordingid),
+      firstMbid(common.musicbrainz_workid),
+      firstTagString(common.isrc),
     );
 
     ensureAlbum(albumArtist, album, common.year, coverArt, coverArtMime, ext.replace('.', ''), genre, {
@@ -878,29 +891,118 @@ function recomputeAlbumTypes() {
   console.log(`🏷️  Album types classified: ${summary}`);
 }
 
-async function enrichMissingArt() {
+// v1.1.38.0 — tag helpers for the MusicBrainz identifiers music-metadata
+// puts on `common`.
+//
+// Two things make these necessary rather than a direct read. Several of
+// the fields arrive as ARRAYS — isrc almost always does, and the artist
+// id fields usually do — so a naive read stores "[object Object]" or a
+// comma-joined list into a column something later tries to use as an
+// identifier. And rippers write junk into these frames: an empty string,
+// a zero, the literal text "MusicBrainz". A malformed MBID that reaches a
+// lookup is worse than a null, because null is honest and the lookup is
+// simply skipped.
+function firstTagString(value) {
+  const v = Array.isArray(value) ? value.find((x) => x != null && String(x).trim() !== '') : value;
+  if (v == null) return null;
+  const s = String(v).trim();
+  return s === '' ? null : s;
+}
+
+// The canonical 8-4-4-4-12 hex form, which is what every MusicBrainz
+// entity id is. Anything else is discarded rather than stored.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function firstMbid(value) {
+  const s = firstTagString(value);
+  if (!s) return null;
+  return UUID_RE.test(s) ? s.toLowerCase() : null;
+}
+
+/**
+ * Fetch cover art for albums that have none.
+ *
+ * v1.1.38.0 changed two things here, and both were costing real traffic.
+ *
+ * IT NOW USES THE MBID IT ALREADY HAS. The select used to be id, title
+ * and album_artist only, so an album the matcher had already identified
+ * with certainty was handed to findCoverArt as a pair of fuzzy strings
+ * and re-identified from scratch: one throttled MusicBrainz release
+ * search, then up to five Cover Art Archive requests walking the
+ * results. The archive has a release-group endpoint. With the MBID in
+ * hand that is one request to a CDN and none at all to MusicBrainz.
+ *
+ * IT NOW REMEMBERS HAVING TRIED. This was the only background job with
+ * no negative cache, so an album with no art anywhere was re-queried on
+ * every scheduler cycle forever. See ART_PENDING_SQL in db.js for the
+ * retry curve, and note that it is the SAME predicate the scheduler
+ * counts with — two definitions would let the scheduler start a job with
+ * nothing to do, or skip one with work waiting.
+ *
+ * The sample-path subquery also joined on title and artist, which picks
+ * a file from the WRONG album whenever two albums share both — precisely
+ * the duplicate case album version grouping exists to handle. It joins
+ * on album_id now.
+ *
+ * `force` ignores the retry curve entirely, so the "Fetch missing
+ * artwork" button in the UI always does something.
+ */
+async function enrichMissingArt({ force = false } = {}) {
   const database = db.get();
+  // The table is NOT aliased here, deliberately. ART_PENDING_SQL is a
+  // shared fragment written against bare column names, and rewriting it
+  // to carry an alias — by regex, which was the first attempt — is the
+  // kind of cleverness that breaks silently the next time a column is
+  // added to it. An unaliased query costs nothing and the fragment drops
+  // straight in.
+  const pending = force ? 'cover_art IS NULL' : db.ART_PENDING_SQL;
   const missing = database.prepare(`
-    SELECT a.id, a.title, a.album_artist,
-           (SELECT path FROM tracks WHERE album = a.title AND album_artist = a.album_artist LIMIT 1) as sample_path
-    FROM albums a WHERE a.cover_art IS NULL
+    SELECT id, title, album_artist, mb_release_group_id, mb_release_id,
+           (SELECT path FROM tracks WHERE tracks.album_id = albums.id LIMIT 1) as sample_path
+    FROM albums WHERE (${pending})
   `).all();
 
   status.artTotal = missing.length;
   status.artProcessed = 0;
-  console.log(`🎨 ${missing.length} albums missing cover art, querying MusicBrainz...`);
+  console.log(`🎨 ${missing.length} albums missing cover art${force ? ' (forced)' : ''}`);
   if (missing.length > 0) broadcastStatus();
+
+  // Stamped whether or not art was found, and stamped even when the
+  // attempt threw. An album that throws every time is exactly the album
+  // that must not be retried every cycle.
+  const stampStmt = database.prepare(`
+    UPDATE albums
+    SET art_attempted_at = unixepoch(),
+        art_attempt_count = COALESCE(art_attempt_count, 0) + 1
+    WHERE id = ?
+  `);
 
   let lastBroadcast = 0;
   for (const album of missing) {
     try {
-      const art = await findCoverArt(album.sample_path || '', null, null, album.album_artist, album.title);
+      const art = await findCoverArt(
+        album.sample_path || '', null, null, album.album_artist, album.title,
+        { releaseGroupId: album.mb_release_group_id || null,
+          releaseId: album.mb_release_id || null }
+      );
       if (art) {
         database.prepare('UPDATE albums SET cover_art = ?, cover_art_mime = ? WHERE id = ?')
           .run(art.data, art.mime, album.id);
-        console.log(`  ✓ ${album.album_artist} — ${album.title}`);
+        console.log(`  ✓ ${album.album_artist} — ${album.title} (${art.source || 'unknown'})`);
       }
-    } catch (e) {}
+    } catch (e) {
+      // One album failing must not abort the sweep, and the stamp below
+      // still has to land — that is the whole point of the negative
+      // cache. Logged rather than swallowed so a systematic failure
+      // (no contact configured, the archive unreachable) is visible.
+      console.warn(`  ✗ ${album.album_artist} — ${album.title}: ${e.message}`);
+    }
+    try {
+      stampStmt.run(album.id);
+    } catch (e) {
+      // Pre-migration database. The sweep still works, it just will not
+      // remember — which is the behaviour every release before this one
+      // had, so it is a safe degradation rather than a failure.
+    }
     status.artProcessed++;
     const now = Date.now();
     if (now - lastBroadcast > 2000 || status.artProcessed === status.artTotal) {

@@ -170,7 +170,7 @@ const s = {
   },
   viewBtnOn: { background: 'var(--jp-accent)', color: 'var(--jp-bg)' },
   heading: { fontSize: 24, fontWeight: 600, letterSpacing: '-0.3px', margin: 0, color: 'var(--jp-text)' },
-  sub: { fontSize: 11, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', marginTop: 2 },
+  sub: { fontSize: 12, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', marginTop: 2 },
   // 2-col phone, 3 / 4 / 5 at the larger breakpoints — see the
   // .jp-artist-grid class in index.css. Inline grid-template
   // dropped so the className-driven media queries apply
@@ -194,9 +194,9 @@ const s = {
   },
   logo: { width: '92%', height: '92%', objectFit: 'contain', display: 'block' },
   initials: { fontSize: 28, fontWeight: 500, color: 'var(--jp-text-2)', letterSpacing: '-0.5px' },
-  name: { fontSize: 13, fontWeight: 500, color: 'var(--jp-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.25 },
+  name: { fontSize: 14, fontWeight: 500, color: 'var(--jp-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.25 },
   nameWrap: {
-    fontSize: 13, fontWeight: 500, color: 'var(--jp-text)',
+    fontSize: 14, fontWeight: 500, color: 'var(--jp-text)',
     lineHeight: 1.25,
     display: '-webkit-box',
     WebkitLineClamp: 2,
@@ -205,7 +205,7 @@ const s = {
     wordBreak: 'break-word',
     minHeight: 'calc(1.25em * 2)',
   },
-  count: { fontSize: 11, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', marginTop: 3 },
+  count: { fontSize: 12, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', marginTop: 3 },
 
   // ── List view ───────────────────────────────────────────────────────
   // A hairline between rows rather than a card each: at one line per artist
@@ -222,11 +222,11 @@ const s = {
   },
   rowName: {
     flex: 1, minWidth: 0,
-    fontSize: 14, fontWeight: 500, color: 'var(--jp-text)',
+    fontSize: 15, fontWeight: 500, color: 'var(--jp-text)',
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
   },
   rowCount: {
     flexShrink: 0,
-    fontSize: 11, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)',
+    fontSize: 12, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)',
   },
 }

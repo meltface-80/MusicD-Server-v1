@@ -9,22 +9,44 @@
  * Logo binaries stored in artists.logo (BLOB) + artists.logo_mime + artists.logo_source.
  *
  * Rate limits:
- *   - MusicBrainz: 1 req/sec hard cap (their TOS)
+ *   - MusicBrainz: 1 req/sec hard cap (their TOS). NOT enforced here —
+ *     stage 1 goes through src/mbHttp.js, which owns the one shared
+ *     throttle for the whole server. This file used to keep its own
+ *     `mbGuard` alongside the ones in coverArt.js and metadataMatch.js,
+ *     which is how a single host ended up running three independent
+ *     1-req/sec streams at a service that allows one in total.
  *   - fanart.tv: undocumented; we keep to ~5 req/sec to be polite
  *   - TheAudioDB: documented at 2 req/sec for free keys
+ *
+ * Those last two are different services with their own limits, so they
+ * keep their own guards below; only the MusicBrainz leg moved out.
  *
  * Settings keys (in `settings` table):
  *   - fanart_api_key:   fanart.tv project API key
  *   - audiodb_api_key:  TheAudioDB API key (often '2' works for testing)
+ *   - mb_contact:       contact for the MusicBrainz User-Agent. Without
+ *                       it stage 1 is skipped entirely (see fetchOneArtist).
  *
  * No external image processing — we store the raw bytes the API gives us.
  */
 const axios = require('axios');
 const sharp = require('sharp');
 const db = require('./db');
+const mbHttp = require('./mbHttp');
 
-const UA = 'musicd/1.0 (self-hosted)';
-const MB_RATE_MS = 1100;
+// UA was a hard-coded `musicd/1.0 (self-hosted)`: the wrong version, and
+// no contact, on requests that included MusicBrainz. It is now built per
+// call from the real VERSION and the user's mb_contact. fanart.tv and
+// TheAudioDB do not require a contact, so with the field empty they
+// still get a well-formed `musicd/<version>` and keep working — only
+// the MusicBrainz leg is gated on it.
+function userAgent() {
+  return mbHttp.buildUserAgent(mbHttp.getContact());
+}
+
+// MB_RATE_MS and its mbGuard were removed with the local MusicBrainz
+// resolver. The one throttle now lives in src/mbThrottle.js and is
+// reached only through src/mbHttp.js.
 const FANART_RATE_MS = 250;
 const AUDIODB_RATE_MS = 600;
 
@@ -36,7 +58,6 @@ async function pace(lastVar, gapMs) {
 // Each rate-limit guard tracks the last-call timestamp on .value so multiple
 // concurrent callers serialise correctly through pace() without racing on a
 // raw module-level scalar.
-const mbGuard = { value: 0 };
 const fanartGuard = { value: 0 };
 const audiodbGuard = { value: 0 };
 
@@ -46,19 +67,42 @@ function getSetting(key, fallback = null) {
   try { return JSON.parse(row.value); } catch { return row.value; }
 }
 
-async function resolveMbid(name) {
-  await pace(mbGuard, MB_RATE_MS);
+// resolveMbid() lived here. It searched MusicBrainz itself and took
+// artists[0] whenever MusicBrainz's OWN score was >= 90 — no alias
+// check, no sort-name check, no comparison of the returned name to the
+// one we asked for. That is a lower bar than it looks: MB's score is a
+// text-relevance figure, and for a short or common artist name the top
+// hit can clear 90 while being a different act entirely.
+//
+// It mattered because of where the answer went. It wrote
+// artists.mb_artist_id — the SAME column mbArtist.resolveArtistMbid
+// writes, and that function is deliberately strict for the reason its
+// own comment gives: "a wrong artist MBID poisons every album we then
+// match from their discography". Whichever job happened to run first on
+// a given artist won the column, and the matcher then trusted it as a
+// cache hit. A logo fetch could quietly decide which discography every
+// one of that artist's albums would be matched against.
+//
+// So there is now one resolver, the strict one. This file calls it.
+async function resolveArtistMbid(name, contact, database) {
+  const mbArtist = require('./mbArtist');
   try {
-    const r = await axios.get('https://musicbrainz.org/ws/2/artist/', {
-      params: { query: `artist:"${name.replace(/"/g, '')}"`, limit: 3, fmt: 'json' },
-      headers: { 'User-Agent': UA },
-      timeout: 8000,
+    return await mbArtist.resolveArtistMbid(name, {
+      // mbArtist calls ctx.mbRequest(path, params, ctx.userAgent); the
+      // third argument is redundant here because mbHttp builds the
+      // User-Agent from the contact itself, so it is accepted and
+      // ignored rather than changing mbArtist's shape.
+      mbRequest: (path, params) => mbHttp.request(path, params, { contact }),
+      userAgent: mbHttp.buildUserAgent(contact),
+      dbh: database,
     });
-    const a = r.data?.artists?.[0];
-    // require some confidence — score >= 90 is a strong match
-    if (a && a.score >= 90) return a.id;
-  } catch {}
-  return null;
+  } catch (e) {
+    // Not silent, but not fatal either: a failed MBID lookup costs this
+    // artist the fanart.tv stage and nothing else. The waterfall below
+    // still runs and still ends in a logo.
+    console.warn(`[artist-logos] MBID lookup failed for "${name}": ${e.message}`);
+    return null;
+  }
 }
 
 async function fetchFanartLogo(mbid) {
@@ -66,10 +110,11 @@ async function fetchFanartLogo(mbid) {
   const serviceHealth = require('./serviceHealth');
   if (!mbid) return null;
   await pace(fanartGuard, FANART_RATE_MS);
+  const ua = userAgent();
   try {
     const r = await axios.get(`https://webservice.fanart.tv/v3/music/${mbid}`, {
       params: { api_key: FANART_API_KEY },
-      headers: { 'User-Agent': UA },
+      headers: { 'User-Agent': ua },
       timeout: 10000,
     });
     serviceHealth.recordSuccess('fanart');
@@ -80,7 +125,7 @@ async function fetchFanartLogo(mbid) {
     const sorted = candidates.sort((a, b) => parseInt(b.likes || 0) - parseInt(a.likes || 0));
     const url = sorted[0].url;
     if (!url) return null;
-    const img = await axios.get(url, { responseType: 'arraybuffer', timeout: 15000, headers: { 'User-Agent': UA } });
+    const img = await axios.get(url, { responseType: 'arraybuffer', timeout: 15000, headers: { 'User-Agent': ua } });
     return { data: Buffer.from(img.data), mime: 'image/png', source: 'fanart' };
   } catch (e) {
     // 404 on a specific MBID is "no logo for this artist" -- that's
@@ -98,6 +143,7 @@ async function fetchAudioDbLogo(mbid, name) {
   const { AUDIODB_API_KEY } = require('./apiCredentials');
   const serviceHealth = require('./serviceHealth');
   await pace(audiodbGuard, AUDIODB_RATE_MS);
+  const ua = userAgent();
   try {
     let url, params;
     if (mbid) {
@@ -107,12 +153,12 @@ async function fetchAudioDbLogo(mbid, name) {
       url = `https://www.theaudiodb.com/api/v1/json/${AUDIODB_API_KEY}/search.php`;
       params = { s: name };
     }
-    const r = await axios.get(url, { params, timeout: 10000, headers: { 'User-Agent': UA } });
+    const r = await axios.get(url, { params, timeout: 10000, headers: { 'User-Agent': ua } });
     serviceHealth.recordSuccess('audiodb');
     const a = r.data?.artists?.[0];
     const logoUrl = a?.strArtistLogo;
     if (!logoUrl) return null;
-    const img = await axios.get(logoUrl, { responseType: 'arraybuffer', timeout: 15000, headers: { 'User-Agent': UA } });
+    const img = await axios.get(logoUrl, { responseType: 'arraybuffer', timeout: 15000, headers: { 'User-Agent': ua } });
     return { data: Buffer.from(img.data), mime: 'image/png', source: 'audiodb' };
   } catch (e) {
     serviceHealth.recordFailure('audiodb', e.message || 'unknown error');
@@ -146,12 +192,25 @@ async function fetchOneArtist(name) {
     row = database.prepare('SELECT * FROM artists WHERE name = ?').get(name);
   }
 
-  // Resolve MBID if we don't have it
+  // Resolve MBID if we don't have it.
+  //
+  // With no mb_contact configured we skip this stage entirely rather
+  // than sending MusicBrainz an anonymous request, and the waterfall
+  // below copes: fanart.tv needs an MBID so it is skipped, TheAudioDB's
+  // search.php?s=<name> path already handles the no-MBID case, and the
+  // typographic fallback always succeeds. Every artist still ends the
+  // run with a logo.
   let mbid = row.mb_artist_id;
   if (!mbid) {
-    mbid = await resolveMbid(name);
-    if (mbid) {
-      database.prepare('UPDATE artists SET mb_artist_id = ? WHERE id = ?').run(mbid, row.id);
+    const contact = mbHttp.getContact();
+    if (contact) {
+      mbid = await resolveArtistMbid(name, contact, database);
+      if (mbid) {
+        // mbArtist caches the MBID itself, matched on LOWER(name). This
+        // write is by row id, so the row we just created or read is
+        // certain to carry it even if the name differs in case.
+        database.prepare('UPDATE artists SET mb_artist_id = ? WHERE id = ?').run(mbid, row.id);
+      }
     }
   }
 

@@ -67,7 +67,7 @@ export default function AppearanceSection() {
 }
 
 const s = {
-  blurb: { fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, margin: '0 0 14px' },
+  blurb: { fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55, margin: '0 0 14px' },
   list: { display: 'flex', flexDirection: 'column', gap: 8 },
   row: {
     display: 'flex', alignItems: 'center', gap: 12,
@@ -94,9 +94,9 @@ const s = {
     background: 'var(--accent)', display: 'block',
   },
   rowText: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 },
-  rowLabel: { fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' },
+  rowLabel: { fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' },
   rowLabelOn: { color: 'var(--accent)', fontWeight: 700 },
-  rowNote: { fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4 },
+  rowNote: { fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.4 },
   rowCheck: {
     width: 20, flexShrink: 0,
     display: 'flex', alignItems: 'center', justifyContent: 'center',

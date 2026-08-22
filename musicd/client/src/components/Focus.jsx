@@ -817,7 +817,7 @@ const S = {
     borderRadius: 13,
     background: 'rgba(var(--tint-rgb), 0.07)',
     border: '1px solid var(--jp-border)',
-    fontSize: 12,
+    fontSize: 13,
     color: 'var(--jp-text)',
     whiteSpace: 'nowrap',
     flexShrink: 0,
@@ -855,7 +855,7 @@ const S = {
     border: '1px dashed var(--jp-border)',
     borderRadius: 13,
     color: 'var(--jp-text-3)',
-    fontSize: 11,
+    fontSize: 12,
     cursor: 'pointer',
     flexShrink: 0,
     marginLeft: 4,
@@ -874,7 +874,7 @@ const S = {
     overflow: 'hidden',
   },
   barLoading: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'var(--jp-text-3)',
     paddingTop: 80,
     textAlign: 'center',
@@ -907,7 +907,7 @@ const S = {
     border: '1px solid var(--jp-border)',
     borderRadius: 12,
     color: 'var(--jp-text-2)',
-    fontSize: 11, fontWeight: 500,
+    fontSize: 12, fontWeight: 500,
     cursor: 'pointer',
     whiteSpace: 'nowrap',
     maxWidth: 180,
@@ -945,7 +945,7 @@ const S = {
   columnTitle: {
     flexShrink: 0,
     padding: '6px 10px',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 600,
     color: 'var(--jp-text-2)',
     textTransform: 'uppercase',
@@ -963,7 +963,7 @@ const S = {
     flex: 1, minWidth: 0,
     background: 'transparent', border: 'none', outline: 'none',
     color: 'var(--jp-text)',
-    fontSize: 12,
+    fontSize: 13,
     padding: 2,
   },
   columnList: {
@@ -978,7 +978,7 @@ const S = {
     background: 'transparent',
     border: 'none',
     color: 'var(--jp-text-2)',
-    fontSize: 12,
+    fontSize: 13,
     textAlign: 'left',
     cursor: 'pointer',
   },
@@ -993,7 +993,7 @@ const S = {
   columnItemTick: {
     width: 12, height: 12,
     flexShrink: 0,
-    fontSize: 13, fontWeight: 700,
+    fontSize: 14, fontWeight: 700,
     textAlign: 'center', lineHeight: '12px',
   },
   columnItemLabel: {
@@ -1008,7 +1008,7 @@ const S = {
     whiteSpace: 'nowrap',
   },
   columnItemCount: {
-    fontSize: 10,
+    fontSize: 12,
     color: 'var(--jp-text-3)',
     fontFamily: 'var(--font-mono)',
     // v1.1.0.91 — small left margin replaces the implicit gap from
@@ -1017,7 +1017,7 @@ const S = {
   },
   columnEmpty: {
     padding: '8px 10px',
-    fontSize: 11,
+    fontSize: 12,
     color: 'var(--jp-text-3)',
   },
 }
@@ -1075,13 +1075,13 @@ const M = {
   },
   title: {
     padding: '14px 16px 8px',
-    fontSize: 14, fontWeight: 600,
+    fontSize: 15, fontWeight: 600,
     color: 'var(--jp-text)',
   },
   body: {
     padding: '4px 16px 16px',
     color: 'var(--jp-text)',
-    fontSize: 13,
+    fontSize: 14,
     lineHeight: 1.5,
   },
 }

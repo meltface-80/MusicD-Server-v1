@@ -175,10 +175,10 @@ function Switches({ rows, prefs, busy, onToggle }) {
 }
 
 const s = {
-  blurb: { fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, margin: '0 0 14px' },
-  loading: { fontSize: 12, color: 'var(--text-tertiary)', padding: '10px 0' },
+  blurb: { fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55, margin: '0 0 14px' },
+  loading: { fontSize: 13, color: 'var(--text-tertiary)', padding: '10px 0' },
   error: {
-    margin: '0 0 10px', padding: '8px 10px', borderRadius: 6, fontSize: 12,
+    margin: '0 0 10px', padding: '8px 10px', borderRadius: 6, fontSize: 13,
     background: 'rgba(255,59,92,0.08)', border: '1px solid rgba(255,59,92,0.30)',
     color: 'var(--text-secondary)',
   },
@@ -196,8 +196,8 @@ const s = {
     borderBottom: '1px solid var(--border-faint)',
   },
   rowText: { flex: 1, minWidth: 0 },
-  rowLabel: { fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 },
-  rowSub: { fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.45, marginTop: 3 },
+  rowLabel: { fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 },
+  rowSub: { fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.45, marginTop: 3 },
   toggle: {
     position: 'relative', flexShrink: 0,
     width: 44, height: 26, borderRadius: 999,
@@ -214,5 +214,5 @@ const s = {
     transition: 'transform 0.16s ease',
   },
   knobOn: { transform: 'translateX(18px)' },
-  footnote: { fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, margin: '14px 0 0' },
+  footnote: { fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, margin: '14px 0 0' },
 }

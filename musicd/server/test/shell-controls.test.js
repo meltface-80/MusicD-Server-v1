@@ -212,12 +212,19 @@ test('the artists wall is three across, with a switch', async (t) => {
     .replace(/\/\*[\s\S]*?\*\//g, '');
 
   await t.test('three columns on a phone', () => {
-    // The default (no media query) rule is the phone one; the breakpoints
-    // below it already went 3 / 4 / 5 and are unchanged.
+    // The default (no media query) rule is the phone one.
+    //
+    // v1.1.38.0 — the needle pins the COLUMN COUNT and no longer pins the
+    // track sizing. It used to require the literal `repeat(3, 1fr)`, and
+    // when the grid moved to `repeat(3, minmax(0, 1fr))` — same three
+    // columns, but with the min-content floor removed so one long artist
+    // name cannot widen its column — this failed on a change it has no
+    // opinion about. What it exists to catch is the wall going to two or
+    // four across, and it still catches that.
     const at = css.indexOf('.jp-artist-grid {');
     assert.notEqual(at, -1, 'the artist grid class is gone');
     const block = css.slice(at, css.indexOf('}', at));
-    assert.match(block, /grid-template-columns:\s*repeat\(3, 1fr\)/,
+    assert.match(block, /grid-template-columns:\s*repeat\(3,/,
       'the artists wall is not three across by default');
   });
 

@@ -144,8 +144,8 @@ export default function AudioSection() {
       {totalDevices === 0 && (
         <div style={s.empty}>
           <Cable size={32} style={{ color: 'var(--text-tertiary)', marginBottom: 12 }} />
-          <div style={{ fontSize: 14, marginBottom: 6 }}>No output devices yet.</div>
-          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 14 }}>
+          <div style={{ fontSize: 15, marginBottom: 6 }}>No output devices yet.</div>
+          <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 14 }}>
             Plug in a USB DAC, or wait for Sonos / DLNA / Squeezelite discovery to find devices on your network.
           </div>
           {/* v1.1.0.94 — Diagnose button surfaced in the empty state too.
@@ -232,7 +232,7 @@ function UsbDiagSheet({ onClose }) {
         {ok ? '✓' : '✗'}
       </span>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 13 }}>{label}</div>
+        <div style={{ fontSize: 14 }}>{label}</div>
         {detail && <div style={s.diagDetail}>{detail}</div>}
       </div>
     </div>
@@ -272,7 +272,7 @@ function UsbDiagSheet({ onClose }) {
 
             {data.advice && data.advice.length > 0 && (
               <div style={s.diagAdvice}>
-                <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 8 }}>Suggestions</div>
+                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>Suggestions</div>
                 {data.advice.map((a, i) => (
                   <div key={i} style={s.diagAdviceItem}>• {a}</div>
                 ))}
@@ -702,13 +702,13 @@ const ICON_FOR_TYPE = {
 }
 
 const s = {
-  loading: { padding: 24, color: 'var(--text-secondary)', fontSize: 13 },
+  loading: { padding: 24, color: 'var(--text-secondary)', fontSize: 14 },
 
   toolbar: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '4px 0 14px',
   },
-  toolbarText: { fontSize: 13, color: 'var(--text-secondary)' },
+  toolbarText: { fontSize: 14, color: 'var(--text-secondary)' },
   refreshBtn: {
     width: 32, height: 32, borderRadius: '50%',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -726,7 +726,7 @@ const s = {
 
   group: { marginBottom: 16 },
   groupHeader: {
-    fontSize: 11, fontWeight: 700,
+    fontSize: 12, fontWeight: 700,
     letterSpacing: '0.06em', textTransform: 'uppercase',
     color: 'var(--text-tertiary)',
     padding: '8px 4px',
@@ -754,19 +754,19 @@ const s = {
   },
   deviceText: { flex: 1, minWidth: 0 },
   deviceName: {
-    fontSize: 14, fontWeight: 500,
+    fontSize: 15, fontWeight: 500,
     display: 'flex', alignItems: 'center', gap: 8,
     color: 'var(--text-primary)',
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
   },
   deviceMeta: {
-    fontSize: 12, color: 'var(--text-tertiary)',
+    fontSize: 13, color: 'var(--text-tertiary)',
     fontFamily: 'var(--font-mono)',
     display: 'flex', alignItems: 'center', gap: 6,
     marginTop: 2,
   },
   disconnectedBadge: {
-    fontSize: 9, fontWeight: 700,
+    fontSize: 11, fontWeight: 700,
     padding: '2px 6px',
     background: 'rgba(255, 196, 0, 0.12)',
     color: '#e6a700',
@@ -774,7 +774,7 @@ const s = {
     letterSpacing: '0.04em', textTransform: 'uppercase',
   },
   tag: {
-    fontSize: 9, fontWeight: 700,
+    fontSize: 11, fontWeight: 700,
     padding: '2px 5px',
     background: 'var(--accent-dim)',
     color: 'var(--accent)',
@@ -783,7 +783,7 @@ const s = {
   },
 
   footnote: {
-    fontSize: 12, color: 'var(--text-tertiary)',
+    fontSize: 13, color: 'var(--text-tertiary)',
     padding: '14px 4px',
     lineHeight: 1.5,
   },
@@ -796,7 +796,7 @@ const s = {
     background: 'rgba(var(--tint-rgb), 0.04)',
     border: '1px solid var(--border)',
     borderRadius: 10,
-    fontSize: 13,
+    fontSize: 14,
     color: 'var(--text-secondary)',
   },
   usbDiagBtn: {
@@ -805,7 +805,7 @@ const s = {
     color: 'var(--on-accent)',
     border: 'none',
     borderRadius: 6,
-    fontSize: 12, fontWeight: 600,
+    fontSize: 13, fontWeight: 600,
     cursor: 'pointer',
   },
   diagOverlay: {
@@ -843,7 +843,7 @@ const s = {
     padding: '8px 0',
   },
   diagDetail: {
-    fontSize: 11, color: 'var(--text-tertiary)',
+    fontSize: 12, color: 'var(--text-tertiary)',
     marginTop: 2,
   },
   diagAdvice: {
@@ -854,19 +854,19 @@ const s = {
     borderRadius: 8,
   },
   diagAdviceItem: {
-    fontSize: 12,
+    fontSize: 13,
     color: 'var(--text-secondary)',
     marginBottom: 6,
     lineHeight: 1.5,
   },
   diagDetailSummary: {
-    fontSize: 12,
+    fontSize: 13,
     color: 'var(--text-tertiary)',
     cursor: 'pointer',
     padding: '6px 0',
   },
   diagPre: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: 'monospace',
     background: 'rgba(0,0,0,0.3)',
     padding: 10,
@@ -878,11 +878,11 @@ const s = {
   },
   diagError: {
     color: '#ff7766',
-    fontSize: 13,
+    fontSize: 14,
     padding: 14,
   },
   diagLoading: {
-    fontSize: 13,
+    fontSize: 14,
     color: 'var(--text-tertiary)',
     padding: 24,
     textAlign: 'center',
@@ -904,12 +904,12 @@ const s = {
   },
   subTitle: {
     flex: 1, textAlign: 'center',
-    fontSize: 15, fontWeight: 700,
+    fontSize: 16, fontWeight: 700,
     overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
     padding: '0 8px',
   },
   subSectionTitle: {
-    fontSize: 11, fontWeight: 700,
+    fontSize: 12, fontWeight: 700,
     letterSpacing: '0.06em', textTransform: 'uppercase',
     color: 'var(--text-tertiary)',
     padding: '8px 0 8px',
@@ -921,7 +921,7 @@ const s = {
     background: 'rgba(255, 196, 0, 0.06)',
     border: '1px solid rgba(255, 196, 0, 0.30)',
     borderRadius: 8,
-    fontSize: 12, color: 'var(--text-primary)',
+    fontSize: 13, color: 'var(--text-primary)',
     marginBottom: 16,
     lineHeight: 1.5,
   },
@@ -954,16 +954,16 @@ const s = {
     boxShadow: 'inset 0 0 0 3px var(--bg-elevated)',
   },
   modeText: { flex: 1 },
-  modeTitle: { fontSize: 14, fontWeight: 500, marginBottom: 2 },
-  modeSub: { fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.4 },
+  modeTitle: { fontSize: 15, fontWeight: 500, marginBottom: 2 },
+  modeSub: { fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.4 },
 
   toggleRow: {
     display: 'flex', alignItems: 'center', gap: 12,
     padding: '10px 0',
   },
   toggleText: { flex: 1 },
-  toggleTitle: { fontSize: 14, fontWeight: 500, marginBottom: 2 },
-  toggleSub: { fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.4 },
+  toggleTitle: { fontSize: 15, fontWeight: 500, marginBottom: 2 },
+  toggleSub: { fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.4 },
   toggle: {
     width: 40, height: 22, borderRadius: 11,
     background: 'var(--border)', border: 'none',
@@ -991,12 +991,12 @@ const s = {
     borderRadius: 6,
   },
   statLabel: {
-    fontSize: 10, fontWeight: 700,
+    fontSize: 12, fontWeight: 700,
     letterSpacing: '0.06em', textTransform: 'uppercase',
     color: 'var(--text-tertiary)',
     marginBottom: 2,
   },
-  statValue: { fontSize: 13, color: 'var(--text-primary)' },
+  statValue: { fontSize: 14, color: 'var(--text-primary)' },
 
   testBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -1005,7 +1005,7 @@ const s = {
     color: 'var(--text-primary)',
     border: '1px solid var(--border)',
     borderRadius: 16,
-    fontSize: 13,
+    fontSize: 14,
     cursor: 'pointer',
   },
   errorBox: {
@@ -1015,12 +1015,12 @@ const s = {
     background: 'rgba(244, 113, 116, 0.08)',
     border: '1px solid rgba(244, 113, 116, 0.30)',
     borderRadius: 6,
-    fontSize: 12,
+    fontSize: 13,
     color: 'var(--red, #f47174)',
   },
 
   help: {
-    fontSize: 12, color: 'var(--text-tertiary)',
+    fontSize: 13, color: 'var(--text-tertiary)',
     padding: '4px 0 12px',
     lineHeight: 1.5,
   },
@@ -1059,7 +1059,7 @@ const s = {
   nameDisplayBtn: {
     display: 'inline-flex', alignItems: 'center',
     background: 'transparent', border: 'none', padding: 0,
-    fontSize: 15, fontWeight: 500,
+    fontSize: 16, fontWeight: 500,
     color: 'var(--text-primary)',
     cursor: 'pointer',
     textAlign: 'left',
@@ -1080,7 +1080,7 @@ const s = {
     border: '1px solid var(--border)',
     borderRadius: 6,
     padding: '7px 10px',
-    fontSize: 14,
+    fontSize: 15,
     outline: 'none',
   },
   nameOkBtn: {
@@ -1103,7 +1103,7 @@ const s = {
   // "was: WiiM Pro Plus" subline shown when the user has overridden
   // the discovered name. Includes a quiet "reset" link to revert.
   nameDiscovered: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'var(--text-tertiary)',
     marginTop: 4,
     fontFamily: 'var(--font-mono)',
@@ -1112,14 +1112,14 @@ const s = {
     background: 'transparent', border: 'none', padding: 0,
     marginLeft: 6,
     color: 'var(--text-secondary)',
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: 'var(--font-mono)',
     textDecoration: 'underline',
     textUnderlineOffset: 2,
     cursor: 'pointer',
   },
   nameError: {
-    fontSize: 11, color: 'var(--red, #f47174)',
+    fontSize: 12, color: 'var(--red, #f47174)',
     marginTop: 4,
   },
 }

@@ -12,6 +12,161 @@ Categories used per release:
 
 ---
 
+## v1.1.38.0 — 2026-08-22 — THE MATCHER STOPS SPINNING, AND THE TYPE GETS BIGGER
+
+A full audit of the metadata pipeline turned up fourteen defects, one of
+them serious enough that a MusicBrainz outage could burn an entire hour
+of scheduled work on a single album. All fourteen are fixed here, along
+with the two changes that make matching fast rather than merely correct,
+a works layer for classical, and the type-scale work behind the "it looks
+cramped" report.
+
+### Fixed
+
+- **The album matcher could get stuck on one album and stay there.** Its
+  queue selected albums whose status was `pending` *or* `error`, and an
+  album that failed was written back as `error` — so the next iteration
+  selected the same album again. In normal use this was invisible: a
+  one-off timeout errored an album, it was picked up again, and the retry
+  worked. When MusicBrainz was down or rate-limiting, *every* album
+  errored, and a run became the same album over and over for a full hour,
+  firing requests at a service that was already asking us to slow down.
+  The progress counter climbing past its own total ("4,312 / 2,000") was
+  this bug showing.
+
+- **A "slow down" from MusicBrainz was treated as a failure.** Their
+  server answers a rate-limit breach with a 503 and a `Retry-After`
+  header, which nothing read. Combined with the queue bug above, that
+  turned a polite request to wait into a retry storm. Requests now back
+  off for as long as they are asked to, three times, before giving up.
+
+- **Three parts of the app were queueing MusicBrainz requests separately.**
+  The matcher, the cover-art fetcher and the artist-logo fetcher each kept
+  their own one-request-per-second timer, none of which knew about the
+  others — so a library scan running alongside a match could send three
+  requests a second to a service that permits one. There is now a single
+  client that everything goes through.
+
+- **Two of those three identified themselves to MusicBrainz as
+  `musicd/1.0 (self-hosted)`, with no contact details.** The matcher has
+  always refused to run without a contact, because MusicBrainz's terms
+  require one; the other two sent requests anyway, from the same address.
+  They now use the contact you configured, and skip MusicBrainz entirely
+  when there isn't one.
+
+- **Cover art was searching MusicBrainz for albums it had already
+  identified.** Having matched an album to a MusicBrainz record, the art
+  fetcher then threw that away and searched again by artist and title,
+  then tried up to five results in turn. It now goes straight to the
+  artwork for the record it already knows about — one request to a
+  content network instead of a search plus five attempts.
+
+- **Albums with no artwork anywhere were re-checked forever.** Cover art
+  was the only background job with no memory of having tried, so a
+  bootleg or a private pressing was looked up again on every cycle for
+  the life of the install, and the queue never emptied. Attempts are now
+  remembered, with a retry after a week, then a month, then not again —
+  artwork does get uploaded later, so never retrying would be wrong too.
+  "Fetch missing artwork" still checks everything on demand.
+
+- **Audio fingerprinting was built, working, and never used
+  automatically.** It is the only thing here that identifies an album
+  when the tags are useless — which is the whole problem — and it was
+  reachable only from a button on the Unmatched page. It now runs as the
+  last step of matching, on the albums nothing else could name.
+
+- **The matching search stopped at the first answer rather than the best
+  one.** MusicBrainz's search is fuzzy and usually returns *something*,
+  so one weak result blocked the broader queries behind it — including
+  the one written specifically for albums with mangled titles.
+
+- **Soundtracks and compilations were being sent to the Unmatched page
+  for no reason.** Any album MusicBrainz classifies as a soundtrack, live
+  record or compilation lost points unless its title contained a word
+  like "soundtrack" — so *Trainspotting*, *Purple Rain* and every
+  greatest-hits named after the band were penalised for a correct match.
+  The penalty now needs actual evidence of disagreement.
+
+- **Two different pieces of code were resolving artists to MusicBrainz
+  and writing to the same field**, and the careless one — no alias check,
+  no name comparison — could overwrite the careful one. A wrong artist
+  affects every album by that artist, so there is now one resolver.
+
+- **A track-count check that had never once run.** It has been in the
+  scoring code since v1.1.34.0, reading a value that nothing supplied. It
+  now earns its keep as a tie-break between an album and its own deluxe
+  edition, which is the case it settles.
+
+- **Album write-ups from Last.fm never arrived.** The lookup used the
+  wrong kind of MusicBrainz identifier, so that source silently returned
+  nothing every time. There is now a fallback by artist and album name,
+  plus TheAudioDB as a fourth source, which the file's own documentation
+  has claimed since 2024 but which was never actually connected.
+
+- **Fingerprinting could sample the wrong album's files** when two albums
+  shared a title and artist — exactly the duplicates that version
+  grouping exists to handle.
+
+- **Two style rules in the DSP settings had never applied.** A repeated
+  name in the same block meant the later one silently won, so the volume
+  levelling slider stretched across its row instead of sitting at its
+  intended width.
+
+### New
+
+- **Much faster matching, if you want it.** ListenBrainz publishes the
+  same matching engine MusicBrainz uses internally, and it accepts fifty
+  lookups in one request against MusicBrainz's one per second. Paste a
+  free token into Settings → Metadata and matching a large library goes
+  from tens of minutes to seconds. It also matches on *track* names, so
+  an album whose own title is unreadable can still be identified. Without
+  a token nothing changes.
+
+- **Qobuz and Tidal now help identify your local albums.** If you are
+  signed in, their catalogues are searched for the barcode of an album
+  the text search could not place — and a barcode turns a guess into an
+  exact lookup. It refuses to answer unless the artist, the album title
+  and the track count all agree.
+
+- **Composers and work titles for classical albums.** MusicBrainz models
+  a composition separately from any recording of it, which is what makes
+  "Symphony No. 5 in C minor, Op. 67" available where your files only say
+  "I. Allegro con brio". Populated in the background from identifiers
+  already in well-tagged files, and prioritised so classical albums are
+  done first.
+
+- **Identifiers already in your files are now read.** Anything tagged
+  with MusicBrainz Picard carries recording, work and artist identifiers
+  that were being discarded on every scan. Reading them makes matching
+  free for those albums and is what feeds the classical work titles.
+
+### UI
+
+- **Text is bigger throughout.** Two in five of the app's text sizes were
+  11px or smaller, against one in ten in MusicD-Remote — that is the
+  "cramped" feeling, measured. Everything has moved up the scale and
+  nothing is smaller than 11px now. There is also a shared set of sizes
+  to reach for, so this cannot drift back a control at a time.
+
+- **More albums on screen at once.** The album wall now matches
+  MusicD-Remote: three across on a phone as before, but five on a tablet
+  held upright, seven on its side, and nine on a desktop. The artist wall
+  follows. Long titles no longer stretch their column wider than the rest
+  of the row.
+
+- **The Now Playing screen is the same room as the rest of the app.** It
+  used to be painted on a deliberately darker set of surfaces — an
+  audiophile-software habit that made one app read as two, with a visible
+  seam every time it slid up over the library.
+
+### Migrations
+
+- Cover-art attempts, track-level MusicBrainz identifiers and two tables
+  for musical works are added on first boot. No existing data is touched
+  and nothing is re-queued: your current matches stay exactly as they are.
+
+---
+
 ## v1.1.37.0 — 2026-08-22 — REOPENING THE APP KEEPS THE SCREEN YOU LEFT
 
 ### Fixed
