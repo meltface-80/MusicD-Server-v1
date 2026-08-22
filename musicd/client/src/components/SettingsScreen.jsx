@@ -252,6 +252,21 @@ export default function SettingsScreen({ onBack }) {
   // v1.1.0.23: lastfm/fanart/audiodb keys are now baked in (see
   // server/src/apiCredentials.js) so the only paste-credential left
   // is the MusicBrainz contact (per-deployer).
+  // v1.1.40.0 — the ListenBrainz token check. Kept as one object rather
+  // than two useStates so a re-check cannot briefly show the previous
+  // result alongside the new spinner.
+  const [lbTest, setLbTest] = useState({ checking: false, result: null })
+
+  const testListenBrainz = async () => {
+    setLbTest({ checking: true, result: null })
+    try {
+      const r = await api.post('/settings/listenbrainz/test')
+      setLbTest({ checking: false, result: r })
+    } catch (e) {
+      setLbTest({ checking: false, result: { valid: false, error: 'Could not reach the server.' } })
+    }
+  }
+
   const CREDENTIAL_KEYS = new Set(['mb_contact', 'listenbrainz_token',
     'audiodb_api_key', 'fanart_client_key'])
   const TRIM_QUOTES_REGEX = /^[\s"'\u201C\u201D\u2018\u2019]+|[\s"'\u201C\u201D\u2018\u2019]+$/g
@@ -723,10 +738,25 @@ export default function SettingsScreen({ onBack }) {
             onChange={e => update('listenbrainz_token', e.target.value)}
             style={s.textInput} />
         </Row>
+        <div style={s.lbTestRow}>
+          <button type="button" style={s.lbTestBtn}
+            disabled={lbTest.checking}
+            onClick={testListenBrainz}>
+            {lbTest.checking ? 'Checking\u2026' : 'Test token'}
+          </button>
+          {lbTest.result && (
+            <span style={lbTest.result.valid ? s.lbTestOk : s.lbTestBad}>
+              {lbTest.result.valid
+                ? `\u2713 Working \u2014 signed in as ${lbTest.result.userName || 'your account'}`
+                : `\u2717 ${lbTest.result.error}`}
+            </span>
+          )}
+        </div>
         <div style={s.helpRow}>
           <HelpTooltip>
-          Optional, and free. With a token the matcher uses the ListenBrainz mapper first — the same fuzzy index MusicBrainz uses itself, but in batches of fifty rather than one request per second. Matching a large library drops from tens of minutes to seconds, and albums with mangled titles can still be identified from their track names. Without a token everything still works, just at MusicBrainz's rate limit. Get one from your profile at{' '}
-          <a href="https://listenbrainz.org/settings/" target="_blank" rel="noopener noreferrer" style={s.link}>listenbrainz.org</a>.
+          Optional, and free. With a token the matcher uses the ListenBrainz mapper first — the same fuzzy index MusicBrainz uses itself, but in batches of fifty rather than one request per second. Matching a large library drops from tens of minutes to seconds, and albums with mangled titles can still be identified from their track names. Without a token everything still works, just at MusicBrainz's rate limit. Get one from{' '}
+          <a href="https://listenbrainz.org/settings/" target="_blank" rel="noopener noreferrer" style={s.link}>listenbrainz.org/settings</a>{' '}
+          &mdash; look for <b>User token</b> on that page. It is <b>not</b> the client ID or client secret from the applications page; those are for apps signing in on your behalf and will not work here. Press <b>Test token</b> after saving.
           </HelpTooltip>
         </div>
 
@@ -3140,6 +3170,25 @@ const s = {
   // to live inline. Right-aligned with negative margin so it tucks
   // tight to the section title line above it.
   helpRow: { display: 'flex', justifyContent: 'flex-end', marginTop: -2, marginBottom: 4 },
+  // v1.1.40.0 — the ListenBrainz token check. Names grepped against the
+  // rest of this map before insertion: a duplicate key here is an esbuild
+  // WARNING, not an error, and the later value silently wins — which is
+  // how two DspTab rules came to have never applied at all.
+  lbTestRow: {
+    display: 'flex', alignItems: 'center', gap: 10,
+    flexWrap: 'wrap', margin: '6px 0 2px',
+  },
+  lbTestBtn: {
+    height: 'var(--ctl-h-sm)', minHeight: 'var(--tap-min)',
+    padding: '0 var(--ctl-pad-x)', borderRadius: 'var(--ctl-radius)',
+    background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+    color: 'var(--text-primary)', fontSize: 13, fontWeight: 500,
+    cursor: 'pointer', flexShrink: 0,
+  },
+  // The two outcomes are given colour AND a glyph, because colour alone
+  // is not a distinction everyone can see.
+  lbTestOk:  { fontSize: 13, color: 'var(--green)', flex: '1 1 16ch', minWidth: 0 },
+  lbTestBad: { fontSize: 13, color: 'var(--red)', flex: '1 1 16ch', minWidth: 0 },
   row: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border)' },
   rowLabel: { fontSize: 14, color: 'var(--text-secondary)' },
   rowControl: {},

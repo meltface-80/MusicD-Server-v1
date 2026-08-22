@@ -12,6 +12,31 @@ Categories used per release:
 
 ---
 
+## v1.1.40.0 — 2026-08-22 — A TEST BUTTON FOR THE LISTENBRAINZ TOKEN
+
+### New
+
+- **Test token**, next to the ListenBrainz field in Settings → Metadata.
+  It says either *Working — signed in as &lt;your account&gt;* or exactly
+  what is wrong. The field shipped in v1.1.38.0 with no feedback at all,
+  which made a working token indistinguishable from a typo — and the
+  failure is silent by design, because a bad token simply means matching
+  falls back to the slower MusicBrainz path and carries on.
+
+### Changed
+
+- **The help text now names the right page, and the wrong one.**
+  ListenBrainz has two different credentials and only one of them works
+  here. What MusicD needs is the **User token** on
+  listenbrainz.org/settings. The **client ID and client secret** on the
+  applications page are for apps signing in on your behalf — a different
+  mechanism entirely, and pasting one of those in gets you nothing but a
+  silent fallback. When a token is rejected, the error now says so
+  explicitly rather than just "invalid", because that is the mistake
+  people actually make.
+
+---
+
 ## v1.1.39.0 — 2026-08-22 — YOUR OWN KEYS FOR THE TWO SHARED ONES
 
 MusicD ships with working API keys for the services it draws artwork and

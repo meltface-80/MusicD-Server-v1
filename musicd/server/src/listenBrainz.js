@@ -692,8 +692,72 @@ async function releaseGroupFor(releaseMbid, opts = {}) {
   }
 }
 
+/**
+ * Check the saved token against ListenBrainz and report who it belongs to.
+ *
+ * v1.1.40.0. This exists because the token field shipped in v1.1.38.0 with
+ * no way to tell whether it worked. A credential you paste into a box that
+ * then says nothing is a credential you cannot trust — and the failure mode
+ * is silent by design here, since a bad token just means the matcher falls
+ * back to the MusicBrainz path and carries on.
+ *
+ * ListenBrainz has an endpoint for exactly this: /1/validate-token answers
+ * { valid, user_name } and does NOT count as a failed auth attempt. It also
+ * accepts the token as a query parameter for backwards compatibility; we
+ * send the Authorization header, which is the documented form and the same
+ * one the mapper uses — so a pass here proves the mapper will authenticate,
+ * not merely that the string exists in their database.
+ *
+ * Returns { valid, userName, error }. Never throws: this is called from a
+ * settings button and a network blip should read as "could not check",
+ * which is a different thing from "invalid" and is reported as such.
+ */
+async function validateToken(explicitToken) {
+  const token = String(explicitToken || _token() || '').trim();
+  if (!token) return { valid: false, userName: null, error: 'No token saved.' };
+
+  let res;
+  try {
+    res = await axios.get(`${LB_BASE}/validate-token`, {
+      headers: { Authorization: `Token ${token}`, 'User-Agent': _userAgent() },
+      timeout: REQUEST_TIMEOUT_MS,
+      // A 401 is an ANSWER here, not a transport failure — resolve it so
+      // the message below can distinguish "wrong token" from "unreachable".
+      validateStatus: (s) => s >= 200 && s < 500,
+    });
+  } catch (e) {
+    return { valid: false, userName: null, error: `Could not reach ListenBrainz: ${e.message}` };
+  }
+
+  if (res.status === 401 || res.status === 403) {
+    return { valid: false, userName: null, error: 'ListenBrainz rejected this token.' };
+  }
+  if (res.status >= 400) {
+    const msg = (res.data && (res.data.error || res.data.message)) || `HTTP ${res.status}`;
+    return { valid: false, userName: null, error: msg };
+  }
+
+  const data = res.data || {};
+  if (data.valid) {
+    log.info(`token validated for ListenBrainz user "${data.user_name}"`);
+    return { valid: true, userName: data.user_name || null, error: null };
+  }
+  return {
+    valid: false,
+    userName: null,
+    // The most common cause by far, and the one worth naming: people
+    // paste an OAuth client id or client secret from the applications
+    // page instead of the user token from the settings page.
+    error: data.message
+      || 'Not a valid ListenBrainz user token. Check you copied the token from '
+         + 'listenbrainz.org/settings/ and not a client ID or secret from the '
+         + 'applications page — those are a different credential and will not work here.',
+  };
+}
+
 module.exports = {
   isConfigured,
+  validateToken,
   lookupRecordings,
   lookupAlbum,
   releaseGroupFor,
