@@ -348,9 +348,27 @@ router.get('/albums', tierMiddleware.clampLimit('library_size_limit'), (req, res
 
   const focusClause = focusParts.length > 0 ? ' AND ' + focusParts.join(' AND ') : '';
 
+  // v1.1.34.0 — album version grouping.
+  //
+  // Two things have to agree before versions collapse: the SETTING
+  // (Settings → Library → Group album versions) and the CALLER asking
+  // for it with ?versions=collapse. The setting is the user's on/off;
+  // the parameter is how the client says which surface this is, because
+  // grouping belongs on the album wall and artist pages and NOT on
+  // Favourites, Saved, Tags or search — there you picked a specific
+  // version, and collapsing it would hide the exact row you saved.
+  //
+  // Expressed as one clause appended to filterClause, so it reaches all
+  // four query branches below at once. Adding it to each branch by hand
+  // is how three of four get it and the fourth quietly does not.
+  const wantVersions = String(req.query.versions || '') === 'collapse';
+  const albumVersions = require('../albumVersions');
+  const groupVersions = wantVersions && albumVersions.isEnabled();
+
   // Use JSON-stringified key to prevent collisions (#14)
   const cacheKey = 'albums:' + JSON.stringify({
     sortId, sortDirection, sortSeed, lim, off, format, artist, genre, favOnly, savedOnly, tagIds,
+    groupVersions,
     focusFormatIn, focusFormatEx, focusGenreIn, focusGenreEx,
     focusDecadeIn, focusDecadeEx, focusArtistIn, focusArtistEx,
     focusLastPlayed, focusLastPlayedEx, focusAddedOn, focusAddedOnEx,
@@ -380,7 +398,14 @@ router.get('/albums', tierMiddleware.clampLimit('library_size_limit'), (req, res
     const tagClause = tagIds.length > 0
       ? tagIds.map(id => ` AND EXISTS (SELECT 1 FROM album_tags at WHERE at.album_id = albums.id AND at.tag_id = ${id}) `).join('')
       : '';
-    const filterClause = favClause + savedClause + tagClause;
+    // v1.1.34.0 — collapse each version group to its best-quality member.
+    // An IN clause rather than a window function over the whole query,
+    // because this has to compose with the focus, tag and sort logic
+    // above without any of it being rewritten.
+    const versionClause = groupVersions
+      ? ` AND albums.id IN (${albumVersions.PRIMARY_IDS_SQL}) `
+      : '';
+    const filterClause = favClause + savedClause + tagClause + versionClause;
     if (artist) {
       rows = database.prepare(`
         SELECT id, title, album_artist, artist, year, track_count, total_duration, primary_format, genre,
@@ -476,11 +501,20 @@ router.get('/albums', tierMiddleware.clampLimit('library_size_limit'), (req, res
         LIMIT ? OFFSET ?
       `).all(...focusParams, lim, off);
     }
+    // How many versions each surviving row stands for, so the tile can
+    // say "3 versions". Looked up in one batched query rather than as a
+    // correlated subquery per row — on a large library that difference
+    // is a fast page against a slow one.
+    const counts = groupVersions ? albumVersions.versionCounts(rows.map(a => a.id)) : {};
     return rows.map(a => ({
       ...a,
       is_favorite: !!a.is_favorite,
       cover_art: a.has_art ? `/api/library/albums/${a.id}/cover` : null,
       has_art: undefined,
+      // Absent (rather than 1) when this album is not standing in for
+      // others, so the client renders a badge on truth rather than on a
+      // count it has to compare against 1.
+      version_count: counts[a.id] || undefined,
     }));
   });
 
@@ -747,6 +781,27 @@ router.get('/albums/:id', (req, res) => {
       t.track_number ASC
   `).all(album.id, album.title, album.album_artist);
 
+  // v1.1.34.0 — the other versions of this album (the deluxe, the
+  // remaster). Returned ALWAYS, not only when grouping is switched on:
+  // knowing you own three copies of a record is useful whether or not
+  // the wall is collapsing them, and the album page is where you would
+  // go to compare or play a specific one. The client only draws the
+  // list when there is more than one.
+  let versions = [];
+  try {
+    versions = require('../albumVersions').versionsOf(album.id).map(v => ({
+      ...v,
+      is_favorite: !!v.is_favorite,
+      cover_art: v.has_art ? `/api/library/albums/${v.id}/cover` : null,
+      has_art: undefined,
+      is_current: v.id === album.id,
+    }));
+  } catch (e) {
+    // Version grouping is an enhancement; an album page that cannot
+    // list siblings is still a working album page.
+    console.warn(`[album-detail] versions lookup failed for ${album.id}: ${e.message}`);
+  }
+
   res.json({
     ...album,
     is_favorite: !!album.is_favorite,
@@ -755,6 +810,7 @@ router.get('/albums/:id', (req, res) => {
     cover_art: album.has_art ? `/api/library/albums/${album.id}/cover` : null,
     has_art: undefined,
     tracks,
+    versions: versions.length > 1 ? versions : [],
   });
 });
 

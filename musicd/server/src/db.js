@@ -805,6 +805,59 @@ function init() {
   // test/streaming-library.test.js, which pins it.
   safeAddColumn('albums', 'qobuz_favorited', 'INTEGER DEFAULT 0');
   safeAddColumn('albums', 'tidal_favorited', 'INTEGER DEFAULT 0');
+
+  // v1.1.34.0 — album version grouping.
+  //
+  // version_key answers "are these two rows the same album?" — the
+  // question behind collapsing Moon Safari, Moon Safari (Deluxe) and
+  // Moon Safari (Remaster) into one tile with three versions behind it.
+  //
+  //   'rg:<mbid>'          both matched to the same MusicBrainz release
+  //                        group. Authoritative, and the reason better
+  //                        matching and version grouping shipped together.
+  //   't:<title>|<artist>' not matched yet: cleaned, normalised title
+  //                        and artist. Works on a library that has never
+  //                        been matched at all.
+  //   NULL                 no usable identity. A NULL key groups with
+  //                        nothing, including other NULLs — two albums
+  //                        whose titles we cannot read are not evidence
+  //                        of being the same album.
+  //
+  // Computed in JS (src/albumIdentity.js) rather than as a SQL
+  // expression, because the normalisation strips diacritics, leading
+  // articles and a list of edition-noise patterns that SQLite cannot
+  // express. Maintained by src/albumVersions.js: rebuilt after a scan
+  // and after a matcher run, both of which can change the answer.
+  safeAddColumn('albums', 'version_key', 'TEXT');
+  try { db.exec('CREATE INDEX IF NOT EXISTS idx_albums_version_key ON albums(version_key) WHERE version_key IS NOT NULL'); } catch (e) {}
+
+  // v1.1.34.0 — one-time re-queue of albums the old matcher could not
+  // place. The scoring it used could not match an album whose title and
+  // artist were both EXACTLY right (55+35 is the new arithmetic; the old
+  // 50+30 fell short of the 85 threshold), so every remaster and deluxe
+  // edition in an existing library is sitting in triage for a reason
+  // that no longer exists. Albums already matched keep their MBID, and
+  // anything the user confirmed by hand (matched_by != 'auto') is left
+  // strictly alone.
+  //
+  // Sentinel, so this runs once per install and not on every boot.
+  try {
+    const done = db.prepare("SELECT value FROM settings WHERE key = 'rematch_v1_1_34_done'").get();
+    if (!done) {
+      const r = db.prepare(`
+        UPDATE albums
+        SET match_status = NULL, match_confidence = NULL, match_candidates = NULL
+        WHERE match_status IN ('unmatched', 'uncertain', 'error')
+          AND (matched_by IS NULL OR matched_by = 'auto')
+      `).run();
+      db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('rematch_v1_1_34_done', '1')").run();
+      if (r.changes > 0) {
+        console.log(`[db] migrated: re-queued ${r.changes} album(s) for the v1.1.34.0 matcher`);
+      }
+    }
+  } catch (e) {
+    console.warn('[db] v1.1.34.0 rematch re-queue failed:', e.message);
+  }
   try { db.exec('CREATE INDEX IF NOT EXISTS idx_albums_qobuz_fav ON albums(qobuz_favorited) WHERE qobuz_favorited = 1'); } catch (e) {}
   try { db.exec('CREATE INDEX IF NOT EXISTS idx_albums_tidal_fav ON albums(tidal_favorited) WHERE tidal_favorited = 1'); } catch (e) {}
 

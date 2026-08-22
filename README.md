@@ -11,18 +11,24 @@ album wall, one search across both catalogues, one DSP chain out to your
 renderer. Sign in under Settings → Services; your favourites at each
 service are what appear here.
 
+Albums are matched to MusicBrainz **release groups** from artist and
+title, recovering both from the tracks or the folder name when the tags
+are poor — so the original, the deluxe and the remaster of a record all
+resolve to one album, and can be **grouped into a single tile** with
+Settings → Library → Group album versions.
+
 Four themes, playlists, tags, saved searches over the album wall, a queue
 with multi-select, and an opt-in music-news panel that fetches nothing until
 you ask it to.
 
-**Current release:** v1.1.33.0 — see [`musicd/CHANGELOG.md`](musicd/CHANGELOG.md).
+**Current release:** v1.1.34.0 — see [`musicd/CHANGELOG.md`](musicd/CHANGELOG.md).
 
 ## Repository layout
 
 | Path | What it is |
 |------|------------|
-| `musicd/` | MusicD Server (Node.js) and web client (React/Vite), v1.1.33.0 |
-| `musicd-v1-1-33-0.tar` | Published release tarball — what the in-app updater downloads |
+| `musicd/` | MusicD Server (Node.js) and web client (React/Vite), v1.1.34.0 |
+| `musicd-v1-1-34-0.tar` | Published release tarball — what the in-app updater downloads |
 | `manifest.json` | Update manifest polled by the server's updater |
 | `docs/` | GitHub Pages site (feature overview + install) |
 
@@ -144,7 +150,7 @@ not taken yet. Those builds have the old Dropbox URL compiled in as
 their default and will keep polling it, reporting no update available.
 
 Point the running server at this manifest once, take the update, and it
-is over — v1.1.33.0 has the same URL as its own default, so nothing is
+is over — v1.1.34.0 has the same URL as its own default, so nothing is
 left to maintain. There is no UI for this, so use the environment
 variable:
 
@@ -156,7 +162,7 @@ docker run -d --name musicd-server \
 
 Restart, then **Settings → Check for updates**. The older manifest
 parser understands this file — the top-level `version` and `tarUrl`
-pair is carried for exactly that reason — so it will offer v1.1.33.0 and
+pair is carried for exactly that reason — so it will offer v1.1.34.0 and
 install it normally. The variable can be dropped afterwards.
 
 Cutting a release:

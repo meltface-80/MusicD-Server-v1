@@ -12,6 +12,118 @@ Categories used per release:
 
 ---
 
+## v1.1.34.0 — 2026-08-21 — ALBUM MATCHING, AND ONE ALBUM PER ALBUM
+
+### Album matching is better, and the reason was arithmetic
+
+- **An exact artist and an exact album title now match on their own.**
+  They did not before. Scoring gave an exact title 50 and an exact
+  artist 30 against a "matched" threshold of 85, so a *perfectly tagged*
+  album scored 80 and went to the Unmatched page. It only ever cleared
+  the bar with a year agreement or with MusicBrainz's own confidence —
+  and a remaster is tagged with the remaster's year while its release
+  group's date is the original's. The albums most in need of help were
+  the ones guaranteed not to get it. `Air – Moon Safari (Remaster)`
+  failed for exactly this reason.
+- **Matching resolves the artist first.** Every album used to ask
+  MusicBrainz a fuzzy question with the artist as a *string*, re-matched
+  from scratch for each of their albums — so "The Rolling Stones" vs
+  "Rolling Stones", or "Björk" vs "Bjork", cost you the artist axis
+  every single time. The artist is now resolved once to an MBID and
+  their whole discography is browsed, so the artist stops being a guess
+  and the album is scored against a closed list of what that artist
+  actually released. It also costs **fewer** MusicBrainz requests than
+  before, not more.
+- **Poor tags are recovered rather than given up on.** An album with no
+  album artist is not unmatchable: the most common track artist is used,
+  and failing that the folder name is parsed
+  (`Air - Moon Safari (1998)`, `Air - 1998 - Moon Safari`, `[1998] Air -
+  Moon Safari` and the rest). Placeholders like "Unknown Artist" and
+  "Various Artists" count as absent rather than as an artist to search
+  for.
+- **Release types are scored.** MusicBrainz has always told us whether a
+  release group is an album, a single, a live record or a compilation,
+  and we stored it and ignored it. A ten-track album no longer ties with
+  a single of the same name, and a live album no longer ties with the
+  studio one.
+- **A decisive answer is no longer blocked by its runner-up.** The
+  match needed to beat its nearest rival by 15 points *whatever its own
+  score*, so a 100-point answer was sent to triage because a live album
+  of the same name scored 86. A very strong answer is now evidence in
+  itself.
+- **The year is a bonus and never a penalty**, and the year-qualified
+  MusicBrainz query is gone — it could only ever miss for reissues,
+  which is every album this release is trying to fix.
+- Everything above matches to a **release group** — the album as a
+  concept — so the original, the deluxe and the remaster all land on one
+  MBID, which is what the next section is built on.
+
+### One album per album
+
+- **Settings → Library → Group album versions.** Off by default. With it
+  on, the original, the deluxe and the remaster collapse into a single
+  tile on the album wall and on artist pages, and the one you get is the
+  **best quality copy you own** — bit depth, then sample rate, then track
+  count.
+- **Every version is listed on the album's page**, whether or not the
+  toggle is on, so you can see what you have and open any of them.
+- **Nothing is merged, moved or deleted.** Grouping is a way of looking
+  at the library, not a change to it. Turn it off and everything is back.
+- Grouping applies to the **album wall and artist pages** only.
+  Favourites, Saved for later, Tags, Playlists and search keep showing
+  every version, because there you picked a specific one.
+- Versions are matched by MusicBrainz release group where an album has
+  been matched, and by cleaned title and artist where it has not — so it
+  works on a library that has never been matched, and gets sharper as
+  matching runs.
+
+### Fixed
+
+- **Qobuz and Tidal favourites are no longer capped at 5000.** The sync
+  paged 100 at a time and stopped after 50 pages, then reported 5000 as
+  the total — so a larger library synced a prefix of itself and said it
+  had finished. It now pages to the service's own reported total with no
+  product limit, 500 at a time for Qobuz. (The LMS Qobuz plugin carries
+  the same 5000 as a hard constant, which is why raising it there is a
+  known thing people have to do.)
+- **The Qobuz and Tidal album grids are the same size and layout as the
+  main library.** They were drawing their own tile with a quality line
+  that only appeared when the service reported one, so tiles came out at
+  two different heights and the grid rows stretched unevenly.
+- **Play and Add Queue sit side by side on every screen.** They were laid
+  out with `space-between` inside a box that is as wide as the screen
+  allows, which only looked right on a phone — on a tablet it threw the
+  two buttons to opposite ends with a lane of space between them. They
+  were never actually side by side; they were being spread.
+- **The Qobuz / Tidal marker now appears on artist pages too.** It was
+  added to the album wall in v1.1.33.0 and the artist page, which draws
+  its own tiles, never got it.
+
+### Details worth knowing
+
+- **There is one album tile now, not four.** The album wall, the artist
+  page, the random-albums wall and the streaming screens each had their
+  own, and they had drifted — that is why the service marker was missing
+  from one and why the Qobuz grid was ragged. Its structure is fixed at a
+  square cover and exactly two lines of text; everything optional is an
+  overlay, which cannot change a tile's height.
+- Normalisation — stripping edition noise, diacritics and leading
+  articles — lives in one module used by both the matcher and version
+  grouping. Two copies would let three albums match one release group and
+  still refuse to collapse into one tile.
+- Existing installs **re-queue albums that previously failed** so they
+  get another run under the new rules. Albums already matched keep their
+  MBID, and anything matched by hand is left alone.
+
+### Migrations
+
+- `albums.version_key`, with an index, backfilled on first boot.
+- Albums whose match status was `unmatched`, `uncertain` or `error`, and
+  which were matched automatically rather than by hand, are set back to
+  pending once.
+
+---
+
 ## v1.1.33.0 — 2026-08-21 — QOBUZ AND TIDAL, IN THE SAME LIBRARY
 
 Sign in to Qobuz or Tidal under **Settings → Services** and their albums

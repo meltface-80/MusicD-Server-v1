@@ -403,7 +403,13 @@ test('the Random-albums wall is three across and reachable', async (t) => {
   await t.test('the artwork is not draggable', () => {
     // Same rule as every other surface that draws cover art — see
     // artwork-longpress.test.js, which lists this file too.
-    assert.match(bare, /draggable=\{false\}/);
+    //
+    // v1.1.34.0 — this wall no longer draws its own <img>; it renders the
+    // shared AlbumTile, which carries the attribute. Asserted where the
+    // artwork actually is, plus the delegation that gets it here.
+    assert.match(bare, /from '\.\/AlbumTile'/,
+      'the random wall should render the shared tile rather than its own');
+    assert.match(readClient('components', 'AlbumTile.jsx'), /draggable=\{false\}/);
   });
 });
 

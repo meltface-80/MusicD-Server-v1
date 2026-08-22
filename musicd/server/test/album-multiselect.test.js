@@ -268,21 +268,35 @@ test('selecting changes what a tap does, and says so', async (t) => {
   });
 
   await t.test('picked tiles are marked and unpicked ones step back', () => {
+    // v1.1.34.0 — these three lived in each grid's own tile component.
+    // There were FOUR of those (the wall, the artist page, the random
+    // wall and the Qobuz / Tidal screens) and they had drifted; they are
+    // one shared AlbumTile now, so the rendering is asserted there once.
+    // The BEHAVIOUR assertions below stay per grid, because deciding what
+    // a tap does is still each screen's own job.
+    const tile = client('components', 'AlbumTile.jsx');
+    assert.match(tile, /\{selecting && <SelectionTick on=\{selected\} \/>\}/,
+      'the shared tile draws no selection tick');
+    assert.match(tile, /selecting && !selected \?/,
+      'the shared tile does not dim unpicked albums');
+    assert.match(tile, /aria-pressed=\{selecting \? selected : undefined\}/,
+      'the shared tile does not announce its selected state');
+
+    // And every grid that supports selecting must actually pass it down,
+    // or the tick is implemented and never drawn.
     for (const [name, src] of [['AlbumGrid.jsx', grid], ['RandomAlbumsScreen.jsx', random]]) {
-      assert.match(src, /\{selecting && <SelectionTick on=\{selected\} \/>\}/,
-        `${name} draws no tick`);
-      assert.match(src, /selecting && !selected \?/, `${name} does not dim unpicked tiles`);
-      assert.match(src, /aria-pressed=\{selecting \? selected : undefined\}/,
-        `${name}'s tiles do not announce their state`);
+      assert.match(src, /selecting=\{selection\.selecting\}/,
+        `${name} does not pass selecting to its tiles`);
+      assert.match(src, /selected=\{selection\.selected\.has\(/,
+        `${name} does not pass selected to its tiles`);
     }
   });
 
   await t.test('the tick is drawn only while selecting', () => {
     // An empty circle on every tile the rest of the time would be permanent
     // chrome over the artwork, which is what these walls are for.
-    for (const src of [grid, random]) {
-      assert.doesNotMatch(src, /<SelectionTick on=\{selected\} \/>(?!\})/);
-    }
+    assert.doesNotMatch(client('components', 'AlbumTile.jsx'),
+      /<SelectionTick on=\{selected\} \/>(?!\})/);
   });
 
   await t.test('the controls that would undo a selection are hidden', () => {

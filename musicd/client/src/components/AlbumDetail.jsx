@@ -582,6 +582,14 @@ export default function AlbumDetail({ albumId, onArtistClick, onGenreClick, onBa
                 </button>
               )}
             </div>
+            {/* v1.1.34.0 — the other copies of this album you own. Shown
+                whenever there is more than one, INDEPENDENT of the grouping
+                toggle: knowing you have three copies of a record is useful
+                whether or not the wall is collapsing them, and this is where
+                you would come to compare or play a particular one. */}
+            {Array.isArray(album.versions) && album.versions.length > 1 && (
+              <AlbumVersions versions={album.versions} onOpen={(id) => setSelectedAlbum(id)} />
+            )}
             {service && (
               <div style={s.serviceLine}>
                 <ServiceBadge service={service} variant="chip" />
@@ -1576,6 +1584,55 @@ function TrackRowActions({ track, onFavoriteChange, onRatingChange }) {
   )
 }
 
+// v1.1.34.0 — every version of this album, best quality first.
+//
+// The server orders these (bit depth, sample rate, track count), so the
+// first row is the one a collapsed tile on the album wall would have
+// shown. Rendering in that order means the list agrees with the wall
+// without this component having to know the rule.
+function AlbumVersions({ versions, onOpen }) {
+  const [open, setOpen] = useState(false)
+  const others = versions.length - 1
+
+  return (
+    <div style={s.versionsWrap}>
+      <button style={s.versionsToggle} onClick={() => setOpen(v => !v)} aria-expanded={open}>
+        <Layers size={13} strokeWidth={1.8} />
+        <span>{versions.length} versions</span>
+        <ChevronDown size={13} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+      </button>
+      {!open && (
+        <span style={s.versionsHint}>
+          {others === 1 ? 'one other copy in your library' : `${others} other copies in your library`}
+        </span>
+      )}
+      {open && (
+        <div style={s.versionsList}>
+          {versions.map(v => (
+            <button
+              key={v.id}
+              style={{ ...s.versionRow, ...(v.is_current ? s.versionRowOn : {}) }}
+              onClick={() => { if (!v.is_current && onOpen) onOpen(v.id) }}
+              disabled={v.is_current}
+            >
+              <span style={s.versionTitle}>{v.title}</span>
+              <span style={s.versionMeta}>
+                {v.primary_bit_depth && v.primary_sample_rate
+                  ? `${v.primary_bit_depth}/${Math.round(v.primary_sample_rate / 100) / 10}`
+                  : (v.primary_format || '').toUpperCase()}
+                {v.track_count ? ` · ${v.track_count} tracks` : ''}
+                {v.year ? ` · ${v.year}` : ''}
+              </span>
+              {v.is_current && <Check size={12} style={{ color: 'var(--green)', flexShrink: 0 }} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+
 const s = {
   // v1.1.0.63 — JPLAY-style album page. Pure black ground (was the
   // legacy charcoal-blue #0a0a10). The blurred-art bgArt and bgDim
@@ -1807,7 +1864,21 @@ const s = {
   // the share button to a second row on iPhone widths). flex-wrap
   // disabled here on purpose -- if it ever doesn't fit, we'd
   // rather see horizontal overflow than a broken visual rhythm.
-  heroActions: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, gap: 6 },
+  // v1.1.34.0 — flex-start, NOT space-between.
+  //
+  // space-between only looked right because the phone was cramped. This
+  // row sits inside heroInfo, which is flex:1 beside a fixed 144px cover
+  // — so on a phone there is barely room for Play and Add Queue and they
+  // end up touching, while on a tablet the same rule throws them to
+  // opposite ends of a very wide box with a lane of empty space between
+  // them. The buttons were never actually being placed side by side;
+  // they were being spread, and on a narrow screen spread happens to
+  // look like adjacent.
+  //
+  // flex-start with a real gap puts them side by side at every width,
+  // and wrap means a narrow phone with the circled plus in the row
+  // moves a button to a second line instead of squashing all three.
+  heroActions: { display: 'flex', alignItems: 'center', justifyContent: 'flex-start', flexWrap: 'wrap', marginTop: 10, gap: 8 },
   // Row that holds the MBID chip + About button (or the
   // not-matched placeholder) below the action buttons.
   // #v1.1.0.33: changed from centred to space-between so the two
@@ -1816,7 +1887,10 @@ const s = {
   matchedPillRow: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    // v1.1.34.0 — follows heroActions to flex-start for the same reason.
+    // Its comment above says it was set to space-between to match the
+    // action row; keeping it that way would now be the mismatch.
+    justifyContent: 'flex-start',
     gap: 8,
     marginTop: 14,
     marginBottom: 16,
@@ -1913,6 +1987,27 @@ const s = {
     flexWrap: 'wrap',
   },
   serviceLineText: { fontSize: 11, color: 'var(--jp-text-3)' },
+  // v1.1.34.0 — the version list. Eight new keys, each checked absent
+  // from this map first (a duplicate is an esbuild warning, not an
+  // error, and the later value silently wins).
+  versionsWrap: { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 12, width: '100%' },
+  versionsToggle: {
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '6px 11px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+    background: 'transparent', color: 'var(--jp-text-2)',
+    border: '1px solid rgba(var(--tint-rgb), 0.15)', cursor: 'pointer',
+  },
+  versionsHint: { fontSize: 11, color: 'var(--jp-text-3)' },
+  versionsList: { width: '100%', display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 },
+  versionRow: {
+    display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+    padding: '9px 12px', borderRadius: 6, textAlign: 'left',
+    background: 'transparent', color: 'var(--jp-text-2)',
+    border: '1px solid var(--jp-border)', cursor: 'pointer',
+  },
+  versionRowOn: { background: 'rgba(var(--tint-rgb), 0.08)', color: 'var(--jp-text)', cursor: 'default' },
+  versionTitle: { flex: 1, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  versionMeta: { fontSize: 10, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)', flexShrink: 0 },
 
   // v56: Play split-button. Two halves of one visual pill — the left
   // half (label "Play") triggers Play Now directly; the right half

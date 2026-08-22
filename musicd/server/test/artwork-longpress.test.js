@@ -152,7 +152,21 @@ test('the OS image callout is suppressed wherever art is drawn', async (t) => {
       'NowPlaying.jsx', 'NowPlayingFullScreen.jsx', 'UnmatchedScreen.jsx',
       'RandomAlbumsScreen.jsx',
     ];
-    const missing = surfaces.filter(f => !/draggable=\{false\}/.test(readRaw('components', f)));
+    // v1.1.34.0 — four of these surfaces no longer draw their own <img>:
+    // the album wall, the artist page, the random wall and the Qobuz /
+    // Tidal screens all render the shared AlbumTile now. A file satisfies
+    // the rule either by marking its own artwork undraggable or by
+    // delegating to a tile that does — checking only the former would
+    // fail files that stopped drawing artwork at all, which is the
+    // opposite of what this rule is protecting.
+    const tileMarksIt = /draggable=\{false\}/.test(readRaw('components', 'AlbumTile.jsx'));
+    assert.ok(tileMarksIt,
+      'the shared AlbumTile draws artwork for four surfaces and must mark it undraggable');
+    const missing = surfaces.filter((f) => {
+      const src = readRaw('components', f);
+      if (/from '\.\/AlbumTile'/.test(src)) return false;   // delegates
+      return !/draggable=\{false\}/.test(src);
+    });
     assert.deepEqual(missing, [],
       'these draw artwork and never mark it undraggable: ' + missing.join(', '));
   });
@@ -173,11 +187,14 @@ test('the long-press menu on album thumbnails is gone', async (t) => {
   });
 
   await t.test('no touch timer arms on the card', () => {
-    const card = grid.slice(grid.indexOf('function AlbumCard'));
+    // v1.1.34.0 — AlbumGrid's AlbumCard is a thin wrapper over the shared
+    // tile now, so the thing to inspect is the shared tile itself.
+    const tile = readRaw('components', 'AlbumTile.jsx');
+    const card = tile.slice(tile.indexOf('export default function AlbumTile'));
     assert.ok(!/setTimeout/.test(card),
-      'AlbumCard is still timing a touch');
+      'the album tile is still timing a touch');
     for (const h of ['onTouchStart', 'onTouchEnd', 'onTouchMove']) {
-      assert.ok(!card.includes(h), `AlbumCard still handles ${h}`);
+      assert.ok(!card.includes(h), `the album tile still handles ${h}`);
     }
   });
 
@@ -185,7 +202,12 @@ test('the long-press menu on album thumbnails is gone', async (t) => {
     // Kept deliberately after the app menu went: right-click on desktop and
     // long-press in some Android browsers open the browser's own image menu,
     // which is the thing the callout rules exist to prevent.
-    assert.match(grid, /onContextMenu=\{e => e\.preventDefault\(\)\}/,
+    //
+    // v1.1.34.0 — the tile markup moved into the shared AlbumTile, so the
+    // suppression is asserted there. Checked on the tile that actually
+    // renders the button, not on the file that used to.
+    assert.match(readRaw('components', 'AlbumTile.jsx'),
+      /onContextMenu=\{e => e\.preventDefault\(\)\}/,
       'right-click on a tile now opens the browser image menu');
   });
 });

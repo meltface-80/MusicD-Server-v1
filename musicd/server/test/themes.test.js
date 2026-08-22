@@ -303,6 +303,7 @@ test('nothing in the client paints itself a fixed white any more', async (t) => 
       'TagManagementSection.jsx',  // the tick on a user-chosen tag swatch
       'AlbumSelection.jsx',        // the selection ring drawn over album art
       'ServiceBadge.jsx',          // the initial on the fixed Qobuz / Tidal tint
+      'AlbumVersionsSection.jsx',  // toggle knob, same switch as Home Screen
     ]);
     const guilty = files
       // index.css is where a literal colour BELONGS: the palettes are the one

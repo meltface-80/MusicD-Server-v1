@@ -69,6 +69,8 @@ const SCREENS = [
   ['ServiceScreen (Qobuz)',    './components/ServiceScreen.jsx',      "{ service: 'qobuz', onAlbumSelect: () => {} }"],
   ['ServiceScreen (Tidal)',    './components/ServiceScreen.jsx',      "{ service: 'tidal', onAlbumSelect: () => {} }"],
   ['ServicesSection',          './components/ServicesSection.jsx',    '{}'],
+  // v1.1.34.0 — Settings → Library → album version grouping.
+  ['AlbumVersionsSection',     './components/AlbumVersionsSection.jsx', '{}'],
 ];
 
 // Every sidebar section App can route to, rendered through App itself.

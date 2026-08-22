@@ -3,6 +3,9 @@ import { useStore } from '../store'
 import { api } from '../api'
 import { ArrowLeft, Play, Plus, BookOpen } from 'lucide-react'
 import BioModal from './BioModal'
+import ServiceBadge from './ServiceBadge'
+import VersionBadge from './VersionBadge'
+import AlbumTile from './AlbumTile'
 
 export default function ArtistAlbums({ artist, onBack, onAlbumSelect, hideBack = false }) {
   const { rendererId, playQueue, appendToQueue } = useStore()
@@ -20,7 +23,11 @@ export default function ArtistAlbums({ artist, onBack, onAlbumSelect, hideBack =
 
   useEffect(() => {
     setLoading(true)
-    api.get(`/library/albums?artist=${encodeURIComponent(artist)}&sort=year&limit=500`)
+    // v1.1.34.0 — artist pages collapse album versions too. This is the
+    // page where duplicates are most obvious: three Moon Safari tiles in
+    // a row of one artist's records. Server-side the setting still
+    // decides; this only marks the surface as one that may collapse.
+    api.get(`/library/albums?artist=${encodeURIComponent(artist)}&sort=year&limit=500&versions=collapse`)
       .then(all => {
         const primary = all.filter(a => a.album_artist === artist)
         const collab = all.filter(a => a.album_artist !== artist)
@@ -175,31 +182,15 @@ function AlbumGrid({ albums, onOpen, showArtist }) {
   )
 }
 
+// v1.1.34.0 — the shared tile. This page kept its own copy, which is
+// why the Qobuz / Tidal glyph added in v1.1.33.0 was missing here.
 function AlbumCard({ album, onOpen, showArtist }) {
-  const [imgSrc, setImgSrc] = useState(null)
-  const [imgErr, setImgErr] = useState(false)
-  const cardRef = useRef(null)
-
-  useEffect(() => {
-    if (!album.cover_art) return
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { setImgSrc(album.cover_art); observer.disconnect() }
-    }, { rootMargin: '150px' })
-    if (cardRef.current) observer.observe(cardRef.current)
-    return () => observer.disconnect()
-  }, [album.cover_art])
-
   return (
-    <button ref={cardRef} style={s.card} onClick={() => onOpen(album.id)}>
-      <div style={s.artBox}>
-        {imgSrc && !imgErr
-          ? <img src={imgSrc} alt="" style={s.art} onError={() => setImgErr(true)} draggable={false} />
-          : <div style={s.artEmpty}>♫</div>
-        }
-      </div>
-      <div style={s.cardTitle}>{album.title}</div>
-      {showArtist && <div style={s.cardArtist}>{album.album_artist}</div>}
-    </button>
+    <AlbumTile
+      album={album}
+      onClick={() => onOpen(album.id)}
+      showArtist={!!showArtist}
+    />
   )
 }
 
@@ -253,12 +244,6 @@ const s = {
   sectionTitle: { fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--jp-text-2)' },
   sectionCount: { fontSize: 11, color: 'var(--jp-text-3)', fontFamily: 'var(--font-mono)' },
   grid: { /* layout via .album-grid in index.css (now JPLAY-tuned) */ },
-  card: { display: 'block', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', minWidth: 0, width: '100%' },
-  artBox: { width: '100%', aspectRatio: '1/1', borderRadius: 4, overflow: 'hidden', background: 'var(--jp-bg-surface)', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  art: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
-  artEmpty: { fontSize: 24, color: 'rgba(var(--tint-rgb), 0.18)' },
-  cardTitle: { fontSize: 13, fontWeight: 500, color: 'var(--jp-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 2, lineHeight: 1.25 },
-  cardArtist: { fontSize: 12, fontWeight: 400, color: 'var(--jp-text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   // (cardYear retained as an inert style for any leftover callers
   // but no longer rendered — year was dropped from the card to
   // match the JPLAY library aesthetic.)

@@ -1,6 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { api } from '../api'
 import { RefreshCw } from 'lucide-react'
+// v1.1.34.0 — the shared album tile. This screen had a local component of
+// the same name: the fourth copy of an album tile in the app, and one more
+// place the streaming glyph and the version badge would have had to be
+// added by hand.
+import AlbumTile from './AlbumTile'
 import {
   useAlbumSelection, runSelectionAction,
   SelectChip, SelectionBar, SelectionSheet, SelectionTick,
@@ -147,28 +152,6 @@ function SkeletonTile() {
   )
 }
 
-function AlbumTile({ album, onClick, selecting = false, selected = false }) {
-  const [imgErr, setImgErr] = useState(false)
-  return (
-    <button style={s.tile} onClick={onClick} aria-pressed={selecting ? selected : undefined}>
-      <div style={{ ...s.art, ...(selecting && !selected ? s.artDim : {}) }}>
-        {selecting && <SelectionTick on={selected} />}
-        {album.cover_art && !imgErr
-          ? <img
-              src={album.cover_art}
-              alt=""
-              style={s.img}
-              onError={() => setImgErr(true)}
-              draggable={false}
-            />
-          : <div style={s.artEmpty}>♫</div>}
-      </div>
-      <div style={s.title}>{album.title}</div>
-      <div style={s.artist}>{album.album_artist || album.artist}</div>
-    </button>
-  )
-}
-
 const s = {
   // Screens pad themselves for the safe areas; the app shell never does.
   // See the iOS PWA rules in CLAUDE.md.
@@ -222,20 +205,6 @@ const s = {
     boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
   },
   artSkeleton: { background: 'var(--bg-elevated)' },
-  artEmpty: { fontSize: 24, color: 'rgba(var(--tint-rgb), 0.2)' },
-  // Unpicked tiles step back while selecting. Opacity, not a wash: a wash
-  // tints the artwork, and telling covers apart is how you pick them.
-  artDim: { opacity: 0.45 },
-  img: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
-  title: {
-    fontSize: 11, fontWeight: 700, color: 'var(--text-primary)',
-    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-    marginBottom: 1,
-  },
-  artist: {
-    fontSize: 10, color: 'var(--text-secondary)',
-    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-  },
   skelLine: {
     height: 9, borderRadius: 3, marginBottom: 4,
     background: 'var(--bg-elevated)',

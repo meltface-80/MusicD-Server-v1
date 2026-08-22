@@ -16,7 +16,7 @@
     "committed after this manifest is written. null means 'no hash published' and the",
     "updater skips hash verification for that download (it still enforces the size cap,",
     "the too-small/HTML check and the ustar magic check). To turn verification on, run",
-    "  sha256sum musicd-v1-1-33-0.tar",
+    "  sha256sum musicd-v1-1-34-0.tar",
     "and paste the hex into tarSha256 and tarball_sha256 below. Do NOT put a dummy",
     "64-hex placeholder here: the updater cannot tell a placeholder from a real hash",
     "and would refuse every download.",
@@ -29,50 +29,50 @@
   ],
   "manifestVersion": 1,
   "schema_version": 1,
-  "version": "1.1.33.0",
-  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-33-0.tar",
-  "tarSha256": "7a370a524582c73466a4757f43946b5464cc3821c391dec3db94f14befe5d9c7",
-  "releasedAt": "2026-08-21T22:45:00Z",
-  "releaseNotes": "Qobuz and Tidal now merge into the same library as your own files - one album wall, one search across both catalogues, and the same DSP chain out to your renderer. Sign in under Settings > Services; your favourites at each service are what appear here, and a circled plus on any streaming album page adds or removes one. Search reaches the full catalogues, not just what you have already added.",
-  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-33-0.tar",
-  "tarball_sha256": "7a370a524582c73466a4757f43946b5464cc3821c391dec3db94f14befe5d9c7",
-  "released_at": "2026-08-21T22:45:00Z",
+  "version": "1.1.34.0",
+  "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-34-0.tar",
+  "tarSha256": "bc5f70251114f30deb2ff305ff5653ff3139f535c6f2a51a89c5f8c966421561",
+  "releasedAt": "2026-08-21T23:40:00Z",
+  "releaseNotes": "Album matching now works from artist and album title alone - an exact match on both used to score just under the threshold and get sent to triage, which is why remasters and deluxe editions kept failing. It also resolves the artist to a MusicBrainz id first and reads their real discography, and recovers a missing artist or title from the tracks or the folder name. New: Settings > Library > Group album versions collapses the original, the deluxe and the remaster into one tile showing the best quality copy you own; nothing is merged or deleted. Fixed: Qobuz and Tidal favourites are no longer capped at 5000, the streaming album grids match the main library's sizing, and Play and Add Queue sit side by side on tablets as well as phones.",
+  "tarball_url": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-34-0.tar",
+  "tarball_sha256": "bc5f70251114f30deb2ff305ff5653ff3139f535c6f2a51a89c5f8c966421561",
+  "released_at": "2026-08-21T23:40:00Z",
   "release_notes_url": "https://github.com/meltface-80/MusicD-Server-v1/blob/main/musicd/CHANGELOG.md",
   "channels": {
     "stable": {
-      "version": "1.1.33.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-33-0.tar",
-      "tarSha256": "7a370a524582c73466a4757f43946b5464cc3821c391dec3db94f14befe5d9c7",
-      "releasedAt": "2026-08-21T22:45:00Z",
-      "releaseNotes": "Qobuz and Tidal now merge into the same library as your own files - one album wall, one search across both catalogues, and the same DSP chain out to your renderer. Sign in under Settings > Services; your favourites at each service are what appear here, and a circled plus on any streaming album page adds or removes one. Search reaches the full catalogues, not just what you have already added."
+      "version": "1.1.34.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-34-0.tar",
+      "tarSha256": "bc5f70251114f30deb2ff305ff5653ff3139f535c6f2a51a89c5f8c966421561",
+      "releasedAt": "2026-08-21T23:40:00Z",
+      "releaseNotes": "Album matching now works from artist and album title alone - an exact match on both used to score just under the threshold and get sent to triage, which is why remasters and deluxe editions kept failing. It also resolves the artist to a MusicBrainz id first and reads their real discography, and recovers a missing artist or title from the tracks or the folder name. New: Settings > Library > Group album versions collapses the original, the deluxe and the remaster into one tile showing the best quality copy you own; nothing is merged or deleted. Fixed: Qobuz and Tidal favourites are no longer capped at 5000, the streaming album grids match the main library's sizing, and Play and Add Queue sit side by side on tablets as well as phones."
     },
     "earlyAccess": {
-      "version": "1.1.33.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-33-0.tar",
-      "tarSha256": "7a370a524582c73466a4757f43946b5464cc3821c391dec3db94f14befe5d9c7",
-      "releasedAt": "2026-08-21T22:45:00Z",
-      "releaseNotes": "Qobuz and Tidal now merge into the same library as your own files - one album wall, one search across both catalogues, and the same DSP chain out to your renderer. Sign in under Settings > Services; your favourites at each service are what appear here, and a circled plus on any streaming album page adds or removes one. Search reaches the full catalogues, not just what you have already added."
+      "version": "1.1.34.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-34-0.tar",
+      "tarSha256": "bc5f70251114f30deb2ff305ff5653ff3139f535c6f2a51a89c5f8c966421561",
+      "releasedAt": "2026-08-21T23:40:00Z",
+      "releaseNotes": "Album matching now works from artist and album title alone - an exact match on both used to score just under the threshold and get sent to triage, which is why remasters and deluxe editions kept failing. It also resolves the artist to a MusicBrainz id first and reads their real discography, and recovers a missing artist or title from the tracks or the folder name. New: Settings > Library > Group album versions collapses the original, the deluxe and the remaster into one tile showing the best quality copy you own; nothing is merged or deleted. Fixed: Qobuz and Tidal favourites are no longer capped at 5000, the streaming album grids match the main library's sizing, and Play and Add Queue sit side by side on tablets as well as phones."
     },
     "beta": {
-      "version": "1.1.33.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-33-0.tar",
-      "tarSha256": "7a370a524582c73466a4757f43946b5464cc3821c391dec3db94f14befe5d9c7",
-      "releasedAt": "2026-08-21T22:45:00Z",
-      "releaseNotes": "Qobuz and Tidal now merge into the same library as your own files - one album wall, one search across both catalogues, and the same DSP chain out to your renderer. Sign in under Settings > Services; your favourites at each service are what appear here, and a circled plus on any streaming album page adds or removes one. Search reaches the full catalogues, not just what you have already added."
+      "version": "1.1.34.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-34-0.tar",
+      "tarSha256": "bc5f70251114f30deb2ff305ff5653ff3139f535c6f2a51a89c5f8c966421561",
+      "releasedAt": "2026-08-21T23:40:00Z",
+      "releaseNotes": "Album matching now works from artist and album title alone - an exact match on both used to score just under the threshold and get sent to triage, which is why remasters and deluxe editions kept failing. It also resolves the artist to a MusicBrainz id first and reads their real discography, and recovers a missing artist or title from the tracks or the folder name. New: Settings > Library > Group album versions collapses the original, the deluxe and the remaster into one tile showing the best quality copy you own; nothing is merged or deleted. Fixed: Qobuz and Tidal favourites are no longer capped at 5000, the streaming album grids match the main library's sizing, and Play and Add Queue sit side by side on tablets as well as phones."
     },
     "alpha": {
-      "version": "1.1.33.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-33-0.tar",
-      "tarSha256": "7a370a524582c73466a4757f43946b5464cc3821c391dec3db94f14befe5d9c7",
-      "releasedAt": "2026-08-21T22:45:00Z",
-      "releaseNotes": "Qobuz and Tidal now merge into the same library as your own files - one album wall, one search across both catalogues, and the same DSP chain out to your renderer. Sign in under Settings > Services; your favourites at each service are what appear here, and a circled plus on any streaming album page adds or removes one. Search reaches the full catalogues, not just what you have already added."
+      "version": "1.1.34.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-34-0.tar",
+      "tarSha256": "bc5f70251114f30deb2ff305ff5653ff3139f535c6f2a51a89c5f8c966421561",
+      "releasedAt": "2026-08-21T23:40:00Z",
+      "releaseNotes": "Album matching now works from artist and album title alone - an exact match on both used to score just under the threshold and get sent to triage, which is why remasters and deluxe editions kept failing. It also resolves the artist to a MusicBrainz id first and reads their real discography, and recovers a missing artist or title from the tracks or the folder name. New: Settings > Library > Group album versions collapses the original, the deluxe and the remaster into one tile showing the best quality copy you own; nothing is merged or deleted. Fixed: Qobuz and Tidal favourites are no longer capped at 5000, the streaming album grids match the main library's sizing, and Play and Add Queue sit side by side on tablets as well as phones."
     },
     "legacy": {
-      "version": "1.1.33.0",
-      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-33-0.tar",
-      "tarSha256": "7a370a524582c73466a4757f43946b5464cc3821c391dec3db94f14befe5d9c7",
-      "releasedAt": "2026-08-21T22:45:00Z",
-      "releaseNotes": "Qobuz and Tidal now merge into the same library as your own files - one album wall, one search across both catalogues, and the same DSP chain out to your renderer. Sign in under Settings > Services; your favourites at each service are what appear here, and a circled plus on any streaming album page adds or removes one. Search reaches the full catalogues, not just what you have already added."
+      "version": "1.1.34.0",
+      "tarUrl": "https://github.com/meltface-80/MusicD-Server-v1/raw/main/musicd-v1-1-34-0.tar",
+      "tarSha256": "bc5f70251114f30deb2ff305ff5653ff3139f535c6f2a51a89c5f8c966421561",
+      "releasedAt": "2026-08-21T23:40:00Z",
+      "releaseNotes": "Album matching now works from artist and album title alone - an exact match on both used to score just under the threshold and get sent to triage, which is why remasters and deluxe editions kept failing. It also resolves the artist to a MusicBrainz id first and reads their real discography, and recovers a missing artist or title from the tracks or the folder name. New: Settings > Library > Group album versions collapses the original, the deluxe and the remaster into one tile showing the best quality copy you own; nothing is merged or deleted. Fixed: Qobuz and Tidal favourites are no longer capped at 5000, the streaming album grids match the main library's sizing, and Play and Add Queue sit side by side on tablets as well as phones."
     }
   },
   "channelMetadata": {

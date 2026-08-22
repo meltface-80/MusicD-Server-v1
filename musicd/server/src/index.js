@@ -194,6 +194,20 @@ server.listen(PORT, '0.0.0.0', async () => {
       }
     });
 
+    // v1.1.34.0 — backfill album version keys. On an existing install
+    // the column has just been added and is NULL everywhere, so version
+    // grouping would collapse nothing until the next scan. onlyMissing
+    // keeps this cheap on every subsequent boot: it is a no-op once the
+    // column is populated. Deferred so it never delays listen().
+    setImmediate(() => {
+      try {
+        const r = require('./albumVersions').rebuildVersionKeys({ onlyMissing: true });
+        if (r.changed > 0) console.log(`[versions] backfilled ${r.changed} album version key(s)`);
+      } catch (e) {
+        console.warn('[versions] key backfill failed:', e.message);
+      }
+    });
+
     // v1.1.0.78 — bug-report retention sweep. Runs on boot then once
     // a day. Drops reports older than 90 days, keeping a floor of
     // 50 most recent so a tester who reported a flurry doesn't lose

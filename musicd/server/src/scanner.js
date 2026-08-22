@@ -373,6 +373,17 @@ async function scan(musicDir) {
     setPhase('rebuilding_stats', 'Rebuilding album stats…');
     console.log('📊 Recomputing album stats...');
     db.rebuildAlbumStats();
+    // v1.1.34.0 — version keys follow the album's title and artist, both
+    // of which a scan can change (a retag, a moved folder, a newly
+    // populated album_artist). Rebuilt here so the album wall groups on
+    // what the library actually says right now.
+    try {
+      require('./albumVersions').rebuildVersionKeys();
+    } catch (e) {
+      // Non-fatal: grouping degrades to whatever keys were already
+      // stored, and the next scan or match run rebuilds them.
+      console.warn('[scan] version key rebuild failed:', e.message);
+    }
     // v1.1.0.97 — derive album types now that track_count and
     // total_duration are fresh. The type uses MB release-group
     // secondary types (when matched), title/folder patterns, and
