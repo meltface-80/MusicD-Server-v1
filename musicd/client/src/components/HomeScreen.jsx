@@ -3,6 +3,7 @@ import { useStore } from '../store'
 import { api } from '../api'
 import { Mic2, Disc3, Music2, Tag, Download, AlertTriangle, X, ChevronRight } from 'lucide-react'
 import NewsSection from './NewsSection'
+import * as homeCache from '../homeCache'
 
 // Roon-style Home screen (#28.5 / #29.8 / #30 / v1.1.21.0).
 // Top: greeting + 4 stats tiles.
@@ -33,13 +34,45 @@ import NewsSection from './NewsSection'
 const RANDOM_TTL_MS = 5 * 60 * 1000
 let randomCache = { albums: null, at: 0 }
 
+// v1.1.37.0 — the last Home payload, read ONCE at module scope.
+//
+// Read here rather than inside the component so it happens before the
+// first render rather than during it, and so a re-mount within the same
+// session (opening an album and coming back) reuses it without touching
+// localStorage again.
+//
+// Declared above the component because const is not hoisted and the state
+// initialisers below read it on the very first render.
+const SNAPSHOT = homeCache.read() || {}
+
+// Seed the module-level random cache from the snapshot too, or the first
+// Back tap after a cold launch reshuffles the row the user was looking at
+// — the exact thing that cache was added to prevent.
+if (SNAPSHOT.random && SNAPSHOT.random.length && !randomCache.albums) {
+  randomCache = { albums: SNAPSHOT.random, at: 0 }   // at: 0 so it revalidates
+}
+
 export default function HomeScreen({ onAlbumSelect, onSidebarSection }) {
-  const [stats, setStats] = useState({ total_artists: 0, total_albums: 0, total_tracks: 0 })
-  const [genreCount, setGenreCount] = useState(0)
-  // Which carousels the user wants. null while we ask — see the effect below.
-  const [prefs, setPrefs] = useState(null)
-  const [added, setAdded] = useState({ albums: [], loading: true })
-  const [played, setPlayed] = useState({ albums: [], loading: true })
+  // v1.1.37.0 — every one of these starts from the last snapshot rather
+  // than from empty. That is the whole fix: the first paint of a relaunched
+  // PWA is the screen the user last saw, not zeros and skeletons.
+  const [stats, setStats] = useState(
+    SNAPSHOT.stats || { total_artists: 0, total_albums: 0, total_tracks: 0 })
+  const [genreCount, setGenreCount] = useState(SNAPSHOT.genreCount || 0)
+  // Which carousels the user wants. null means "not known yet", and while
+  // it is null NO rows render — which on a cold start meant the carousels
+  // were missing entirely until a round-trip came back, then appeared and
+  // shoved everything below them down the page. Seeded, they are simply
+  // there from the first frame.
+  const [prefs, setPrefs] = useState(SNAPSHOT.prefs || null)
+  const [added, setAdded] = useState({
+    albums: SNAPSHOT.added || [],
+    loading: !SNAPSHOT.added,
+  })
+  const [played, setPlayed] = useState({
+    albums: SNAPSHOT.played || [],
+    loading: !SNAPSHOT.played,
+  })
   const [random, setRandom] = useState({
     albums: randomCache.albums || [],
     loading: !randomCache.albums,
@@ -53,10 +86,24 @@ export default function HomeScreen({ onAlbumSelect, onSidebarSection }) {
   // Stats — fired once on mount. /library/stats is cached server-side so this
   // is cheap.
   useEffect(() => {
-    api.get('/library/stats').then(setStats).catch(() => {})
+    // Revalidate, but only re-render when the answer differs from what is
+    // already on screen. On a relaunch the common case is that nothing has
+    // changed, and setting state anyway repaints every tile.
+    api.get('/library/stats')
+      .then(next => {
+        setStats(prev => (homeCache.changed(prev, next) ? next : prev))
+        homeCache.write({ stats: next })
+      })
+      .catch(() => {})
     // Genre count comes from a separate endpoint that returns the full list;
     // we just want its length.
-    api.get('/library/genres').then(g => setGenreCount(Array.isArray(g) ? g.length : 0)).catch(() => {})
+    api.get('/library/genres')
+      .then(g => {
+        const n = Array.isArray(g) ? g.length : 0
+        setGenreCount(prev => (prev === n ? prev : n))
+        homeCache.write({ genreCount: n })
+      })
+      .catch(() => {})
   }, [])
 
   // Which rows to show. Asked for once, before any row fetches, so a row the
@@ -65,7 +112,12 @@ export default function HomeScreen({ onAlbumSelect, onSidebarSection }) {
   useEffect(() => {
     let cancelled = false
     api.get('/home/prefs')
-      .then(r => { if (!cancelled) setPrefs(r?.prefs || {}) })
+      .then(r => {
+        if (cancelled) return
+        const next = r?.prefs || {}
+        setPrefs(prev => (homeCache.changed(prev, next) ? next : prev))
+        homeCache.write({ prefs: next })
+      })
       // A settings read that fails must not cost the user their Home screen.
       // Fall back to what the server ships as defaults: everything on. These
       // rows only read the local library, so showing one unasked-for costs a
@@ -81,20 +133,37 @@ export default function HomeScreen({ onAlbumSelect, onSidebarSection }) {
   useEffect(() => {
     if (!prefs || !prefs.recentlyAdded) return
     let cancelled = false
-    setAdded(r => ({ albums: r.albums, loading: true }))
+    // Only show the loading state when there is nothing to show. With a
+    // snapshot on screen, a background revalidation must not replace it
+    // with skeletons — that is the refresh the user is objecting to.
+    setAdded(r => ({ albums: r.albums, loading: r.albums.length === 0 }))
     api.get('/library/albums/recent?type=added&limit=12')
-      .then(a => { if (!cancelled) setAdded({ albums: a || [], loading: false }) })
-      .catch(() => { if (!cancelled) setAdded({ albums: [], loading: false }) })
+      .then(a => {
+        if (cancelled) return
+        const albums = a || []
+        setAdded(r => (homeCache.changed(r.albums, albums)
+          ? { albums, loading: false }
+          : { albums: r.albums, loading: false }))
+        homeCache.write({ added: albums })
+      })
+      .catch(() => { if (!cancelled) setAdded(r => ({ albums: r.albums, loading: false })) })
     return () => { cancelled = true }
   }, [prefs && prefs.recentlyAdded])
 
   useEffect(() => {
     if (!prefs || !prefs.recentlyPlayed) return
     let cancelled = false
-    setPlayed(r => ({ albums: r.albums, loading: true }))
+    setPlayed(r => ({ albums: r.albums, loading: r.albums.length === 0 }))
     api.get('/library/albums/recent?type=played&limit=12')
-      .then(a => { if (!cancelled) setPlayed({ albums: a || [], loading: false }) })
-      .catch(() => { if (!cancelled) setPlayed({ albums: [], loading: false }) })
+      .then(a => {
+        if (cancelled) return
+        const albums = a || []
+        setPlayed(r => (homeCache.changed(r.albums, albums)
+          ? { albums, loading: false }
+          : { albums: r.albums, loading: false }))
+        homeCache.write({ played: albums })
+      })
+      .catch(() => { if (!cancelled) setPlayed(r => ({ albums: r.albums, loading: false })) })
     return () => { cancelled = true }
   }, [prefs && prefs.recentlyPlayed])
 
@@ -115,7 +184,10 @@ export default function HomeScreen({ onAlbumSelect, onSidebarSection }) {
         const albums = a || []
         // Only a non-empty roll is worth keeping: caching an empty one would
         // pin "No albums" on the row for the next five minutes.
-        if (albums.length) randomCache = { albums, at: Date.now() }
+        if (albums.length) {
+          randomCache = { albums, at: Date.now() }
+          homeCache.write({ random: albums })
+        }
         setRandom({ albums, loading: false })
       })
       .catch(() => { if (!cancelled) setRandom(r => ({ albums: r.albums, loading: false })) })

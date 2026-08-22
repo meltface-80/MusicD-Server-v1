@@ -12,6 +12,42 @@ Categories used per release:
 
 ---
 
+## v1.1.37.0 — 2026-08-22 — REOPENING THE APP KEEPS THE SCREEN YOU LEFT
+
+### Fixed
+
+- **Reopening the PWA no longer rebuilds the Home screen in front of
+  you.** iOS throws away a backgrounded app's web view, so reopening
+  MusicD is a genuine cold start — and the Home screen used to show it:
+  the counters read zero, the carousels were missing entirely, then they
+  appeared as empty skeletons, then they filled in. Four paints, three of
+  them wrong, and two large jumps as the page grew.
+
+  It now remembers the last Home screen it drew and puts that up
+  **immediately**, on the first frame, before anything reaches the
+  network. The fresh data still arrives a moment later and still brings
+  in anything you have added — but the screen is only redrawn where
+  something actually changed, so a relaunch with nothing new looks like
+  the app was never closed.
+
+  Details worth knowing:
+  - Nothing is served stale from the network. The service worker still
+    never caches API responses; this is one screen remembering what it
+    last showed, not a caching policy.
+  - The random-albums row remembers its roll too, so the first Back tap
+    after reopening no longer reshuffles the row you were looking at.
+  - If the browser refuses storage — private mode, no quota — the screen
+    behaves exactly as it did before, fetching everything.
+
+### Changed
+
+- **The versions button sits alongside the ReplayGain figures** rather
+  than on a line of its own. Two short things each taking a full row was
+  a row of a phone screen spent on very little. The figures shrink and
+  wrap to make room; the button keeps its place.
+
+---
+
 ## v1.1.36.0 — 2026-08-22 — THE ALBUM HEADER, AND A HEART WHERE YOU CAN REACH IT
 
 A second layout pass on the album page, from two more phone screenshots.

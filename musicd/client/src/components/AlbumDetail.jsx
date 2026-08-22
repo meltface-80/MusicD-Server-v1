@@ -251,6 +251,11 @@ export default function AlbumDetail({ albumId, onArtistClick, onGenreClick, onBa
                 : albumId && String(albumId).startsWith('tidal:') ? 'tidal'
                 : null
   const serviceAlbumId = service ? String(albumId).slice(service.length + 1) : null
+  // v1.1.37.0 — hoisted out of AlbumVersions. The button now shares a row
+  // with the ReplayGain figures while its expanded list has to run the full
+  // page width beneath that row, so the two halves are rendered in different
+  // places and cannot own the state between them.
+  const [versionsOpen, setVersionsOpen] = useState(false)
   const [inService, setInService] = useState(false)
   const [serviceBusy, setServiceBusy] = useState(false)
   const [serviceErr, setServiceErr] = useState(null)
@@ -410,6 +415,9 @@ export default function AlbumDetail({ albumId, onArtistClick, onGenreClick, onBa
   // derived per-album not per-track). Take the first non-null
   // value found. coverage = how many tracks have at least a track
   // gain value, used for the "scanned 8/12 tracks" subtitle.
+  // v1.1.37.0 — read in two places now (the detail row's button and the
+  // list below it), so it is computed once rather than repeated.
+  const hasVersions = Array.isArray(album.versions) && album.versions.length > 1
   const rgScannedCount = album.tracks?.filter(t => typeof t.track_gain_db === 'number').length || 0
   const rgFirstWithAlbum = album.tracks?.find(t => typeof t.album_gain_db === 'number')
   const albumRg = rgFirstWithAlbum ? {
@@ -587,22 +595,44 @@ export default function AlbumDetail({ albumId, onArtistClick, onGenreClick, onBa
                 scanned. The chip in each track row gives the
                 track-level number; this line gives the album
                 context. */}
-            {albumRg && (
-              <div style={s.heroRgRow}>
-                <span style={s.heroRgLabel}>RG</span>
-                <span style={s.heroRgValue}>
-                  Album {albumRg.albumGainDb > 0 ? '+' : ''}{albumRg.albumGainDb.toFixed(2)} dB
-                  {albumRg.albumPeakDb !== null && (
-                    <> · peak {albumRg.albumPeakDb.toFixed(2)} dBFS</>
-                  )}
-                  {albumRg.referenceLufs !== null && (
-                    <> · ref {albumRg.referenceLufs.toFixed(0)} LUFS</>
-                  )}
-                </span>
-                {rgScannedCount < (album.tracks?.length || 0) && (
-                  <span style={s.heroRgCoverage}>
-                    {rgScannedCount}/{album.tracks?.length || 0} tracks
+            {/* v1.1.37.0 — the ReplayGain figures and the versions button
+                share one row. Two short things each taking a full line was a
+                row of the page spent on very little. The RG group flexes and
+                wraps internally; the button does not shrink, so on a narrow
+                screen the figures wrap and the button keeps its place, and
+                only if there is genuinely no room does it drop to its own
+                line — which is where it was anyway. */}
+            {(albumRg || hasVersions) && (
+              <div style={s.detailRow}>
+                {albumRg && (
+                  <span style={s.heroRgRow}>
+                    <span style={s.heroRgLabel}>RG</span>
+                    <span style={s.heroRgValue}>
+                      Album {albumRg.albumGainDb > 0 ? '+' : ''}{albumRg.albumGainDb.toFixed(2)} dB
+                      {albumRg.albumPeakDb !== null && (
+                        <> · peak {albumRg.albumPeakDb.toFixed(2)} dBFS</>
+                      )}
+                      {albumRg.referenceLufs !== null && (
+                        <> · ref {albumRg.referenceLufs.toFixed(0)} LUFS</>
+                      )}
+                    </span>
+                    {rgScannedCount < (album.tracks?.length || 0) && (
+                      <span style={s.heroRgCoverage}>
+                        {rgScannedCount}/{album.tracks?.length || 0} tracks
+                      </span>
+                    )}
                   </span>
+                )}
+                {hasVersions && (
+                  <button
+                    style={s.versionsToggle}
+                    onClick={() => setVersionsOpen(v => !v)}
+                    aria-expanded={versionsOpen}
+                  >
+                    <Layers size={13} strokeWidth={1.8} />
+                    <span>{album.versions.length} versions</span>
+                    <ChevronDown size={13} style={{ transform: versionsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+                  </button>
                 )}
               </div>
             )}
@@ -618,9 +648,12 @@ export default function AlbumDetail({ albumId, onArtistClick, onGenreClick, onBa
                 whenever there is more than one, INDEPENDENT of the grouping
                 toggle: knowing you have three copies of a record is useful
                 whether or not the wall is collapsing them, and this is where
-                you would come to compare or play a particular one. */}
-            {Array.isArray(album.versions) && album.versions.length > 1 && (
-              <AlbumVersions versions={album.versions} onOpen={(id) => setSelectedAlbum(id)} />
+                you would come to compare or play a particular one.
+                v1.1.37.0 — the button that opens this sits up in the detail
+                row; only the list itself is here, because it needs the full
+                width and the button does not. */}
+            {hasVersions && versionsOpen && (
+              <AlbumVersionsList versions={album.versions} onOpen={(id) => setSelectedAlbum(id)} />
             )}
             {service && (
               <div style={s.serviceLine}>
@@ -1605,19 +1638,11 @@ function TrackRowActions({ track, onFavoriteChange, onRatingChange }) {
 // first row is the one a collapsed tile on the album wall would have
 // shown. Rendering in that order means the list agrees with the wall
 // without this component having to know the rule.
-function AlbumVersions({ versions, onOpen }) {
-  const [open, setOpen] = useState(false)
-
+// v1.1.37.0 — the list only. Its toggle button moved up into the detail row
+// beside the ReplayGain figures, and the open state with it: the button and
+// the list are no longer siblings, so neither can own it.
+function AlbumVersionsList({ versions, onOpen }) {
   return (
-    <div style={s.versionsWrap}>
-      <button style={s.versionsToggle} onClick={() => setOpen(v => !v)} aria-expanded={open}>
-        <Layers size={13} strokeWidth={1.8} />
-        <span>{versions.length} versions</span>
-        <ChevronDown size={13} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
-      </button>
-      {/* v1.1.35.0 — no hint line. The button reads "3 versions", which
-          already says everything the sentence under it was saying. */}
-      {open && (
         <div style={s.versionsList}>
           {versions.map(v => (
             <button
@@ -1638,8 +1663,6 @@ function AlbumVersions({ versions, onOpen }) {
             </button>
           ))}
         </div>
-      )}
-    </div>
   )
 }
 
@@ -2019,17 +2042,13 @@ const s = {
     flexWrap: 'wrap',
   },
   serviceLineText: { fontSize: 11, color: 'var(--jp-text-3)' },
-  // v1.1.34.0 — the version list. Eight new keys, each checked absent
-  // from this map first (a duplicate is an esbuild warning, not an
-  // error, and the later value silently wins).
-  versionsWrap: { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 12, width: '100%' },
   versionsToggle: {
-    display: 'inline-flex', alignItems: 'center', gap: 6,
+    display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
     padding: '6px 11px', borderRadius: 20, fontSize: 12, fontWeight: 600,
     background: 'transparent', color: 'var(--jp-text-2)',
     border: '1px solid rgba(var(--tint-rgb), 0.15)', cursor: 'pointer',
   },
-  versionsList: { width: '100%', display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 },
+  versionsList: { width: '100%', display: 'flex', flexDirection: 'column', gap: 4, marginTop: -4, marginBottom: 14 },
   versionRow: {
     display: 'flex', alignItems: 'center', gap: 10, width: '100%',
     padding: '9px 12px', borderRadius: 6, textAlign: 'left',
@@ -2225,12 +2244,32 @@ const s = {
   },
   // v1.1.0.76 — album-level RG row in the hero. Smaller than the
   // year/tracks/genre meta line above it; reads as a sub-line.
-  heroRgRow: {
+  // v1.1.37.0 — one row holding the ReplayGain figures and the versions
+  // button. The RG group flexes and shrinks; the button does not. So the
+  // figures wrap inside their own box to make room, and the button only
+  // drops to a second line when there is genuinely none left.
+  detailRow: {
     display: 'flex',
+    alignItems: 'center',
+    // NOT wrap. Wrapping let the button drop to a line of its own the
+    // moment the figures got long, which is the row this change exists to
+    // save. Held on one line, the RG group shrinks and its text wraps
+    // INSIDE its own box instead, and the button keeps its place at the
+    // right whatever the figures say.
+    flexWrap: 'nowrap',
+    gap: 10,
+    marginBottom: 14,
+  },
+  heroRgRow: {
+    // inline-flex, not flex: this is a flex ITEM of detailRow now, not a
+    // row of its own. As a block it would take the full width and push the
+    // versions button onto the next line every time.
+    display: 'inline-flex',
+    flex: '1 1 auto',
+    minWidth: 0,
     alignItems: 'flex-start',
     gap: 8,
     marginTop: 0,
-    marginBottom: 14,
     fontSize: 12,
     color: 'var(--jp-text-3)',
     fontFamily: 'var(--font-mono)',

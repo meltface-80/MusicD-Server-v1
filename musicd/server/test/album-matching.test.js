@@ -589,6 +589,49 @@ test('the heart is on every album and the service plus only on streaming ones', 
     'streaming albums — it is this app\'s own favourite and applies to all of them');
 });
 
+test('the versions button shares a row with the ReplayGain figures', () => {
+  const raw = readRaw('..', '..', 'client', 'src', 'components', 'AlbumDetail.jsx');
+  const d = code(readClient('components', 'AlbumDetail.jsx'));
+
+  const row = /  detailRow: \{([\s\S]*?)\n  \},/.exec(raw);
+  assert.ok(row, 'the shared detail row is gone');
+  assert.ok(/flexWrap: 'nowrap'/.test(row[1]),
+    'the row must NOT wrap. Wrapping let the versions button drop to a line ' +
+    'of its own the moment the ReplayGain figures got long — which is the ' +
+    'row this change exists to save. Held on one line, the figures shrink ' +
+    'and wrap inside their own box instead.');
+
+  const rg = /  heroRgRow: \{([\s\S]*?)\n  \},/.exec(raw);
+  assert.ok(rg, 'the ReplayGain group style is gone');
+  assert.ok(/display: 'inline-flex'/.test(rg[1]),
+    'the RG group is a flex ITEM of the shared row now; as a block it takes ' +
+    'the full width and pushes the button off every time');
+  assert.ok(/flex: '1 1 auto'/.test(rg[1]) && /minWidth: 0/.test(rg[1]),
+    'it has to be allowed to shrink, or there is no room for the button');
+
+  assert.ok(/versionsToggle: \{[^}]*flexShrink: 0/.test(raw),
+    'the button must not shrink — its label would truncate before the ' +
+    'figures wrapped, which is the wrong thing to give up');
+});
+
+test('the versions list still gets the full width below that row', () => {
+  const d = code(readClient('components', 'AlbumDetail.jsx'));
+  // The button is in the row; the expanded list is a sibling underneath.
+  // They are no longer siblings of each other, so neither can own the
+  // open state — it has to be hoisted.
+  assert.match(d, /const \[versionsOpen, setVersionsOpen\] = useState\(false\)/,
+    'the disclosure state must be hoisted: the button and the list render in ' +
+    'different places now');
+  assert.match(d, /function AlbumVersionsList\(/,
+    'the list component should say it is only the list');
+  assert.ok(!/function AlbumVersions\(/.test(d),
+    'the old button-plus-list component must be gone, not left beside its ' +
+    'replacement');
+  assert.match(d, /versionsList: \{ width: '100%'/,
+    'the list still needs the full page width — it is why it did not stay in ' +
+    'the row with its button');
+});
+
 test('the detectors actually detect', () => {
   // A check that cannot fail is worse than no check.
 
@@ -637,6 +680,12 @@ test('the detectors actually detect', () => {
   const h = /  hero: \{([^}]*)\}/.exec(centred);
   assert.ok(h && !/alignItems: 'stretch'/.test(h[1]),
     'the hero-alignment check must go red on a centred hero');
+
+  // (k) The detail row allowed to wrap again.
+  const wrapping = "  detailRow: {\n    flexWrap: 'wrap',\n  },";
+  const dr = /  detailRow: \{([\s\S]*?)\n  \},/.exec(wrapping);
+  assert.ok(dr && !/flexWrap: 'nowrap'/.test(dr[1]),
+    'the shared-row check must go red when the row can wrap again');
 
   // (j) The heart left in the overflow sheet as well.
   const bothPlaces = 'function AlbumOverflowSheet() { return <Heart /> }';

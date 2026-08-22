@@ -373,6 +373,117 @@ test('Recent activity is two rows now, not one with tabs', async (t) => {
   });
 });
 
+
+// ---------------------------------------------------------------------------
+// Reopening the PWA (v1.1.37.0).
+// ---------------------------------------------------------------------------
+//
+// iOS evicts a backgrounded PWA's web view, so reopening it is a genuine
+// cold start of the JavaScript. Before this, that meant four paints and
+// three of them wrong:
+//
+//   1. counters reading 0 artists / 0 albums / 0 tracks
+//   2. NO carousels at all, because prefs starts null and the screen will
+//      not guess which rows the user wants
+//   3. prefs returns, the rows appear as empty skeletons
+//   4. three more calls return and the rows fill
+//
+// Two big layout jumps, which reads as the whole page refreshing. The fix
+// is not HTTP caching — the service worker deliberately never caches
+// /api/* — it is having something true to draw on the FIRST frame.
+
+test('the Home screen draws its last known state on the first frame', async (t) => {
+  const home = code(readClient('components', 'HomeScreen.jsx'));
+
+  await t.test('the snapshot is read at module scope, before any render', () => {
+    assert.match(home, /const SNAPSHOT = homeCache\.read\(\) \|\| \{\}/,
+      'the snapshot must be read once, above the component — const is not ' +
+      'hoisted and the state initialisers below depend on it');
+  });
+
+  await t.test('every piece of state is seeded from it, in the initialiser', () => {
+    // In a useState INITIALISER, not an effect. An effect runs after the
+    // first paint, so the screen would still flash empty for one frame —
+    // which is the flash this whole change exists to remove.
+    for (const [what, re] of [
+      ['stats',      /useState\(\s*SNAPSHOT\.stats \|\|/],
+      ['genreCount', /useState\(SNAPSHOT\.genreCount \|\| 0\)/],
+      ['prefs',      /useState\(SNAPSHOT\.prefs \|\| null\)/],
+      ['added',      /albums: SNAPSHOT\.added \|\| \[\]/],
+      ['played',     /albums: SNAPSHOT\.played \|\| \[\]/],
+    ]) {
+      assert.match(home, re, `${what} is not seeded from the snapshot`);
+    }
+    assert.match(home, /SNAPSHOT\.random && SNAPSHOT\.random\.length/,
+      'the random row must seed the module cache too, or the first Back tap ' +
+      'after a cold launch reshuffles the row the user was looking at');
+  });
+
+  await t.test('a background refresh never replaces content with skeletons', () => {
+    // loading:true while albums are already on screen is the refresh the
+    // user objected to. Both library rows must gate it on being empty.
+    const spinners = home.match(/loading: r\.albums\.length === 0/g) || [];
+    assert.ok(spinners.length >= 2,
+      'both Recently added and Recently played must only show the loading ' +
+      'state when they have nothing to show — found ' + spinners.length);
+    assert.ok(!/setAdded\(r => \(\{ albums: r\.albums, loading: true \}\)\)/.test(home),
+      'a revalidation must not put a populated row back into loading');
+  });
+
+  await t.test('state is only set when the answer actually changed', () => {
+    // The common case on a relaunch is that nothing changed: the same
+    // twelve albums in the same order. Setting state anyway repaints every
+    // tile and makes the artwork blink.
+    const guards = home.match(/homeCache\.changed\(/g) || [];
+    assert.ok(guards.length >= 4,
+      'stats, prefs and both album rows should each compare before setting ' +
+      '— found ' + guards.length + ' guarded updates');
+  });
+
+  await t.test('and the snapshot is written back after each fetch', () => {
+    for (const key of ['stats', 'genreCount', 'prefs', 'added', 'played', 'random']) {
+      assert.ok(new RegExp(`homeCache\\.write\\(\\{ ${key}:`).test(home),
+        `${key} is never persisted, so it cannot seed the next launch`);
+    }
+  });
+});
+
+test('the Home snapshot cannot break the app when storage misbehaves', async (t) => {
+  const raw = readClient('homeCache.js');
+  const cache = code(raw);
+
+  await t.test('every localStorage access is guarded', () => {
+    // Private mode throws on access, not just on write, and a throw here
+    // would take the whole Home screen down with it.
+    const accesses = (cache.match(/localStorage\./g) || []).length;
+    const tries = (cache.match(/try \{/g) || []).length;
+    assert.ok(accesses > 0, 'the cache does not touch localStorage at all');
+    assert.ok(tries >= 3,
+      `${accesses} localStorage accesses but only ${tries} try blocks — ` +
+      'read, write and clear each need one');
+  });
+
+  await t.test('each silent catch says why silence is safe', () => {
+    // CLAUDE.md: catch (e) {} needs a comment saying why. Read the RAW
+    // source here, comments included — that is the thing being checked.
+    const blocks = raw.split(/catch \(e\) \{/).slice(1);
+    assert.ok(blocks.length >= 3, 'expected a catch per storage access');
+    for (const b of blocks) {
+      const body = b.slice(0, b.indexOf('}'));
+      assert.ok(/\/\//.test(body),
+        'a catch with no comment explaining the silence:\n' + body.trim().slice(0, 120));
+    }
+  });
+
+  await t.test('an oversized payload is skipped, not allowed to evict everything', () => {
+    assert.match(cache, /MAX_BYTES/,
+      'localStorage is a small shared budget — the theme preference and the ' +
+      'sort view live in it too, and filling it breaks them');
+    assert.ok(/json\.length > MAX_BYTES/.test(cache),
+      'the size must be checked before writing');
+  });
+});
+
 test('the Random-albums wall is three across and reachable', async (t) => {
   const wall = readClient('components', 'RandomAlbumsScreen.jsx');
   const app = readClient('App.jsx');
