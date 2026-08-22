@@ -132,6 +132,10 @@ function isConfigured() {
 // contact configured they get `musicd/<version> ( <contact> )`, without
 // one the bare `musicd/<version>`.
 function _userAgent() {
+  // buildUserAgent already returns a bare `musicd/<version>` when the
+  // contact is empty rather than emitting empty parentheses, so this can
+  // hand it whatever getContact() has. (Checked, after briefly "fixing" a
+  // malformed-User-Agent bug that does not exist.)
   return mbHttp.buildUserAgent(mbHttp.getContact());
 }
 
@@ -712,6 +716,28 @@ async function releaseGroupFor(releaseMbid, opts = {}) {
  * settings button and a network blip should read as "could not check",
  * which is a different thing from "invalid" and is reported as such.
  */
+// What is actually sitting in the token field, described without
+// revealing it. A ListenBrainz user token is `str(uuid.uuid4())` — 36
+// characters, five hyphen-separated hex groups — and the credentials
+// people paste here by mistake look nothing like that: a MetaBrainz
+// OAuth client ID or client secret is a long opaque base64-ish string.
+//
+// Length and shape alone therefore diagnose the commonest failure
+// instantly, and neither is sensitive. Saying "the saved value is 50
+// characters, and a token is a 36-character UUID" is worth more than any
+// amount of prose about which page to visit.
+const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function _describeShape(token) {
+  if (UUID_SHAPE.test(token)) return null;   // right shape; nothing to say
+  return `The saved value is ${token.length} characters and is not a UUID. `
+    + 'A ListenBrainz user token looks like 40f2b3c1-8a6e-4d21-9b7f-1c2d3e4f5a6b '
+    + '(36 characters, five groups of hex). If yours is longer and has no '
+    + 'hyphens it is almost certainly an OAuth client ID or client secret from '
+    + 'the MetaBrainz applications page, which is a different credential and '
+    + 'will never authenticate here.';
+}
+
 async function validateToken(explicitToken) {
   const token = String(explicitToken || _token() || '').trim();
   if (!token) return { valid: false, userName: null, error: 'No token saved.' };
@@ -742,16 +768,26 @@ async function validateToken(explicitToken) {
     log.info(`token validated for ListenBrainz user "${data.user_name}"`);
     return { valid: true, userName: data.user_name || null, error: null };
   }
+  // v1.1.40.1 — the guidance is APPENDED, not used as a fallback.
+  //
+  // It was written as `data.message || '<guidance>'`, and ListenBrainz
+  // always supplies a message here: an unrecognised token comes back as
+  // { valid: false, message: 'Token invalid.' }. So the fallback could
+  // never fire and every failure rendered as the bare words "Token
+  // invalid" — no hint about which credential to use, which is the whole
+  // reason the guidance was written. The test that was supposed to pin
+  // this only asserted the string appeared in this FILE, so it passed
+  // while the string was unreachable.
+  const lbSaid = String(data.message || 'Not a valid ListenBrainz user token.').trim();
+  const shape = _describeShape(token);
   return {
     valid: false,
     userName: null,
-    // The most common cause by far, and the one worth naming: people
-    // paste an OAuth client id or client secret from the applications
-    // page instead of the user token from the settings page.
-    error: data.message
-      || 'Not a valid ListenBrainz user token. Check you copied the token from '
-         + 'listenbrainz.org/settings/ and not a client ID or secret from the '
-         + 'applications page — those are a different credential and will not work here.',
+    error: shape
+      ? `${lbSaid} ${shape}`
+      : `${lbSaid} The value is the right shape for a token, so check you `
+        + 'copied it from listenbrainz.org/settings and that it has not been '
+        + 'reset since — the Reset token button on that page invalidates the old one.',
   };
 }
 

@@ -12,6 +12,32 @@ Categories used per release:
 
 ---
 
+## v1.1.41.0 — 2026-08-22 — THE TOKEN TEST NOW TELLS YOU WHAT IS WRONG
+
+### Fixed
+
+- **A rejected ListenBrainz token said only "Token invalid".** The Test
+  button added yesterday was written to explain the usual cause — people
+  paste an OAuth client ID or client secret from the MetaBrainz
+  applications page instead of the user token from ListenBrainz — but
+  that explanation was written as a *fallback* behind whatever
+  ListenBrainz itself said. ListenBrainz always says something
+  (`Token invalid.`), so the explanation could never appear. It is
+  appended now rather than substituted.
+
+- **The check also describes the shape of what you saved.** A
+  ListenBrainz user token is a 36-character UUID. If the saved value is
+  not one, the message now says how long it actually is and what a token
+  looks like — which identifies a pasted client secret immediately,
+  without anyone having to know the difference between three MetaBrainz
+  pages that all issue something called a token.
+
+- A bodyless `POST` from the web app sent `Content-Type: application/json`
+  with no body at all. Harmless today and the kind of thing that starts
+  returning 400 after a dependency bump.
+
+---
+
 ## v1.1.40.0 — 2026-08-22 — A TEST BUTTON FOR THE LISTENBRAINZ TOKEN
 
 ### New

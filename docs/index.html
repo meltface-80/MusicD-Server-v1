@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MusicD Server v1 — self-hosted music server</title>
-<meta name="description" content="MusicD Server v1.1.40.0 — a self-hosted music server with a fast, dense web UI, MusicBrainz album matching, album version grouping, Qobuz and Tidal merged into one library, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
+<meta name="description" content="MusicD Server v1.1.41.0 — a self-hosted music server with a fast, dense web UI, MusicBrainz album matching, album version grouping, Qobuz and Tidal merged into one library, DLNA/UPnP, Sonos and ALSA output, parametric EQ, AutoEQ, FIR convolution and a per-stream signal path visualiser.">
 <style>
   :root {
     --bg:        #1b1d1f;   /* charcoal */
@@ -263,7 +263,7 @@
   Squeezelite and local USB DACs &mdash; with parametric EQ, AutoEQ presets,
   FIR convolution and a per-stream signal path you can actually read.</p>
   <div class="badges">
-    <span class="badge">v1.1.40.0</span>
+    <span class="badge">v1.1.41.0</span>
     <span class="badge">Node 20 &middot; Express &middot; SQLite</span>
     <span class="badge">React SPA &middot; PWA</span>
     <span class="badge plain">Docker &middot; port 32700</span>
@@ -275,12 +275,29 @@
 
 <section id="whats-new" aria-labelledby="whats-new-h">
   <div class="wrap">
-    <h2 id="whats-new-h">What&rsquo;s new in 1.1.40.0</h2>
+    <h2 id="whats-new-h">What&rsquo;s new in 1.1.41.0</h2>
     <p class="lead">A test button for the ListenBrainz token, your own keys
     for the two shared ones, matching that finishes in seconds instead of an
     hour, a matcher that no longer gets stuck when MusicBrainz has a bad
     minute, bigger text throughout, and composers for your classical albums.</p>
     <div class="grid">
+
+      <div class="card new">
+        <span class="tagline">Fixed</span>
+        <h3><span class="em" aria-hidden="true">&#128269;</span>&hellip;and it now says what is wrong</h3>
+        <p>The Test button shipped a day too eager. When ListenBrainz rejected a
+        token it reported only <i>Token invalid</i> &mdash; the explanation of
+        the usual cause had been written as a fallback behind whatever
+        ListenBrainz itself said, and ListenBrainz always says something, so
+        the explanation could never appear.</p>
+        <p>It is added to the message now rather than replaced by it. Better
+        still, the check describes what you actually saved: a ListenBrainz user
+        token is a 36-character UUID, so if the value is a 40-character string
+        with no hyphens it says so and names the credential you have probably
+        pasted. That identifies the mistake in one glance, without anyone
+        needing to know that three different MetaBrainz pages each issue
+        something called a token.</p>
+      </div>
 
       <div class="card new">
         <span class="tagline">New</span>
@@ -1014,7 +1031,7 @@
       <code>-e MUSICD_MANIFEST_URL=https://raw.githubusercontent.com/meltface-80/MusicD-Server-v1/main/manifest.json</code>
       to your <code>docker run</code>, restart, then <b>Check for updates</b>.
       The older parser understands this manifest, so it installs normally. Drop
-      the variable afterwards &mdash; v1.1.40.0 has the same URL as its own
+      the variable afterwards &mdash; v1.1.41.0 has the same URL as its own
       default.
     </div>
   </div>
@@ -1087,7 +1104,7 @@
 </main>
 
 <footer>
-  MusicD Server v1.1.40.0 &mdash; self-hosted music, one user, one library, one home network.
+  MusicD Server v1.1.41.0 &mdash; self-hosted music, one user, one library, one home network.
   <br>MIT licence &middot; <a href="https://github.com/meltface-80/MusicD-Server-v1">Source on GitHub</a>
 </footer>
 

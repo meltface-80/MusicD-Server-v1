@@ -30,7 +30,12 @@ async function post(path, body) {
   const r = await fetch(BASE + path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+    // `JSON.stringify(undefined)` is undefined, not a string, so a
+    // bodyless post sent Content-Type: application/json with no body at
+    // all. Express tolerates that, but only just, and it is the kind of
+    // thing that starts returning 400 after a dependency bump. A caller
+    // with nothing to send means an empty object.
+    body: JSON.stringify(body === undefined ? {} : body)
   })
   if (!r.ok) throw await failure(r)
   return r.json()

@@ -633,13 +633,67 @@ test('a saved ListenBrainz token can be verified', async (t) => {
     }
   });
 
-  await t.test('the wrong-credential case is named, because it is the common one', () => {
+  await t.test('the guidance is REACHABLE, not merely present in the file', async () => {
+    // v1.1.40.1. The first version of this check asserted that the string
+    // "client ID or secret" appeared somewhere in listenBrainz.js. It
+    // passed — while the guidance was unreachable.
+    //
+    // The code read `data.message || '<guidance>'`, and ListenBrainz
+    // ALWAYS supplies a message: an unrecognised token comes back as
+    // { valid: false, message: 'Token invalid.' }. So the fallback could
+    // never fire, every failure rendered as the bare words "Token
+    // invalid", and the check meant to pin the guidance happily confirmed
+    // the presence of dead text. Exactly the test-that-cannot-fail
+    // CLAUDE.md warns about.
+    // So this drives the REAL function against the REAL response shape,
+    // with axios stubbed. Grepping for the bug's phrasing was the first
+    // attempt at this and a mutation walked straight past it — a pattern
+    // match only ever catches the exact wording you thought of.
+    const axiosPath = require.resolve('axios');
+    const lbPath = require.resolve('../src/listenBrainz');
+    const realAxios = require.cache[axiosPath];
+    try {
+      require.cache[axiosPath] = {
+        id: axiosPath, filename: axiosPath, loaded: true,
+        // This is verbatim what ListenBrainz answers for an unrecognised
+        // token: HTTP 200, valid false, and a message that is always set.
+        exports: { get: async () => ({ status: 200, data: { code: 200, message: 'Token invalid.', valid: false } }) },
+      };
+      delete require.cache[lbPath];
+      const lb2 = require('../src/listenBrainz');
+      // A 40-character OAuth secret — the thing people actually paste.
+      const r = await lb2.validateToken('1kJ8sM2pQrTvXyZ0aBcDeFgHiJkLmNoPqRsTuVwX');
+      assert.equal(r.valid, false);
+      assert.match(r.error, /Token invalid/,
+        "ListenBrainz's own message should still be shown");
+      assert.match(r.error, /client ID or client secret/i,
+        'the guidance did not reach the user — it is unreachable behind '
+        + "ListenBrainz's own message again, which is the exact bug this pins");
+      assert.match(r.error, /40 characters/, 'the shape diagnostic did not reach the user');
+    } finally {
+      if (realAxios) require.cache[axiosPath] = realAxios;
+      else delete require.cache[axiosPath];
+      delete require.cache[lbPath];
+    }
+  });
+
+  await t.test('a wrong-shaped credential is diagnosed by shape', () => {
+    // Driven directly rather than grepped: this is the part that tells
+    // someone holding a 40-character OAuth secret why it will never work,
+    // and it has to keep working with no network.
     const src = read('listenBrainz.js');
-    // People paste the OAuth client id or secret from the applications
-    // page instead of the user token from the settings page. An error
-    // that just says "invalid" sends them back to the same wrong page.
-    assert.match(src, /client ID or secret/i,
-      'the invalid-token message does not mention the credential people actually paste');
+    const block = src.match(/const UUID_SHAPE[\s\S]*?\n\}\n/);
+    assert.ok(block, 'the shape describer is gone');
+    // eslint-disable-next-line no-eval
+    const describe = eval(`${block[0]}; _describeShape`);
+
+    assert.equal(describe('40f2b3c1-8a6e-4d21-9b7f-1c2d3e4f5a6b'), null,
+      'a correctly-shaped token must draw no complaint');
+    const secret = describe('1kJ8sM2pQrTvXyZ0aBcDeFgHiJkLmNoPqRsTuVwX');
+    assert.match(secret, /40 characters/, 'the length is not reported');
+    assert.match(secret, /client ID or client secret/i,
+      'the message does not name the credential people actually paste');
+    assert.match(describe('short'), /5 characters/);
   });
 
   await t.test('the route exists and is gated', () => {
